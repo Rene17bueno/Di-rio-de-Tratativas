@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Diário de Tratativas · Controle</title>
-  <link rel="icon" type="image/png" href="icons8-done-48.png">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
@@ -236,8 +235,8 @@
             <input type="date" class="form-control form-control-sm tratativa-input" id="filtroQuadroData">
           </div>
           <div class="col-6 col-md-3">
-            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-search me-1"></i>Mapa</label>
-            <input type="text" class="form-control form-control-sm tratativa-input" id="filtroQuadroMapa" placeholder="ex: 51452">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-search me-1"></i>Mapa ou Cod PDV</label>
+            <input type="text" class="form-control form-control-sm tratativa-input" id="filtroQuadroMapa" placeholder="ex: 51452 ou PDV">
           </div>
           <div class="col-5 col-md-2">
             <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-funnel me-1"></i>Status</label>
@@ -412,8 +411,8 @@
 
         <div class="row g-2 mb-3">
           <div class="col-6 col-md-3">
-            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-search me-1"></i>Nº do mapa</label>
-            <input type="text" class="form-control form-control-sm tratativa-input" id="filtroMapaNumero" placeholder="ex: 51452">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-search me-1"></i>Mapa ou Cod PDV</label>
+            <input type="text" class="form-control form-control-sm tratativa-input" id="filtroMapaNumero" placeholder="ex: 51452 ou PDV">
           </div>
           <div class="col-6 col-md-2">
             <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-shop me-1"></i>Revenda</label>
@@ -455,15 +454,45 @@
             <thead class="bg-soft-blue" style="background: #dceaff; position: sticky; top: 0;">
               <tr>
                 <th>Mapa</th>
+                <th>Cod PDV</th>
                 <th>Revenda</th>
                 <th>Data</th>
                 <th>Tipo Ação</th>
-                <th>Observação</th>
+                <th>Problema</th>
+                <th>Resolução</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody id="corpoListaMapas"></tbody>
           </table>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mb-2 mt-4">
+        <div class="text-secondary small fw-semibold">Análise por Revenda, Mapa e Assunto — agrupado por dia</div>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Agrupamento de data">
+          <button type="button" class="btn btn-outline-primary active" id="btnAgrupSemana">Dia da Semana</button>
+          <button type="button" class="btn btn-outline-primary" id="btnAgrupMes">Dia do Mês</button>
+        </div>
+      </div>
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <div class="card card-shadow p-3">
+            <div class="text-secondary small fw-semibold mb-2">Tratativas por Revenda</div>
+            <canvas id="chartRevendaPorDia" height="110"></canvas>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="card card-shadow p-3">
+            <div class="text-secondary small fw-semibold mb-2">Mapas por Revenda</div>
+            <canvas id="chartMapasPorDia" height="110"></canvas>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="card card-shadow p-3">
+            <div class="text-secondary small fw-semibold mb-2">Tratativas por Assunto (Tipo de Ação)</div>
+            <canvas id="chartAssuntoPorDia" height="110"></canvas>
+          </div>
         </div>
       </div>
 
@@ -635,6 +664,10 @@
         return opcoes.map(o => `<option value="${o}" ${o === (selecionado || 'Pendente') ? 'selected' : ''}>${o}</option>`).join('');
       }
 
+      function badgeMapaStatusCurto(status) {
+        return `<span class="badge ${badgeClassPorStatus(status)}" style="font-size:0.65rem;">${status || 'Pendente'}</span>`;
+      }
+
       function atualizarMapasUI() {
         mapasContainer.innerHTML = '';
         if (mapasTemp.length === 0) {
@@ -643,44 +676,131 @@
         }
         mapasTemp.forEach((itemMap, index) => {
           const div = document.createElement('div');
-          div.className = 'mapa-card-item row align-items-center g-2';
+          div.className = 'mapa-card-item mapa-card-collapsible mb-2';
+          const aberto = !!itemMap.expanded;
+          const qtdPdv = (itemMap.pdvs || []).length;
           div.innerHTML = `
-            <div class="col-md-2 fw-semibold text-primary-dark">
-              <i class="bi bi-map me-1"></i> ${itemMap.numero}
+            <div class="mapa-card-header d-flex align-items-center justify-content-between" data-index="${index}" style="cursor:pointer;">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <i class="bi bi-map text-primary"></i>
+                <span class="fw-semibold text-primary-dark">${itemMap.numero}</span>
+                ${qtdPdv ? `<span class="badge bg-light text-dark border">${qtdPdv} PDV${qtdPdv > 1 ? 's' : ''}</span>` : ''}
+                ${badgeMapaStatusCurto(itemMap.status)}
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <button class="btn-remove-mapa" data-index="${index}" type="button" title="Remover mapa"><i class="bi bi-x-circle-fill"></i></button>
+                <i class="bi ${aberto ? 'bi-chevron-up' : 'bi-chevron-down'} mapa-toggle-icon text-secondary" data-index="${index}"></i>
+              </div>
             </div>
-            <div class="col-md-5">
-              <input type="text" class="form-control form-control-sm mapa-obs-input" data-index="${index}" placeholder="Observação específica para este mapa..." value="${itemMap.obs || ''}">
-            </div>
-            <div class="col-md-4">
-              <select class="form-select form-select-sm mapa-status-select" data-index="${index}">
-                ${opcoesStatusMapa(itemMap.status)}
-              </select>
-            </div>
-            <div class="col-md-1 text-end">
-              <button class="btn-remove-mapa" data-index="${index}" type="button"><i class="bi bi-x-circle-fill"></i></button>
+            <div class="mapa-card-body" style="${aberto ? '' : 'display:none;'}">
+              <div class="row g-2 mt-2">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Cod PDV</label>
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control mapa-pdv-input" data-index="${index}" placeholder="Cod PDV">
+                    <button class="btn btn-outline-primary mapa-pdv-add" data-index="${index}" type="button" title="Adicionar Cod PDV"><i class="bi bi-plus-lg"></i></button>
+                  </div>
+                  <div class="mt-1 d-flex flex-wrap gap-1 mapa-pdv-list">
+                    ${(itemMap.pdvs || []).map((pdv, pidx) => `<span class="badge bg-light text-dark border">PDV ${pdv} <i class="bi bi-x-circle-fill mapa-pdv-remove" data-index="${index}" data-pidx="${pidx}" style="cursor:pointer;"></i></span>`).join('')}
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Status</label>
+                  <select class="form-select form-select-sm mapa-status-select" data-index="${index}">
+                    ${opcoesStatusMapa(itemMap.status)}
+                  </select>
+                </div>
+              </div>
+              <div class="row g-2 mt-2">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Descrição do problema</label>
+                  <textarea class="form-control form-control-sm mapa-problema-input" data-index="${index}" rows="2" placeholder="Descreva o problema encontrado neste mapa...">${itemMap.problema || ''}</textarea>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Descrição da resolução</label>
+                  <textarea class="form-control form-control-sm mapa-resolucao-input" data-index="${index}" rows="2" placeholder="Descreva como o problema foi resolvido...">${itemMap.resolucao || ''}</textarea>
+                </div>
+              </div>
             </div>
           `;
           mapasContainer.appendChild(div);
         });
 
-        document.querySelectorAll('.mapa-obs-input').forEach(input => {
-          input.addEventListener('input', function() {
+        mapasContainer.querySelectorAll('.mapa-card-header').forEach(header => {
+          header.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-remove-mapa')) return;
             const idx = parseInt(this.dataset.index);
-            mapasTemp[idx].obs = this.value;
+            mapasTemp[idx].expanded = !mapasTemp[idx].expanded;
+            atualizarMapasUI();
           });
         });
 
-        document.querySelectorAll('.mapa-status-select').forEach(sel => {
+        mapasContainer.querySelectorAll('.mapa-problema-input').forEach(input => {
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            mapasTemp[idx].problema = this.value;
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-resolucao-input').forEach(input => {
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            mapasTemp[idx].resolucao = this.value;
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-status-select').forEach(sel => {
+          sel.addEventListener('click', e => e.stopPropagation());
           sel.addEventListener('change', function() {
             const idx = parseInt(this.dataset.index);
             mapasTemp[idx].status = this.value;
           });
         });
 
-        document.querySelectorAll('.btn-remove-mapa').forEach(btn => {
-          btn.addEventListener('click', function() {
+        mapasContainer.querySelectorAll('.btn-remove-mapa').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const idx = parseInt(this.dataset.index);
             mapasTemp.splice(idx, 1);
+            atualizarMapasUI();
+          });
+        });
+
+        function adicionarPdv(idx) {
+          const input = document.querySelector(`.mapa-pdv-input[data-index="${idx}"]`);
+          const pdv = input.value.trim();
+          if (!pdv) return;
+          if (!mapasTemp[idx].pdvs) mapasTemp[idx].pdvs = [];
+          mapasTemp[idx].pdvs.push(pdv);
+          atualizarMapasUI();
+        }
+
+        mapasContainer.querySelectorAll('.mapa-pdv-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+        });
+
+        mapasContainer.querySelectorAll('.mapa-pdv-add').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            adicionarPdv(parseInt(this.dataset.index));
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-pdv-input').forEach(input => {
+          input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              adicionarPdv(parseInt(this.dataset.index));
+            }
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-pdv-remove').forEach(icon => {
+          icon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const idx = parseInt(this.dataset.index);
+            const pidx = parseInt(this.dataset.pidx);
+            mapasTemp[idx].pdvs.splice(pidx, 1);
             atualizarMapasUI();
           });
         });
@@ -694,51 +814,135 @@
         }
         editMapasTemp.forEach((itemMap, index) => {
           const div = document.createElement('div');
-          div.className = 'mapa-card-item row align-items-center g-2';
+          div.className = 'mapa-card-item mapa-card-collapsible mb-2';
+          const aberto = !!itemMap.expanded;
+          const qtdPdv = (itemMap.pdvs || []).length;
           div.innerHTML = `
-            <div class="col-md-2 fw-semibold text-primary-dark">
-              <i class="bi bi-map me-1"></i> ${itemMap.numero}
+            <div class="mapa-card-header d-flex align-items-center justify-content-between" data-index="${index}" style="cursor:pointer;">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <i class="bi bi-map text-primary"></i>
+                <span class="fw-semibold text-primary-dark">${itemMap.numero}</span>
+                ${qtdPdv ? `<span class="badge bg-light text-dark border">${qtdPdv} PDV${qtdPdv > 1 ? 's' : ''}</span>` : ''}
+                ${badgeMapaStatusCurto(itemMap.status)}
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <button class="btn-remove-mapa edit-remove-mapa" data-index="${index}" type="button" title="Remover mapa"><i class="bi bi-x-circle-fill"></i></button>
+                <i class="bi ${aberto ? 'bi-chevron-up' : 'bi-chevron-down'} mapa-toggle-icon text-secondary" data-index="${index}"></i>
+              </div>
             </div>
-            <div class="col-md-5">
-              <input type="text" class="form-control form-control-sm edit-mapa-obs-input" data-index="${index}" placeholder="Observação específica para este mapa..." value="${itemMap.obs || ''}">
-            </div>
-            <div class="col-md-4">
-              <select class="form-select form-select-sm edit-mapa-status-select" data-index="${index}">
-                ${opcoesStatusMapa(itemMap.status)}
-              </select>
-            </div>
-            <div class="col-md-1 text-end">
-              <button class="btn-remove-mapa edit-remove-mapa" data-index="${index}" type="button"><i class="bi bi-x-circle-fill"></i></button>
+            <div class="mapa-card-body" style="${aberto ? '' : 'display:none;'}">
+              <div class="row g-2 mt-2">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Cod PDV</label>
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control edit-mapa-pdv-input" data-index="${index}" placeholder="Cod PDV">
+                    <button class="btn btn-outline-primary edit-mapa-pdv-add" data-index="${index}" type="button" title="Adicionar Cod PDV"><i class="bi bi-plus-lg"></i></button>
+                  </div>
+                  <div class="mt-1 d-flex flex-wrap gap-1">
+                    ${(itemMap.pdvs || []).map((pdv, pidx) => `<span class="badge bg-light text-dark border">PDV ${pdv} <i class="bi bi-x-circle-fill edit-mapa-pdv-remove" data-index="${index}" data-pidx="${pidx}" style="cursor:pointer;"></i></span>`).join('')}
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Status</label>
+                  <select class="form-select form-select-sm edit-mapa-status-select" data-index="${index}">
+                    ${opcoesStatusMapa(itemMap.status)}
+                  </select>
+                </div>
+              </div>
+              <div class="row g-2 mt-2">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Descrição do problema</label>
+                  <textarea class="form-control form-control-sm edit-mapa-problema-input" data-index="${index}" rows="2" placeholder="Descreva o problema encontrado neste mapa...">${itemMap.problema || ''}</textarea>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Descrição da resolução</label>
+                  <textarea class="form-control form-control-sm edit-mapa-resolucao-input" data-index="${index}" rows="2" placeholder="Descreva como o problema foi resolvido...">${itemMap.resolucao || ''}</textarea>
+                </div>
+              </div>
             </div>
           `;
           editMapasContainer.appendChild(div);
         });
 
-        document.querySelectorAll('.edit-mapa-obs-input').forEach(input => {
-          input.addEventListener('input', function() {
+        editMapasContainer.querySelectorAll('.mapa-card-header').forEach(header => {
+          header.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-remove-mapa')) return;
             const idx = parseInt(this.dataset.index);
-            editMapasTemp[idx].obs = this.value;
+            editMapasTemp[idx].expanded = !editMapasTemp[idx].expanded;
+            atualizarEditMapasUI();
           });
         });
 
-        document.querySelectorAll('.edit-mapa-status-select').forEach(sel => {
+        editMapasContainer.querySelectorAll('.edit-mapa-problema-input').forEach(input => {
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            editMapasTemp[idx].problema = this.value;
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-resolucao-input').forEach(input => {
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            editMapasTemp[idx].resolucao = this.value;
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-status-select').forEach(sel => {
+          sel.addEventListener('click', e => e.stopPropagation());
           sel.addEventListener('change', function() {
             const idx = parseInt(this.dataset.index);
             editMapasTemp[idx].status = this.value;
           });
         });
 
-        document.querySelectorAll('.edit-remove-mapa').forEach(btn => {
-          btn.addEventListener('click', function() {
+        editMapasContainer.querySelectorAll('.edit-remove-mapa').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const idx = parseInt(this.dataset.index);
             editMapasTemp.splice(idx, 1);
             atualizarEditMapasUI();
           });
         });
-      }
 
-      // ============================================================
-      // 4. FUNÇÕES DE RENDERIZAÇÃO
+        function adicionarPdvEdit(idx) {
+          const input = document.querySelector(`.edit-mapa-pdv-input[data-index="${idx}"]`);
+          const pdv = input.value.trim();
+          if (!pdv) return;
+          if (!editMapasTemp[idx].pdvs) editMapasTemp[idx].pdvs = [];
+          editMapasTemp[idx].pdvs.push(pdv);
+          atualizarEditMapasUI();
+        }
+
+        editMapasContainer.querySelectorAll('.edit-mapa-pdv-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-pdv-add').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            adicionarPdvEdit(parseInt(this.dataset.index));
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-pdv-input').forEach(input => {
+          input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              adicionarPdvEdit(parseInt(this.dataset.index));
+            }
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-pdv-remove').forEach(icon => {
+          icon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const idx = parseInt(this.dataset.index);
+            const pidx = parseInt(this.dataset.pidx);
+            editMapasTemp[idx].pdvs.splice(pidx, 1);
+            atualizarEditMapasUI();
+          });
+        });
+      }
       // ============================================================
       function renderizarTabela(lista) {
         if (!lista) lista = tratativas;
@@ -759,7 +963,12 @@
 
           let mapasHtml = '-';
           if (item.mapas && item.mapas.length > 0) {
-            mapasHtml = item.mapas.map(m => `<div class="mb-1"><strong>${m.numero}</strong>${m.obs ? ': ' + m.obs : ''} <span class="badge ${badgeClassPorStatus(m.status)}" style="font-size: 0.6rem;">${m.status || 'Pendente'}</span></div>`).join('');
+            mapasHtml = item.mapas.map(m => {
+              const pdvsStr = (m.pdvs && m.pdvs.length) ? ` <span class="text-secondary">[PDV: ${m.pdvs.join(', ')}]</span>` : '';
+              const problema = m.problema || m.obs || '';
+              const resolucaoStr = m.resolucao ? ` <span class="text-success">| Resolução: ${m.resolucao}</span>` : '';
+              return `<div class="mb-1"><strong>${m.numero}</strong>${pdvsStr}${problema ? ': ' + problema : ''}${resolucaoStr} <span class="badge ${badgeClassPorStatus(m.status)}" style="font-size: 0.6rem;">${m.status || 'Pendente'}</span></div>`;
+            }).join('');
           }
 
           tr.innerHTML = `
@@ -811,7 +1020,11 @@
           if (data && item.data !== data) return false;
           if (status && item.status !== status) return false;
           if (mapa) {
-            const temMapa = (item.mapas || []).some(m => String(m.numero).toLowerCase().includes(mapa));
+            const temMapa = (item.mapas || []).some(m => {
+              const noNumero = String(m.numero).toLowerCase().includes(mapa);
+              const noPdv = (m.pdvs || []).some(pdv => String(pdv).toLowerCase().includes(mapa));
+              return noNumero || noPdv;
+            });
             if (!temMapa) return false;
           }
           return true;
@@ -850,7 +1063,11 @@
           
           let mapasStr = '-';
           if (item.mapas && item.mapas.length > 0) {
-            mapasStr = item.mapas.map(m => `${m.numero}${m.obs ? ' (' + m.obs + ')' : ''} [${m.status || 'Pendente'}]`).join(', ');
+            mapasStr = item.mapas.map(m => {
+              const pdvsStr = (m.pdvs && m.pdvs.length) ? ` PDV:${m.pdvs.join('/')}` : '';
+              const problema = m.problema || m.obs || '';
+              return `${m.numero}${pdvsStr}${problema ? ' (' + problema + ')' : ''} [${m.status || 'Pendente'}]`;
+            }).join(', ');
           }
 
           col.innerHTML = `
@@ -889,6 +1106,31 @@
         'Arquivado': '#6c757d'
       };
       const CORES_PALETA = ['#2b7af0', '#4d8cf0', '#7fb0f5', '#1f68d6', '#0a3e7c', '#b8d4ff'];
+      const REVENDAS_LISTA = ['MGA', 'GPA', 'PG', 'NP'];
+      const TIPOS_ACAO_LISTA = ['On Time', 'Dispersão de KM', 'Dispersão de Tempo'];
+      const CORES_REVENDA = { 'MGA': '#2b7af0', 'GPA': '#20c997', 'PG': '#fd7e14', 'NP': '#6f42c1' };
+      const CORES_TIPO_ACAO = { 'On Time': '#2b7af0', 'Dispersão de KM': '#fd7e14', 'Dispersão de Tempo': '#20c997' };
+      const DIAS_SEMANA_ORDEM = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+      const DIAS_SEMANA_JS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+      let agrupamentoData = 'semana'; // 'semana' | 'mes'
+
+      function chaveAgrupamentoData(dataStr) {
+        if (!dataStr) return null;
+        if (agrupamentoData === 'semana') {
+          const d = new Date(dataStr + 'T00:00:00');
+          if (isNaN(d.getTime())) return null;
+          return DIAS_SEMANA_JS[d.getDay()];
+        }
+        const dia = String(dataStr).slice(8, 10);
+        return dia || null;
+      }
+
+      function rotulosAgrupamentoData() {
+        if (agrupamentoData === 'semana') return DIAS_SEMANA_ORDEM;
+        const dias = [];
+        for (let i = 1; i <= 31; i++) dias.push(String(i).padStart(2, '0'));
+        return dias;
+      }
 
       if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
         Chart.register(ChartDataLabels);
@@ -1062,8 +1304,10 @@
           (t.mapas || []).forEach(m => {
             lista.push({
               numero: m.numero,
-              obs: m.obs || '',
+              problema: m.problema || m.obs || '',
+              resolucao: m.resolucao || '',
               status: m.status || 'Pendente',
+              pdvs: m.pdvs || [],
               revenda: t.revenda || '',
               data: t.data || '',
               tipoAcao: t.tipoAcao || ''
@@ -1134,7 +1378,11 @@
         const dataAte = document.getElementById('filtroMapaDataAte')?.value || '';
 
         return lista.filter(m => {
-          if (numero && !String(m.numero).toLowerCase().includes(numero)) return false;
+          if (numero) {
+            const noNumero = String(m.numero).toLowerCase().includes(numero);
+            const noPdv = (m.pdvs || []).some(pdv => String(pdv).toLowerCase().includes(numero));
+            if (!noNumero && !noPdv) return false;
+          }
           if (revenda && m.revenda !== revenda) return false;
           if (status && m.status !== status) return false;
           if (dataDe && (!m.data || m.data < dataDe)) return false;
@@ -1167,17 +1415,19 @@
         contador.textContent = `${mapas.length} / ${todos.length}`;
 
         if (mapas.length === 0) {
-          corpo.innerHTML = '<tr><td colspan="6" class="text-center text-secondary py-3">Nenhum mapa encontrado para os filtros selecionados.</td></tr>';
+          corpo.innerHTML = '<tr><td colspan="8" class="text-center text-secondary py-3">Nenhum mapa encontrado para os filtros selecionados.</td></tr>';
           return;
         }
 
         corpo.innerHTML = mapas.map(m => `
           <tr>
             <td class="fw-semibold text-primary-dark">${m.numero}</td>
+            <td>${(m.pdvs && m.pdvs.length) ? m.pdvs.map(p => `<span class="badge bg-light text-dark border me-1">${p}</span>`).join('') : '-'}</td>
             <td><span class="badge bg-info">${m.revenda}</span></td>
             <td>${m.data}</td>
             <td>${m.tipoAcao}</td>
-            <td class="text-break">${m.obs || '-'}</td>
+            <td class="text-break">${m.problema || '-'}</td>
+            <td class="text-break">${m.resolucao || '-'}</td>
             <td><span class="badge ${badgeClassPorStatus(m.status)}">${m.status}</span></td>
           </tr>
         `).join('');
@@ -1221,12 +1471,82 @@
         });
       }
 
+      let chartRevendaPorDia = null;
+      let chartMapasPorDia = null;
+      let chartAssuntoPorDia = null;
+
+      function montarDatasetsEmpilhados(categorias, coresPorCategoria, contarFn) {
+        const labels = rotulosAgrupamentoData();
+        return {
+          labels,
+          datasets: categorias.map(cat => ({
+            label: cat,
+            data: labels.map(lbl => contarFn(cat, lbl)),
+            backgroundColor: coresPorCategoria[cat] || '#2b7af0',
+            borderRadius: 3
+          }))
+        };
+      }
+
+      function opcoesBarraEmpilhada() {
+        return {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+            datalabels: { display: false }
+          },
+          scales: {
+            x: { stacked: true },
+            y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+          }
+        };
+      }
+
+      function atualizarChartsPorDia() {
+        if (typeof Chart === 'undefined') return;
+
+        // Tratativas por Revenda, agrupadas por dia
+        const dadosRevenda = montarDatasetsEmpilhados(REVENDAS_LISTA, CORES_REVENDA, (revenda, lbl) => {
+          return tratativas.filter(t => t.revenda === revenda && chaveAgrupamentoData(t.data) === lbl).length;
+        });
+        if (chartRevendaPorDia) chartRevendaPorDia.destroy();
+        chartRevendaPorDia = new Chart(document.getElementById('chartRevendaPorDia'), {
+          type: 'bar',
+          data: dadosRevenda,
+          options: opcoesBarraEmpilhada()
+        });
+
+        // Mapas por Revenda, agrupados por dia (conta cada mapa individualmente)
+        const mapas = todosOsMapas();
+        const dadosMapas = montarDatasetsEmpilhados(REVENDAS_LISTA, CORES_REVENDA, (revenda, lbl) => {
+          return mapas.filter(m => m.revenda === revenda && chaveAgrupamentoData(m.data) === lbl).length;
+        });
+        if (chartMapasPorDia) chartMapasPorDia.destroy();
+        chartMapasPorDia = new Chart(document.getElementById('chartMapasPorDia'), {
+          type: 'bar',
+          data: dadosMapas,
+          options: opcoesBarraEmpilhada()
+        });
+
+        // Tratativas por Assunto (Tipo de Ação), agrupadas por dia
+        const dadosAssunto = montarDatasetsEmpilhados(TIPOS_ACAO_LISTA, CORES_TIPO_ACAO, (tipo, lbl) => {
+          return tratativas.filter(t => t.tipoAcao === tipo && chaveAgrupamentoData(t.data) === lbl).length;
+        });
+        if (chartAssuntoPorDia) chartAssuntoPorDia.destroy();
+        chartAssuntoPorDia = new Chart(document.getElementById('chartAssuntoPorDia'), {
+          type: 'bar',
+          data: dadosAssunto,
+          options: opcoesBarraEmpilhada()
+        });
+      }
+
       function renderizarTudo() {
         renderizarTabela(tratativas);
         renderizarPostits();
         atualizarLembrete();
         atualizarDashboard();
         atualizarChartPorData();
+        atualizarChartsPorDia();
       }
 
       function atualizarLembrete() {
@@ -1412,7 +1732,7 @@
           tipoAcao: tipoAcao,
           dt: dt,
           descricao: descricao || 'Sem descrição',
-          mapas: JSON.parse(JSON.stringify(mapasTemp)),
+          mapas: mapasTemp.map(m => ({ numero: m.numero, pdvs: m.pdvs || [], problema: m.problema || '', resolucao: m.resolucao || '', status: m.status || 'Pendente' })),
           status: status
         };
 
@@ -1440,7 +1760,14 @@
         editDt.value = item.dt || '';
         editDescricao.value = item.descricao || '';
         editStatus.value = item.status || 'Pendente';
-        editMapasTemp = item.mapas ? JSON.parse(JSON.stringify(item.mapas)) : [];
+        editMapasTemp = (item.mapas || []).map(m => ({
+          numero: m.numero,
+          pdvs: m.pdvs || [],
+          problema: m.problema !== undefined ? m.problema : (m.obs || ''),
+          resolucao: m.resolucao || '',
+          status: m.status || 'Pendente',
+          expanded: false
+        }));
         atualizarEditMapasUI();
         editNovoMapa.value = '';
         if (modalEditar) modalEditar.show();
@@ -1469,7 +1796,7 @@
         item.tipoAcao = editTipoAcao.value;
         item.dt = editDt.value || '-';
         item.descricao = editDescricao.value.trim() || 'Sem descrição';
-        item.mapas = JSON.parse(JSON.stringify(editMapasTemp));
+        item.mapas = editMapasTemp.map(m => ({ numero: m.numero, pdvs: m.pdvs || [], problema: m.problema || '', resolucao: m.resolucao || '', status: m.status || 'Pendente' }));
         item.status = editStatus.value;
 
         renderizarTudo();
@@ -1485,15 +1812,27 @@
           showToast('Não há registros para exportar.', 'warning');
           return;
         }
-        const dados = tratativas.map(t => ({
-          'Data': t.data || '',
-          'Revenda': t.revenda || '',
-          'Tipo Ação': t.tipoAcao || '',
-          'DT': t.dt || '',
-          'Descrição': t.descricao || '',
-          'Mapas e Detalhes': (t.mapas || []).map(m => `${m.numero} (${m.obs || 'sem obs'}) [${m.status || 'Pendente'}]`).join('; '),
-          'Status': t.status || ''
-        }));
+        const dados = [];
+        tratativas.forEach(t => {
+          const mapas = (t.mapas && t.mapas.length) ? t.mapas : [null];
+          mapas.forEach(m => {
+            const problema = m ? (m.problema || m.obs || 'sem descrição') : '';
+            const resolucao = m ? (m.resolucao || '') : '';
+            const detalhe = m ? `Problema: ${problema}${resolucao ? ' | Resolução: ' + resolucao : ''}` : (t.descricao || '');
+            const pdvs = (m && m.pdvs && m.pdvs.length) ? m.pdvs : [''];
+            pdvs.forEach(pdv => {
+              dados.push({
+                'Data': t.data || '',
+                'Revenda': t.revenda || '',
+                'Tipo de Ação': t.tipoAcao || '',
+                'Mapa': m ? m.numero : '-',
+                'Cod PDV': pdv || '-',
+                'Detalhe': detalhe,
+                'Status': m ? (m.status || 'Pendente') : (t.status || '')
+              });
+            });
+          });
+        });
         try {
           const wb = XLSX.utils.book_new();
           const ws = XLSX.utils.json_to_sheet(dados);
@@ -1570,7 +1909,7 @@
       document.getElementById('addMapaBtn').addEventListener('click', function() {
         const mapa = inputMapa.value.trim();
         if (mapa) {
-          mapasTemp.push({ numero: mapa, obs: '', status: 'Pendente' });
+          mapasTemp.push({ numero: mapa, pdvs: [], problema: '', resolucao: '', status: 'Pendente', expanded: true });
           atualizarMapasUI();
           inputMapa.value = '';
           inputMapa.focus();
@@ -1590,6 +1929,19 @@
       document.getElementById('filtroQuadroMapa').addEventListener('input', renderizarPostits);
       document.getElementById('limparFiltroQuadroBtn').addEventListener('click', limparFiltrosQuadro);
 
+      document.getElementById('btnAgrupSemana').addEventListener('click', function() {
+        agrupamentoData = 'semana';
+        this.classList.add('active');
+        document.getElementById('btnAgrupMes').classList.remove('active');
+        atualizarChartsPorDia();
+      });
+      document.getElementById('btnAgrupMes').addEventListener('click', function() {
+        agrupamentoData = 'mes';
+        this.classList.add('active');
+        document.getElementById('btnAgrupSemana').classList.remove('active');
+        atualizarChartsPorDia();
+      });
+
       document.getElementById('filtroMapaNumero').addEventListener('input', atualizarListaMapas);
       document.getElementById('filtroMapaRevenda').addEventListener('change', atualizarListaMapas);
       document.getElementById('filtroMapaStatus').addEventListener('change', atualizarListaMapas);
@@ -1606,7 +1958,7 @@
       document.getElementById('editAddMapaBtn').addEventListener('click', function() {
         const mapa = editNovoMapa.value.trim();
         if (mapa) {
-          editMapasTemp.push({ numero: mapa, obs: '', status: 'Pendente' });
+          editMapasTemp.push({ numero: mapa, pdvs: [], problema: '', resolucao: '', status: 'Pendente', expanded: true });
           atualizarEditMapasUI();
           editNovoMapa.value = '';
           editNovoMapa.focus();
