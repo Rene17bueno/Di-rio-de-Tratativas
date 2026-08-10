@@ -350,12 +350,86 @@
 
       <div class="card card-shadow p-3 mb-4">
         <div class="text-secondary small fw-semibold mb-2"><i class="bi bi-table me-1"></i>Revenda × Motivo (contagem e DT médio)</div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-shop me-1"></i>Revenda</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroMatrizRevenda">
+              <option value="">Todas</option>
+              <option value="MGA">MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-calendar-week me-1"></i>Semana do mês</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroMatrizSemana">
+              <option value="">Total</option>
+              <option value="1">Semana 1</option>
+              <option value="2">Semana 2</option>
+              <option value="3">Semana 3</option>
+              <option value="4">Semana 4</option>
+              <option value="5">Semana 5</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-calendar3 me-1"></i>Mês</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroMatrizMes">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
+
         <div class="table-responsive">
           <table class="table table-sm table-bordered align-middle mb-0" id="tabelaMatriz" style="font-size: 0.85rem;">
             <thead class="bg-soft-blue" style="background: #dceaff;">
               <tr id="matrizCabecalho"></tr>
             </thead>
             <tbody id="matrizCorpo"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card card-shadow p-3 mb-4">
+        <div class="text-secondary small fw-semibold mb-2"><i class="bi bi-calendar3-week me-1"></i>Motivo × Dia da Semana (contagem)</div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-shop me-1"></i>Revenda</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroDiaSemanaRevenda">
+              <option value="">Todas</option>
+              <option value="MGA">MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-calendar-week me-1"></i>Semana do mês</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroDiaSemanaSemana">
+              <option value="">Total</option>
+              <option value="1">Semana 1</option>
+              <option value="2">Semana 2</option>
+              <option value="3">Semana 3</option>
+              <option value="4">Semana 4</option>
+              <option value="5">Semana 5</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-calendar3 me-1"></i>Mês</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroDiaSemanaMes">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle mb-0" id="tabelaDiaSemana" style="font-size: 0.85rem;">
+            <thead class="bg-soft-blue" style="background: #dceaff;">
+              <tr id="diaSemanaCabecalho"></tr>
+            </thead>
+            <tbody id="diaSemanaCorpo"></tbody>
           </table>
         </div>
       </div>
@@ -664,6 +738,15 @@
         return opcoes.map(o => `<option value="${o}" ${o === (selecionado || 'Pendente') ? 'selected' : ''}>${o}</option>`).join('');
       }
 
+      function normalizarPdv(p) {
+        if (typeof p === 'string') return { codigo: p, descricao: '', resolucao: '' };
+        return { codigo: p.codigo || '', descricao: p.descricao || '', resolucao: p.resolucao || '' };
+      }
+
+      function normalizarListaPdvs(pdvs) {
+        return (pdvs || []).map(normalizarPdv);
+      }
+
       function badgeMapaStatusCurto(status) {
         return `<span class="badge ${badgeClassPorStatus(status)}" style="font-size:0.65rem;">${status || 'Pendente'}</span>`;
       }
@@ -694,22 +777,39 @@
             </div>
             <div class="mapa-card-body" style="${aberto ? '' : 'display:none;'}">
               <div class="row g-2 mt-2">
-                <div class="col-12 col-md-6">
-                  <label class="form-label small fw-semibold text-secondary mb-1">Cod PDV</label>
-                  <div class="input-group input-group-sm">
-                    <input type="text" class="form-control mapa-pdv-input" data-index="${index}" placeholder="Cod PDV">
-                    <button class="btn btn-outline-primary mapa-pdv-add" data-index="${index}" type="button" title="Adicionar Cod PDV"><i class="bi bi-plus-lg"></i></button>
-                  </div>
-                  <div class="mt-1 d-flex flex-wrap gap-1 mapa-pdv-list">
-                    ${(itemMap.pdvs || []).map((pdv, pidx) => `<span class="badge bg-light text-dark border">PDV ${pdv} <i class="bi bi-x-circle-fill mapa-pdv-remove" data-index="${index}" data-pidx="${pidx}" style="cursor:pointer;"></i></span>`).join('')}
-                  </div>
-                </div>
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-md-5">
                   <label class="form-label small fw-semibold text-secondary mb-1">Status</label>
                   <select class="form-select form-select-sm mapa-status-select" data-index="${index}">
                     ${opcoesStatusMapa(itemMap.status)}
                   </select>
                 </div>
+                <div class="col-12 col-md-7">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Adicionar Cod PDV</label>
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control mapa-pdv-input" data-index="${index}" placeholder="Cod PDV">
+                    <button class="btn btn-outline-primary mapa-pdv-add" data-index="${index}" type="button" title="Adicionar Cod PDV"><i class="bi bi-plus-lg"></i></button>
+                  </div>
+                </div>
+              </div>
+              <div class="mapa-pdv-list mt-2">
+                ${(itemMap.pdvs || []).map((pdv, pidx) => `
+                  <div class="p-2 mb-2" style="background:#f4f7fb;border-radius:6px;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <span class="badge bg-light text-dark border flex-shrink-0">PDV ${pdv.codigo}</span>
+                      <i class="bi bi-x-circle-fill mapa-pdv-remove flex-shrink-0 ms-auto" data-index="${index}" data-pidx="${pidx}" style="cursor:pointer;" title="Remover PDV"></i>
+                    </div>
+                    <div class="row g-2">
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small fw-semibold text-secondary mb-1">Descrição do problema</label>
+                        <textarea class="form-control form-control-sm mapa-pdv-descricao-input" data-index="${index}" data-pidx="${pidx}" rows="2" placeholder="Descreva o problema deste PDV...">${pdv.descricao || ''}</textarea>
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small fw-semibold text-secondary mb-1">Descrição da resolução</label>
+                        <textarea class="form-control form-control-sm mapa-pdv-resolucao-input" data-index="${index}" data-pidx="${pidx}" rows="2" placeholder="Descreva como foi resolvido...">${pdv.resolucao || ''}</textarea>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
               </div>
               <div class="row g-2 mt-2">
                 <div class="col-12 col-md-6">
@@ -771,8 +871,13 @@
           const pdv = input.value.trim();
           if (!pdv) return;
           if (!mapasTemp[idx].pdvs) mapasTemp[idx].pdvs = [];
-          mapasTemp[idx].pdvs.push(pdv);
+          mapasTemp[idx].pdvs.push({ codigo: pdv, descricao: '' });
           atualizarMapasUI();
+          // mantém o card aberto e foca na descrição do PDV recém-adicionado
+          setTimeout(() => {
+            const novoInput = document.querySelector(`.mapa-pdv-descricao-input[data-index="${idx}"][data-pidx="${mapasTemp[idx].pdvs.length - 1}"]`);
+            if (novoInput) novoInput.focus();
+          }, 0);
         }
 
         mapasContainer.querySelectorAll('.mapa-pdv-input').forEach(input => {
@@ -792,6 +897,24 @@
               e.preventDefault();
               adicionarPdv(parseInt(this.dataset.index));
             }
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-pdv-descricao-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            const pidx = parseInt(this.dataset.pidx);
+            mapasTemp[idx].pdvs[pidx].descricao = this.value;
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-pdv-resolucao-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            const pidx = parseInt(this.dataset.pidx);
+            mapasTemp[idx].pdvs[pidx].resolucao = this.value;
           });
         });
 
@@ -832,22 +955,39 @@
             </div>
             <div class="mapa-card-body" style="${aberto ? '' : 'display:none;'}">
               <div class="row g-2 mt-2">
-                <div class="col-12 col-md-6">
-                  <label class="form-label small fw-semibold text-secondary mb-1">Cod PDV</label>
-                  <div class="input-group input-group-sm">
-                    <input type="text" class="form-control edit-mapa-pdv-input" data-index="${index}" placeholder="Cod PDV">
-                    <button class="btn btn-outline-primary edit-mapa-pdv-add" data-index="${index}" type="button" title="Adicionar Cod PDV"><i class="bi bi-plus-lg"></i></button>
-                  </div>
-                  <div class="mt-1 d-flex flex-wrap gap-1">
-                    ${(itemMap.pdvs || []).map((pdv, pidx) => `<span class="badge bg-light text-dark border">PDV ${pdv} <i class="bi bi-x-circle-fill edit-mapa-pdv-remove" data-index="${index}" data-pidx="${pidx}" style="cursor:pointer;"></i></span>`).join('')}
-                  </div>
-                </div>
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-md-5">
                   <label class="form-label small fw-semibold text-secondary mb-1">Status</label>
                   <select class="form-select form-select-sm edit-mapa-status-select" data-index="${index}">
                     ${opcoesStatusMapa(itemMap.status)}
                   </select>
                 </div>
+                <div class="col-12 col-md-7">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Adicionar Cod PDV</label>
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control edit-mapa-pdv-input" data-index="${index}" placeholder="Cod PDV">
+                    <button class="btn btn-outline-primary edit-mapa-pdv-add" data-index="${index}" type="button" title="Adicionar Cod PDV"><i class="bi bi-plus-lg"></i></button>
+                  </div>
+                </div>
+              </div>
+              <div class="mapa-pdv-list mt-2">
+                ${(itemMap.pdvs || []).map((pdv, pidx) => `
+                  <div class="p-2 mb-2" style="background:#f4f7fb;border-radius:6px;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <span class="badge bg-light text-dark border flex-shrink-0">PDV ${pdv.codigo}</span>
+                      <i class="bi bi-x-circle-fill edit-mapa-pdv-remove flex-shrink-0 ms-auto" data-index="${index}" data-pidx="${pidx}" style="cursor:pointer;" title="Remover PDV"></i>
+                    </div>
+                    <div class="row g-2">
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small fw-semibold text-secondary mb-1">Descrição do problema</label>
+                        <textarea class="form-control form-control-sm edit-mapa-pdv-descricao-input" data-index="${index}" data-pidx="${pidx}" rows="2" placeholder="Descreva o problema deste PDV...">${pdv.descricao || ''}</textarea>
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small fw-semibold text-secondary mb-1">Descrição da resolução</label>
+                        <textarea class="form-control form-control-sm edit-mapa-pdv-resolucao-input" data-index="${index}" data-pidx="${pidx}" rows="2" placeholder="Descreva como foi resolvido...">${pdv.resolucao || ''}</textarea>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
               </div>
               <div class="row g-2 mt-2">
                 <div class="col-12 col-md-6">
@@ -909,8 +1049,12 @@
           const pdv = input.value.trim();
           if (!pdv) return;
           if (!editMapasTemp[idx].pdvs) editMapasTemp[idx].pdvs = [];
-          editMapasTemp[idx].pdvs.push(pdv);
+          editMapasTemp[idx].pdvs.push({ codigo: pdv, descricao: '' });
           atualizarEditMapasUI();
+          setTimeout(() => {
+            const novoInput = document.querySelector(`.edit-mapa-pdv-descricao-input[data-index="${idx}"][data-pidx="${editMapasTemp[idx].pdvs.length - 1}"]`);
+            if (novoInput) novoInput.focus();
+          }, 0);
         }
 
         editMapasContainer.querySelectorAll('.edit-mapa-pdv-input').forEach(input => {
@@ -930,6 +1074,24 @@
               e.preventDefault();
               adicionarPdvEdit(parseInt(this.dataset.index));
             }
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-pdv-descricao-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            const pidx = parseInt(this.dataset.pidx);
+            editMapasTemp[idx].pdvs[pidx].descricao = this.value;
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-pdv-resolucao-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            const pidx = parseInt(this.dataset.pidx);
+            editMapasTemp[idx].pdvs[pidx].resolucao = this.value;
           });
         });
 
@@ -964,7 +1126,8 @@
           let mapasHtml = '-';
           if (item.mapas && item.mapas.length > 0) {
             mapasHtml = item.mapas.map(m => {
-              const pdvsStr = (m.pdvs && m.pdvs.length) ? ` <span class="text-secondary">[PDV: ${m.pdvs.join(', ')}]</span>` : '';
+              const pdvsNorm = normalizarListaPdvs(m.pdvs);
+              const pdvsStr = pdvsNorm.length ? ` <span class="text-secondary">[${pdvsNorm.map(p => `PDV ${p.codigo}${p.descricao ? ': ' + p.descricao : ''}${p.resolucao ? ' → ' + p.resolucao : ''}`).join(' • ')}]</span>` : '';
               const problema = m.problema || m.obs || '';
               const resolucaoStr = m.resolucao ? ` <span class="text-success">| Resolução: ${m.resolucao}</span>` : '';
               return `<div class="mb-1"><strong>${m.numero}</strong>${pdvsStr}${problema ? ': ' + problema : ''}${resolucaoStr} <span class="badge ${badgeClassPorStatus(m.status)}" style="font-size: 0.6rem;">${m.status || 'Pendente'}</span></div>`;
@@ -1022,7 +1185,7 @@
           if (mapa) {
             const temMapa = (item.mapas || []).some(m => {
               const noNumero = String(m.numero).toLowerCase().includes(mapa);
-              const noPdv = (m.pdvs || []).some(pdv => String(pdv).toLowerCase().includes(mapa));
+              const noPdv = normalizarListaPdvs(m.pdvs).some(pdv => pdv.codigo.toLowerCase().includes(mapa) || (pdv.descricao || '').toLowerCase().includes(mapa));
               return noNumero || noPdv;
             });
             if (!temMapa) return false;
@@ -1064,7 +1227,8 @@
           let mapasStr = '-';
           if (item.mapas && item.mapas.length > 0) {
             mapasStr = item.mapas.map(m => {
-              const pdvsStr = (m.pdvs && m.pdvs.length) ? ` PDV:${m.pdvs.join('/')}` : '';
+              const pdvsNorm = normalizarListaPdvs(m.pdvs);
+              const pdvsStr = pdvsNorm.length ? ` PDV:${pdvsNorm.map(p => p.codigo).join('/')}` : '';
               const problema = m.problema || m.obs || '';
               return `${m.numero}${pdvsStr}${problema ? ' (' + problema + ')' : ''} [${m.status || 'Pendente'}]`;
             }).join(', ');
@@ -1153,6 +1317,7 @@
         document.getElementById('cardArquivado').textContent = tratativas.filter(t => t.status === 'Arquivado').length;
 
         atualizarMatrizRevendaMotivo();
+        atualizarMatrizDiaSemana();
         atualizarDashboardMapas();
         atualizarListaMapas();
 
@@ -1242,22 +1407,76 @@
         });
       }
 
+      function parseDtValor(valor) {
+        if (!valor) return null;
+        const n = parseFloat(String(valor).replace('%', '').replace(',', '.'));
+        return isNaN(n) ? null : n;
+      }
+
+      function semanaDoMes(dataStr) {
+        if (!dataStr) return null;
+        const dia = parseInt(String(dataStr).slice(8, 10), 10);
+        if (isNaN(dia)) return null;
+        if (dia <= 7) return 1;
+        if (dia <= 14) return 2;
+        if (dia <= 21) return 3;
+        if (dia <= 28) return 4;
+        return 5;
+      }
+
+      function mesDoData(dataStr) {
+        if (!dataStr) return null;
+        return String(dataStr).slice(0, 7); // 'YYYY-MM'
+      }
+
+      function nomeDiaSemana(dataStr) {
+        if (!dataStr) return null;
+        const d = new Date(dataStr + 'T00:00:00');
+        if (isNaN(d.getTime())) return null;
+        return DIAS_SEMANA_JS[d.getDay()];
+      }
+
+      const NOMES_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+      function popularSelectMes(selectId) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        const valorAtual = select.value;
+        const mesesPresentes = Array.from(new Set(tratativas.map(t => mesDoData(t.data)).filter(Boolean))).sort();
+        select.innerHTML = '<option value="">Todos</option>' + mesesPresentes.map(m => {
+          const [ano, mm] = m.split('-');
+          const label = `${NOMES_MESES[parseInt(mm, 10) - 1]}/${ano}`;
+          return `<option value="${m}">${label}</option>`;
+        }).join('');
+        if (mesesPresentes.includes(valorAtual)) select.value = valorAtual;
+      }
+
+      function tratativasFiltradas(prefixo) {
+        const revenda = document.getElementById(`filtro${prefixo}Revenda`)?.value || '';
+        const semana = document.getElementById(`filtro${prefixo}Semana`)?.value || '';
+        const mes = document.getElementById(`filtro${prefixo}Mes`)?.value || '';
+        return tratativas.filter(t => {
+          if (revenda && t.revenda !== revenda) return false;
+          if (semana && String(semanaDoMes(t.data)) !== semana) return false;
+          if (mes && mesDoData(t.data) !== mes) return false;
+          return true;
+        });
+      }
+
       function atualizarMatrizRevendaMotivo() {
         const cabecalho = document.getElementById('matrizCabecalho');
         const corpo = document.getElementById('matrizCorpo');
         if (!cabecalho || !corpo) return;
 
-        const REVENDAS = ['MGA', 'GPA', 'PG', 'NP'];
-        const MOTIVOS = ['On Time', 'Dispersão de KM', 'Dispersão de Tempo'];
+        popularSelectMes('filtroMatrizMes');
 
-        // Cabeçalho: Motivo | MGA | GPA | PG | NP | Total
+        const revendaSel = document.getElementById('filtroMatrizRevenda')?.value || '';
+        const REVENDAS = revendaSel ? [revendaSel] : REVENDAS_LISTA;
+        const MOTIVOS = TIPOS_ACAO_LISTA;
+        const lista = tratativasFiltradas('Matriz');
+
+        // Cabeçalho: Motivo | revendas | Total
         cabecalho.innerHTML = '<th>Motivo</th>' + REVENDAS.map(r => `<th class="text-center">${r}</th>`).join('') + '<th class="text-center">Total</th>';
-
-        function parseDt(valor) {
-          if (!valor) return null;
-          const n = parseFloat(String(valor).replace('%', '').replace(',', '.'));
-          return isNaN(n) ? null : n;
-        }
 
         corpo.innerHTML = '';
         const totalPorRevenda = {};
@@ -1269,11 +1488,11 @@
           let linhaHtml = `<td class="fw-semibold text-primary-dark">${motivo}</td>`;
           let totalLinha = 0;
           REVENDAS.forEach(revenda => {
-            const itens = tratativas.filter(t => t.tipoAcao === motivo && t.revenda === revenda);
+            const itens = lista.filter(t => t.tipoAcao === motivo && t.revenda === revenda);
             const qtd = itens.length;
             totalLinha += qtd;
             totalPorRevenda[revenda] += qtd;
-            const dts = itens.map(t => parseDt(t.dt)).filter(v => v !== null);
+            const dts = itens.map(t => parseDtValor(t.dt)).filter(v => v !== null);
             const media = dts.length > 0 ? (dts.reduce((a, b) => a + b, 0) / dts.length).toFixed(1).replace('.', ',') + '%' : '-';
             linhaHtml += `<td class="text-center">${qtd > 0 ? `<strong>${qtd}</strong><div class="text-secondary" style="font-size:0.7rem;">DT méd: ${media}</div>` : '-'}</td>`;
           });
@@ -1294,6 +1513,50 @@
         corpo.appendChild(trTotal);
       }
 
+      function atualizarMatrizDiaSemana() {
+        const cabecalho = document.getElementById('diaSemanaCabecalho');
+        const corpo = document.getElementById('diaSemanaCorpo');
+        if (!cabecalho || !corpo) return;
+
+        popularSelectMes('filtroDiaSemanaMes');
+
+        const DIAS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const MOTIVOS = TIPOS_ACAO_LISTA;
+        const lista = tratativasFiltradas('DiaSemana');
+
+        cabecalho.innerHTML = '<th>Motivo</th>' + DIAS.map(d => `<th class="text-center">${d}</th>`).join('') + '<th class="text-center">Total</th>';
+
+        corpo.innerHTML = '';
+        const totalPorDia = {};
+        DIAS.forEach(d => totalPorDia[d] = 0);
+        let totalGeral = 0;
+
+        MOTIVOS.forEach(motivo => {
+          const tr = document.createElement('tr');
+          let linhaHtml = `<td class="fw-semibold text-primary-dark">${motivo}</td>`;
+          let totalLinha = 0;
+          DIAS.forEach(dia => {
+            const qtd = lista.filter(t => t.tipoAcao === motivo && nomeDiaSemana(t.data) === dia).length;
+            totalLinha += qtd;
+            totalPorDia[dia] += qtd;
+            linhaHtml += `<td class="text-center">${qtd > 0 ? qtd : '-'}</td>`;
+          });
+          totalGeral += totalLinha;
+          linhaHtml += `<td class="text-center fw-bold">${totalLinha}</td>`;
+          tr.innerHTML = linhaHtml;
+          corpo.appendChild(tr);
+        });
+
+        const trTotal = document.createElement('tr');
+        trTotal.className = 'bg-soft-blue fw-bold';
+        trTotal.style.background = '#eaf3ff';
+        let totalHtml = '<td>Total</td>';
+        DIAS.forEach(d => totalHtml += `<td class="text-center">${totalPorDia[d]}</td>`);
+        totalHtml += `<td class="text-center">${totalGeral}</td>`;
+        trTotal.innerHTML = totalHtml;
+        corpo.appendChild(trTotal);
+      }
+
       let chartStatusMapas = null;
       let chartMapasPorRevenda = null;
       let chartPorData = null;
@@ -1307,7 +1570,7 @@
               problema: m.problema || m.obs || '',
               resolucao: m.resolucao || '',
               status: m.status || 'Pendente',
-              pdvs: m.pdvs || [],
+              pdvs: normalizarListaPdvs(m.pdvs),
               revenda: t.revenda || '',
               data: t.data || '',
               tipoAcao: t.tipoAcao || ''
@@ -1380,7 +1643,7 @@
         return lista.filter(m => {
           if (numero) {
             const noNumero = String(m.numero).toLowerCase().includes(numero);
-            const noPdv = (m.pdvs || []).some(pdv => String(pdv).toLowerCase().includes(numero));
+            const noPdv = (m.pdvs || []).some(pdv => pdv.codigo.toLowerCase().includes(numero) || (pdv.descricao || '').toLowerCase().includes(numero));
             if (!noNumero && !noPdv) return false;
           }
           if (revenda && m.revenda !== revenda) return false;
@@ -1422,7 +1685,7 @@
         corpo.innerHTML = mapas.map(m => `
           <tr>
             <td class="fw-semibold text-primary-dark">${m.numero}</td>
-            <td>${(m.pdvs && m.pdvs.length) ? m.pdvs.map(p => `<span class="badge bg-light text-dark border me-1">${p}</span>`).join('') : '-'}</td>
+            <td>${(m.pdvs && m.pdvs.length) ? m.pdvs.map(p => `<span class="badge bg-light text-dark border me-1" title="${[p.descricao, p.resolucao].filter(Boolean).join(' → ')}">${p.codigo}${p.descricao ? ' - ' + p.descricao : ''}${p.resolucao ? ' → ' + p.resolucao : ''}</span>`).join('') : '-'}</td>
             <td><span class="badge bg-info">${m.revenda}</span></td>
             <td>${m.data}</td>
             <td>${m.tipoAcao}</td>
@@ -1624,7 +1887,7 @@
             data: t.data_registro || t.data || '',
             tipoAcao: t.tipoacao || t.tipoAcao || '',
             mapas: t.mapas && Array.isArray(t.mapas) 
-              ? t.mapas.map(m => typeof m === 'string' ? { numero: m, obs: '', status: 'Pendente' } : { ...m, status: m.status || 'Pendente' }) 
+              ? t.mapas.map(m => typeof m === 'string' ? { numero: m, obs: '', status: 'Pendente' } : { ...m, status: m.status || 'Pendente', pdvs: normalizarListaPdvs(m.pdvs) }) 
               : []
           }));
           
@@ -1762,7 +2025,7 @@
         editStatus.value = item.status || 'Pendente';
         editMapasTemp = (item.mapas || []).map(m => ({
           numero: m.numero,
-          pdvs: m.pdvs || [],
+          pdvs: normalizarListaPdvs(m.pdvs),
           problema: m.problema !== undefined ? m.problema : (m.obs || ''),
           resolucao: m.resolucao || '',
           status: m.status || 'Pendente',
@@ -1818,15 +2081,18 @@
           mapas.forEach(m => {
             const problema = m ? (m.problema || m.obs || 'sem descrição') : '';
             const resolucao = m ? (m.resolucao || '') : '';
-            const detalhe = m ? `Problema: ${problema}${resolucao ? ' | Resolução: ' + resolucao : ''}` : (t.descricao || '');
-            const pdvs = (m && m.pdvs && m.pdvs.length) ? m.pdvs : [''];
-            pdvs.forEach(pdv => {
+            const detalheBase = m ? `Problema: ${problema}${resolucao ? ' | Resolução: ' + resolucao : ''}` : (t.descricao || '');
+            const pdvs = m ? normalizarListaPdvs(m.pdvs) : [];
+            const listaPdvs = pdvs.length ? pdvs : [null];
+            listaPdvs.forEach(pdv => {
+              const pdvInfo = pdv ? [pdv.descricao ? `Problema: ${pdv.descricao}` : '', pdv.resolucao ? `Resolução: ${pdv.resolucao}` : ''].filter(Boolean).join(' | ') : '';
+              const detalhe = pdvInfo ? `${detalheBase} | PDV ${pdv.codigo} (${pdvInfo})` : detalheBase;
               dados.push({
                 'Data': t.data || '',
                 'Revenda': t.revenda || '',
                 'Tipo de Ação': t.tipoAcao || '',
                 'Mapa': m ? m.numero : '-',
-                'Cod PDV': pdv || '-',
+                'Cod PDV': pdv ? pdv.codigo : '-',
                 'Detalhe': detalhe,
                 'Status': m ? (m.status || 'Pendente') : (t.status || '')
               });
@@ -1928,6 +2194,13 @@
       document.getElementById('filtroQuadroStatus').addEventListener('change', renderizarPostits);
       document.getElementById('filtroQuadroMapa').addEventListener('input', renderizarPostits);
       document.getElementById('limparFiltroQuadroBtn').addEventListener('click', limparFiltrosQuadro);
+
+      ['filtroMatrizRevenda', 'filtroMatrizSemana', 'filtroMatrizMes'].forEach(id => {
+        document.getElementById(id).addEventListener('change', atualizarMatrizRevendaMotivo);
+      });
+      ['filtroDiaSemanaRevenda', 'filtroDiaSemanaSemana', 'filtroDiaSemanaMes'].forEach(id => {
+        document.getElementById(id).addEventListener('change', atualizarMatrizDiaSemana);
+      });
 
       document.getElementById('btnAgrupSemana').addEventListener('click', function() {
         agrupamentoData = 'semana';
