@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tratamento de Dados para Geolocalizador</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background: #f0f7ff; padding-bottom: 3rem; }
+    .card-shadow {
+      box-shadow: 0 12px 28px rgba(0, 80, 200, 0.08), 0 4px 12px rgba(0, 40, 100, 0.04);
+      border: none;
+      border-radius: 1.25rem;
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(2px);
+    }
+    .bg-soft-blue { background: #e6f0ff; }
+    .text-primary-dark { color: #0a3e7c; }
+    .border-primary-light { border-color: #b8d4ff !important; }
+    .btn-primary-soft {
+      background: #d4e3ff;
+      border: 1px solid #b0cbff;
+      color: #0a3e7c;
+    }
+    .btn-primary-soft:hover { background: #b8d0ff; border-color: #8ab0ff; color: #0a3e7c; }
+    .tratativa-input {
+      background: #f9fcff;
+      border: 1px solid #d6e6ff;
+    }
+    .tratativa-input:focus {
+      border-color: #3f7fef;
+      box-shadow: 0 0 0 0.2rem rgba(63, 127, 239, 0.2);
+    }
+    .btn-excel {
+      background: #1e7b4b;
+      border: none;
+      color: white;
+    }
+    .btn-excel:hover { background: #13653b; color: white; }
+    .upload-zone {
+      border: 2px dashed #b8d4ff;
+      border-radius: 1rem;
+      background: #f9fcff;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .upload-zone:hover { border-color: #3f7fef; background: #f0f7ff; }
+    .step-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #2b7af0;
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .toast-custom {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      max-width: 350px;
+      min-width: 250px;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .table-preview-wrap { max-height: 360px; overflow: auto; }
+    .table-preview-wrap table { font-size: 0.8rem; }
+    .table-preview-wrap thead th {
+      position: sticky;
+      top: 0;
+      background: #dceaff;
+      z-index: 1;
+    }
+    .navbar-site {
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(2px);
+      border-radius: 1rem;
+      box-shadow: 0 12px 28px rgba(0, 80, 200, 0.08), 0 4px 12px rgba(0, 40, 100, 0.04);
+      margin-top: 1rem;
+    }
+    .navbar-site .nav-link {
+      color: #0a3e7c;
+      font-weight: 500;
+      border-radius: 0.6rem;
+      padding: 0.5rem 1rem;
+      transition: background 0.15s;
+    }
+    .navbar-site .nav-link:hover { background: #eaf3ff; }
+    .navbar-site .nav-link.active {
+      background: #2b7af0;
+      color: #fff !important;
+    }
+    @media (max-width: 576px) { .card-shadow { padding: 1rem !important; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-site px-3 py-2 mb-2">
+      <div class="container-fluid px-0">
+        <a class="navbar-brand fw-semibold text-primary-dark" href="index.html">
+          <i class="bi bi-grid-1x2-fill me-2" style="color:#2b7af0;"></i>Painel OT
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir menu">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+          <ul class="navbar-nav ms-auto gap-1">
+            <li class="nav-item">
+              <a class="nav-link" href="index.html"><i class="bi bi-journal-richtext me-1"></i>Diário de Tratativas</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" aria-current="page" href="tratativageo.html"><i class="bi bi-geo-alt-fill me-1"></i>Geolocalizador</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </div>
+  <div class="container py-4">
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
+      <div>
+        <h1 class="display-6 fw-semibold text-primary-dark">
+          <i class="bi bi-geo-alt-fill me-2" style="color: #2b7af0;"></i>Tratamento de Dados para Geolocalizador
+        </h1>
+        <p class="text-secondary small mb-0"><i class="bi bi-info-circle me-1"></i> Importe o .csv exportado da rotina do Promax para gerar o arquivo .txt de geolocalização</p>
+      </div>
+    </div>
+
+    <!-- ===================== SEÇÃO 1: NOVOS CLIENTES ===================== -->
+    <div class="card card-shadow p-3 p-md-4 mb-4">
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="step-badge">1</span>
+        <div class="text-primary-dark fw-semibold fs-5">Geolocalização de Novos Clientes</div>
+      </div>
+      <p class="text-secondary small mb-3">Arquivo .csv separado por <code>;</code>, exportado da rotina do Promax (colunas <strong>Filial</strong>, <strong>Cliente</strong>, <strong>Coordenadas</strong> e <strong>Data Inclusão</strong>).</p>
+
+      <div class="upload-zone mb-3">
+        <i class="bi bi-cloud-arrow-up fs-2 text-primary" style="color:#2b7af0;"></i>
+        <p class="mb-2 text-secondary small">Selecione o arquivo .csv de novos clientes</p>
+        <input type="file" class="form-control tratativa-input" id="inputCsvNovos" accept=".csv">
+      </div>
+
+      <div id="resultadoNovosWrap" style="display:none;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between mb-2">
+          <div class="text-secondary small fw-semibold">
+            <i class="bi bi-table me-1"></i>Concatenar <span class="badge bg-light text-dark border" id="contadorNovos">0</span>
+          </div>
+          <div>
+            <button class="btn btn-primary-soft btn-sm me-2" id="btnLimparNovos"><i class="bi bi-arrow-counterclockwise me-1"></i> Limpar</button>
+            <button class="btn btn-excel btn-sm" id="btnBaixarNovos"><i class="bi bi-download me-1"></i> Exportar para TXT</button>
+          </div>
+        </div>
+        <div class="table-preview-wrap card-shadow p-2">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Filial</th>
+                <th>Cliente</th>
+                <th>Coordenadas</th>
+                <th>Data Inclusão</th>
+                <th>Concatenar</th>
+              </tr>
+            </thead>
+            <tbody id="corpoNovos"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SEÇÃO 2: CORRIGIR CLIENTE EXISTENTE ===================== -->
+    <div class="card card-shadow p-3 p-md-4 mb-4">
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="step-badge">2</span>
+        <div class="text-primary-dark fw-semibold fs-5">Corrigir Geolocalizador de Cliente Existente</div>
+      </div>
+      <p class="text-secondary small mb-3">Arquivo .csv separado por <code>,</code> com as colunas <strong>CÓDIGO DO CLIENTE</strong> e <strong>Coordenadas</strong>.</p>
+
+      <div class="upload-zone mb-3">
+        <i class="bi bi-cloud-arrow-up fs-2" style="color:#2b7af0;"></i>
+        <p class="mb-2 text-secondary small">Selecione o arquivo .csv de processamento de coordenadas</p>
+        <input type="file" class="form-control tratativa-input" id="inputCsvExistente" accept=".csv">
+      </div>
+
+      <div id="resultadoExistenteWrap" style="display:none;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between mb-2">
+          <div class="text-secondary small fw-semibold">
+            <i class="bi bi-table me-1"></i>Concatenado <span class="badge bg-light text-dark border" id="contadorExistente">0</span>
+          </div>
+          <div>
+            <button class="btn btn-primary-soft btn-sm me-2" id="btnLimparExistente"><i class="bi bi-arrow-counterclockwise me-1"></i> Limpar</button>
+            <button class="btn btn-excel btn-sm" id="btnBaixarExistente"><i class="bi bi-download me-1"></i> Exportar para TXT</button>
+          </div>
+        </div>
+        <div class="table-preview-wrap card-shadow p-2">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Código do Cliente</th>
+                <th>Coordenadas</th>
+                <th>Concatenado</th>
+              </tr>
+            </thead>
+            <tbody id="corpoExistente"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ============================================================
+    // 1. UTILITÁRIOS
+    // ============================================================
+    function showToast(mensagem, tipo = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `alert alert-${tipo} toast-custom`;
+      toast.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+      toast.innerHTML = `<i class="bi ${tipo === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle'} me-2"></i> ${mensagem}`;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function baixarTxt(conteudo, nomeArquivo) {
+      const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nomeArquivo;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Lê o arquivo com o encoding informado (equivalente ao encoding= do pandas)
+    function lerArquivoComEncoding(file, encoding) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(file, encoding);
+      });
+    }
+
+    function parseCsv(texto, delimitador) {
+      const resultado = Papa.parse(texto, {
+        header: true,
+        delimiter: delimitador,
+        skipEmptyLines: true,
+        transformHeader: h => h.replace(/^\uFEFF/, '').trim()
+      });
+      return resultado.data;
+    }
+
+    // ============================================================
+    // 2. SEÇÃO 1 — GEOLOCALIZAÇÃO DE NOVOS CLIENTES
+    // ============================================================
+    const FILIAL_MAP = { '1': 'Maringá', '2': 'Guarapuava', '3': 'Ponta_Grossa', '4': 'Norte_Pioneiro' };
+
+    // Equivalente a ajustar_coordenadas()
+    function ajustarCoordenadas(coordenadas) {
+      const partes = String(coordenadas ?? '').split(';');
+      if (partes.length === 5) {
+        partes[1] = partes[1].replace(/^0+/, '');
+        partes[3] = partes[3].replace(/^0+/, '');
+        return `${partes[0]};-${partes[1]};${partes[2]};-${partes[3]};${partes[4]}`;
+      }
+      return String(coordenadas ?? '');
+    }
+
+    // Equivalente a remove_leading_zero()
+    function removeLeadingZero(s) {
+      return s.replace(/;-0/g, ';-');
+    }
+
+    // Equivalente a substituir_ponto_virgula_por_ponto()
+    function substituirPontoVirgulaPorPonto(s) {
+      const partes = s.split(';');
+      if (partes.length === 5) {
+        partes[1] = `${partes[1]}.${partes[2]}`;
+        partes[3] = `${partes[3]}.${partes[4]}`;
+        let novas = `${partes[0]};-${partes[1]};-${partes[3]}`;
+        novas = novas.replace(/;--/g, ';-');
+        return novas;
+      }
+      return s;
+    }
+
+    let dadosNovosFiltrados = [];
+
+    function processarNovosClientes(linhas) {
+      const processadas = linhas.map(row => {
+        const filialCod = String(row['Filial'] ?? '').trim();
+        const filialNome = FILIAL_MAP[filialCod] || row['Filial'] || '';
+        let coordenadas = String(row['Coordenadas'] ?? '').replace(/,/g, ';').replace(/\s+/g, '');
+        coordenadas = ajustarCoordenadas(coordenadas);
+        const cliente = String(row['Cliente'] ?? '');
+        const dataInclusao = row['Data Inclusão'] ?? row['Data Inclusao'] ?? '';
+        return {
+          Filial: filialNome,
+          Cliente: cliente,
+          Coordenadas: coordenadas,
+          DataInclusao: dataInclusao,
+          Concatenar: `${cliente};${coordenadas}`
+        };
+      });
+
+      // Remove as linhas "em branco" (coordenada zerada)
+      const filtradas = processadas.filter(r => !r.Concatenar.endsWith('000;000000;000;000000'));
+
+      // Ajustes finais no texto do Concatenar
+      filtradas.forEach(r => {
+        let c = removeLeadingZero(r.Concatenar);
+        c = substituirPontoVirgulaPorPonto(c);
+        r.Concatenar = c;
+      });
+
+      return filtradas;
+    }
+
+    function renderizarNovos(linhas) {
+      const corpo = document.getElementById('corpoNovos');
+      const wrap = document.getElementById('resultadoNovosWrap');
+      document.getElementById('contadorNovos').textContent = linhas.length;
+
+      if (linhas.length === 0) {
+        corpo.innerHTML = '<tr><td colspan="5" class="text-center text-secondary py-3">Nenhuma linha válida encontrada no arquivo.</td></tr>';
+      } else {
+        corpo.innerHTML = linhas.map(r => `
+          <tr>
+            <td>${r.Filial}</td>
+            <td>${r.Cliente}</td>
+            <td>${r.Coordenadas}</td>
+            <td>${r.DataInclusao}</td>
+            <td class="text-break">${r.Concatenar}</td>
+          </tr>
+        `).join('');
+      }
+      wrap.style.display = 'block';
+    }
+
+    document.getElementById('inputCsvNovos').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const texto = await lerArquivoComEncoding(file, 'ISO-8859-1'); // equivalente a encoding='latin1'
+        const linhas = parseCsv(texto, ';');
+
+        if (linhas.length === 0) {
+          showToast('Não foi possível ler linhas do arquivo. Verifique o separador (;) e o conteúdo.', 'danger');
+          return;
+        }
+
+        dadosNovosFiltrados = processarNovosClientes(linhas);
+        renderizarNovos(dadosNovosFiltrados);
+        showToast(`Arquivo processado! ${dadosNovosFiltrados.length} registros prontos para exportar.`);
+      } catch (err) {
+        console.error(err);
+        showToast('Erro ao processar o arquivo: ' + err.message, 'danger');
+      }
+    });
+
+    document.getElementById('btnBaixarNovos').addEventListener('click', function() {
+      if (dadosNovosFiltrados.length === 0) {
+        showToast('Não há dados processados para exportar.', 'danger');
+        return;
+      }
+      let nomeArquivo = 'concatenar.txt';
+      const primeira = dadosNovosFiltrados[0];
+      if (primeira) {
+        const filial = primeira.Filial || 'concatenar';
+        const dataInclusao = String(primeira.DataInclusao || '').replace(/\//g, '-').replace(/\\/g, '-');
+        nomeArquivo = dataInclusao ? `${filial}_${dataInclusao}.txt` : `${filial}.txt`;
+      }
+      const conteudo = dadosNovosFiltrados.map(r => r.Concatenar).join('\n');
+      baixarTxt(conteudo, nomeArquivo);
+      showToast('Arquivo TXT exportado!');
+    });
+
+    document.getElementById('btnLimparNovos').addEventListener('click', function() {
+      dadosNovosFiltrados = [];
+      document.getElementById('inputCsvNovos').value = '';
+      document.getElementById('corpoNovos').innerHTML = '';
+      document.getElementById('contadorNovos').textContent = '0';
+      document.getElementById('resultadoNovosWrap').style.display = 'none';
+      showToast('Pronto para receber outro arquivo.');
+    });
+
+    // ============================================================
+    // 3. SEÇÃO 2 — CORRIGIR GEOLOCALIZADOR DE CLIENTE EXISTENTE
+    // ============================================================
+    let dadosExistenteProcessados = [];
+    let nomeBaseArquivoExistente = 'planilha';
+
+    function processarClienteExistente(linhas) {
+      return linhas.map(row => {
+        const codigo = String(row['CÓDIGO DO CLIENTE '] ?? row['CÓDIGO DO CLIENTE'] ?? '');
+        const coordenadasOriginais = row['Coordenadas'] ?? '';
+        let concatenado = `${codigo};${coordenadasOriginais}`;
+        concatenado = concatenado.replace(/,/g, ';').replace(/\s+/g, '');
+        return {
+          Codigo: codigo,
+          Coordenadas: coordenadasOriginais,
+          Concatenado: concatenado
+        };
+      });
+    }
+
+    function renderizarExistente(linhas) {
+      const corpo = document.getElementById('corpoExistente');
+      const wrap = document.getElementById('resultadoExistenteWrap');
+      document.getElementById('contadorExistente').textContent = linhas.length;
+
+      if (linhas.length === 0) {
+        corpo.innerHTML = '<tr><td colspan="3" class="text-center text-secondary py-3">Nenhuma linha encontrada no arquivo.</td></tr>';
+      } else {
+        corpo.innerHTML = linhas.map(r => `
+          <tr>
+            <td>${r.Codigo}</td>
+            <td>${r.Coordenadas}</td>
+            <td class="text-break">${r.Concatenado}</td>
+          </tr>
+        `).join('');
+      }
+      wrap.style.display = 'block';
+    }
+
+    document.getElementById('inputCsvExistente').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const texto = await lerArquivoComEncoding(file, 'UTF-8');
+        const linhas = parseCsv(texto, ',');
+
+        if (linhas.length === 0) {
+          showToast('Não foi possível ler linhas do arquivo. Verifique o separador (,) e o conteúdo.', 'danger');
+          return;
+        }
+
+        const colunas = Object.keys(linhas[0]);
+        const temCodigo = colunas.some(c => c.trim() === 'CÓDIGO DO CLIENTE');
+        const temCoordenadas = colunas.some(c => c.trim() === 'Coordenadas');
+
+        if (!temCodigo || !temCoordenadas) {
+          showToast("As colunas 'CÓDIGO DO CLIENTE' e 'Coordenadas' não foram encontradas no arquivo CSV.", 'danger');
+          document.getElementById('resultadoExistenteWrap').style.display = 'none';
+          return;
+        }
+
+        nomeBaseArquivoExistente = file.name.replace(/\.[^/.]+$/, '') || 'planilha';
+        dadosExistenteProcessados = processarClienteExistente(linhas);
+        renderizarExistente(dadosExistenteProcessados);
+        showToast(`Arquivo processado! ${dadosExistenteProcessados.length} registros prontos para exportar.`);
+      } catch (err) {
+        console.error(err);
+        showToast('Erro ao processar o arquivo: ' + err.message, 'danger');
+      }
+    });
+
+    document.getElementById('btnBaixarExistente').addEventListener('click', function() {
+      if (dadosExistenteProcessados.length === 0) {
+        showToast('Não há dados processados para exportar.', 'danger');
+        return;
+      }
+      const dataAtual = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const nomeArquivo = `${nomeBaseArquivoExistente}_${dataAtual}.txt`;
+      const conteudo = dadosExistenteProcessados.map(r => r.Concatenado).join('\n');
+      baixarTxt(conteudo, nomeArquivo);
+      showToast('Arquivo TXT exportado!');
+    });
+
+    document.getElementById('btnLimparExistente').addEventListener('click', function() {
+      dadosExistenteProcessados = [];
+      nomeBaseArquivoExistente = 'planilha';
+      document.getElementById('inputCsvExistente').value = '';
+      document.getElementById('corpoExistente').innerHTML = '';
+      document.getElementById('contadorExistente').textContent = '0';
+      document.getElementById('resultadoExistenteWrap').style.display = 'none';
+      showToast('Pronto para receber outro arquivo.');
+    });
+  </script>
+</body>
+</html>

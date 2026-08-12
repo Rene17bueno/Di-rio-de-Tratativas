@@ -121,10 +121,51 @@
       from { transform: translateX(100%); opacity: 0; }
       to { transform: translateX(0); opacity: 1; }
     }
+    .navbar-site {
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(2px);
+      border-radius: 1rem;
+      box-shadow: 0 12px 28px rgba(0, 80, 200, 0.08), 0 4px 12px rgba(0, 40, 100, 0.04);
+      margin-top: 1rem;
+    }
+    .navbar-site .nav-link {
+      color: #0a3e7c;
+      font-weight: 500;
+      border-radius: 0.6rem;
+      padding: 0.5rem 1rem;
+      transition: background 0.15s;
+    }
+    .navbar-site .nav-link:hover { background: #eaf3ff; }
+    .navbar-site .nav-link.active {
+      background: #2b7af0;
+      color: #fff !important;
+    }
     @media (max-width: 576px) { .card-shadow { padding: 1rem !important; } }
   </style>
 </head>
 <body>
+  <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-site px-3 py-2 mb-2">
+      <div class="container-fluid px-0">
+        <a class="navbar-brand fw-semibold text-primary-dark" href="index.html">
+          <i class="bi bi-grid-1x2-fill me-2" style="color:#2b7af0;"></i>Painel OT
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir menu">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+          <ul class="navbar-nav ms-auto gap-1">
+            <li class="nav-item">
+              <a class="nav-link active" aria-current="page" href="index.html"><i class="bi bi-journal-richtext me-1"></i>Diário de Tratativas</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="tratativageo.html"><i class="bi bi-geo-alt-fill me-1"></i>Geolocalizador</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </div>
   <div class="container py-4">
 
     <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
