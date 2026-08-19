@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tratamento de Base - Atendimentos</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<style>
+  * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { background: #f0f7ff; padding-bottom: 3rem; }
+  .card-shadow {
+    box-shadow: 0 12px 28px rgba(0, 80, 200, 0.08), 0 4px 12px rgba(0, 40, 100, 0.04);
+    border: none;
+    border-radius: 1.25rem;
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(2px);
+  }
+  .step-badge {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #2b7af0; color: white;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+  }
+  .upload-zone {
+    border: 2px dashed #b8d4ff;
+    border-radius: 1rem;
+    background: #f9fcff;
+    padding: 1.75rem;
+    text-align: center;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .upload-zone:hover { border-color: #3f7fef; background: #f0f7ff; }
+  .upload-zone.dragover { border-color: #3f7fef; background: #e6f0ff; }
+  .btn-primary-soft {
+    background: #d4e3ff; border: 1px solid #b0cbff; color: #0a3e7c;
+  }
+  .btn-primary-soft:hover { background: #b8d0ff; border-color: #8ab0ff; color: #0a3e7c; }
+  .btn-primary-soft:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-excel { background: #1e7b4b; border: none; color: white; }
+  .btn-excel:hover { background: #13653b; color: white; }
+  .btn-excel:disabled { background: #9bbfab; }
+  .text-primary-dark { color: #0a3e7c; }
+  .badge-revenda { background: #e6f0ff; color: #0a3e7c; border: 1px solid #b8d4ff; }
+  .table-preview-wrap { max-height: 480px; overflow: auto; }
+  .table-preview-wrap table { font-size: 0.8rem; }
+  .table-preview-wrap thead th {
+    position: sticky; top: 0; background: #dceaff; z-index: 1;
+  }
+  .stat-box {
+    background: #f9fcff; border: 1px solid #d6e6ff; border-radius: 0.9rem;
+    padding: 0.9rem 1.1rem;
+  }
+  .toast-custom {
+    position: fixed; top: 20px; right: 20px; z-index: 9999;
+    max-width: 350px; min-width: 250px; animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .progress-thin { height: 6px; }
+  .navbar-site {
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(2px);
+    border-radius: 1rem;
+    box-shadow: 0 12px 28px rgba(0, 80, 200, 0.08), 0 4px 12px rgba(0, 40, 100, 0.04);
+    margin-top: 1rem;
+  }
+  .navbar-site .nav-link {
+    color: #0a3e7c;
+    font-weight: 500;
+    border-radius: 0.6rem;
+    padding: 0.5rem 1rem;
+    transition: background 0.15s;
+  }
+  .navbar-site .nav-link:hover { background: #eaf3ff; }
+  .navbar-site .nav-link.active {
+    background: #2b7af0;
+    color: #fff !important;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-site px-3 py-2 mb-2">
+      <div class="container-fluid px-0">
+        <a class="navbar-brand fw-semibold text-primary-dark" href="index.html">
+          <i class="bi bi-grid-1x2-fill me-2" style="color:#2b7af0;"></i>Painel OT
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir menu">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+          <ul class="navbar-nav ms-auto gap-1">
+            <li class="nav-item">
+              <a class="nav-link" href="index.html"><i class="bi bi-journal-richtext me-1"></i>Diário de Tratativas</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="tratativageo.html"><i class="bi bi-geo-alt-fill me-1"></i>Geolocalizador</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" aria-current="page" href="tratamento-dados.html"><i class="bi bi-truck me-1"></i>Tratamento de Base</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </div>
+<div class="container py-4" style="max-width: 1200px;">
+
+  <div class="mb-4">
+    <h3 class="text-primary-dark fw-bold mb-1"><i class="bi bi-truck me-2"></i>Tratamento de Base de Atendimentos</h3>
+    <p class="text-secondary mb-0">Importe a planilha exportada do sistema, clique em processar e baixe a base já tratada.</p>
+  </div>
+
+  <!-- PASSO 1: IMPORTAR -->
+  <div class="card card-shadow p-4 mb-4">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <span class="step-badge">1</span>
+      <h5 class="text-primary-dark fw-bold mb-0">Importar Planilha</h5>
+    </div>
+    <p class="text-secondary small mb-3">Aceita arquivos .xlsx ou .xls exportados do sistema (aba "Export").</p>
+
+    <div class="upload-zone" id="uploadZone">
+      <i class="bi bi-cloud-arrow-up fs-1 text-primary" style="color:#3f7fef;"></i>
+      <p class="mb-1 mt-2 fw-semibold text-primary-dark">Arraste o arquivo aqui ou clique para selecionar</p>
+      <p class="text-secondary small mb-0" id="nomeArquivo">Nenhum arquivo selecionado</p>
+      <input type="file" id="inputArquivo" accept=".xlsx,.xls" hidden>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 mt-3">
+      <button class="btn btn-primary-soft" id="btnTrazerDados" disabled>
+        <i class="bi bi-database-fill-gear me-1"></i> Trazer todos os dados para tratar
+      </button>
+      <span id="statusProcessamento" class="text-secondary small"></span>
+    </div>
+    <div class="progress progress-thin mt-2 d-none" id="barraProgresso">
+      <div class="progress-bar" role="progressbar" style="width: 100%"></div>
+    </div>
+  </div>
+
+  <!-- PASSO 2: RESUMO -->
+  <div class="card card-shadow p-4 mb-4 d-none" id="cardResumo">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <span class="step-badge">2</span>
+      <h5 class="text-primary-dark fw-bold mb-0">Resumo do Processamento</h5>
+    </div>
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Linhas processadas</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statTotal">0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Revendas identificadas</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statRevendas">0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Sem revenda mapeada</div>
+          <div class="fs-4 fw-bold text-danger" id="statSemRevenda">0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Status "Concluído"</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statConcluido">0</div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-3" id="badgesRevenda"></div>
+  </div>
+
+  <!-- PASSO 3: PREVIEW + DOWNLOAD -->
+  <div class="card card-shadow p-4 d-none" id="cardPreview">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <span class="step-badge">3</span>
+        <h5 class="text-primary-dark fw-bold mb-0">Prévia e Download</h5>
+      </div>
+      <button class="btn btn-excel" id="btnBaixarExcel">
+        <i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel Tratado
+      </button>
+    </div>
+    <div class="row g-2 mb-3">
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Revenda</label>
+        <select class="form-select form-select-sm" id="filtroRevenda">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Data de</label>
+        <input type="date" class="form-control form-control-sm" id="filtroDataDe">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Data até</label>
+        <input type="date" class="form-control form-control-sm" id="filtroDataAte">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Mapa</label>
+        <input type="text" class="form-control form-control-sm" id="filtroMapa" placeholder="Ex: 12345">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Cod_cliente</label>
+        <input type="text" class="form-control form-control-sm" id="filtroCodCliente" placeholder="Ex: 6789">
+      </div>
+    </div>
+    <div class="mb-2">
+      <button class="btn btn-sm btn-primary-soft" id="btnLimparFiltros"><i class="bi bi-x-circle me-1"></i>Limpar filtros</button>
+    </div>
+
+    <p class="text-secondary small mb-2">Exibindo as primeiras <span id="qtdPreview">0</span> de <span id="qtdTotalPreview">0</span> linhas filtradas. O arquivo baixado contém as linhas filtradas (a base completa, se nenhum filtro estiver aplicado).</p>
+    <div class="table-preview-wrap border rounded-3">
+      <table class="table table-hover table-bordered mb-0 align-middle">
+        <thead>
+          <tr id="theadPreview"></tr>
+        </thead>
+        <tbody id="tbodyPreview"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ANÁLISE POR PDV (disponível sem precisar importar/processar arquivo) -->
+  <div class="card card-shadow p-4 mt-4" id="cardAnalisePdv">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <span class="step-badge"><i class="bi bi-search"></i></span>
+      <h5 class="text-primary-dark fw-bold mb-0">Análise por PDV (Cod_cliente)</h5>
+    </div>
+    <p class="text-secondary small mb-3">
+      Busca direto no banco de dados — não precisa importar arquivo nesta página para usar.
+      Considera as 10 tours mais recentes do cliente (pela Data). As médias e medianas de tempo, peso e volume
+      usam apenas, dentre essas 10, as tours com Status "Concluído" e Dentro_do_raio verdadeiro.
+    </p>
+
+    <div class="row g-2 mb-3 align-items-end">
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Revenda</label>
+        <select class="form-select form-select-sm" id="pdvFiltroRevenda">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-4">
+        <label class="form-label small text-secondary mb-1">Cod_cliente</label>
+        <input type="text" class="form-control form-control-sm" id="inputPdvCodCliente" list="listaCodClientes" placeholder="Ex: 31048">
+        <datalist id="listaCodClientes"></datalist>
+      </div>
+      <div class="col-6 col-md-2">
+        <button class="btn btn-sm btn-primary-soft w-100" id="btnAnalisarPdv">Analisar</button>
+      </div>
+    </div>
+
+    <div id="resultadoAnalisePdv" class="d-none">
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-md-4">
+          <div class="stat-box"><div class="text-secondary small">Revenda</div><div class="fs-5 fw-bold text-primary-dark" id="pdvRevenda">-</div></div>
+        </div>
+        <div class="col-6 col-md-4">
+          <div class="stat-box"><div class="text-secondary small">Cod_cliente</div><div class="fs-5 fw-bold text-primary-dark" id="pdvCodCliente">-</div></div>
+        </div>
+        <div class="col-6 col-md-4">
+          <div class="stat-box"><div class="text-secondary small">Apontamentos usados no cálculo</div><div class="fs-5 fw-bold text-primary-dark" id="pdvQtdApontamentos">-</div></div>
+        </div>
+      </div>
+
+      <div class="table-responsive mb-3">
+        <table class="table table-bordered table-sm text-center align-middle mb-0" style="font-size:0.85rem;">
+          <thead>
+            <tr class="table-light">
+              <th></th><th>Real</th><th>Planejado</th><th>Dispersão</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="fw-semibold text-start">Média de Atendimento</td>
+              <td id="pdvMediaReal">-</td>
+              <td id="pdvMediaPlan">-</td>
+              <td id="pdvDispersaoMedia">-</td>
+            </tr>
+            <tr>
+              <td class="fw-semibold text-start">Mediana de Atendimento</td>
+              <td id="pdvMedianaReal">-</td>
+              <td id="pdvMedianaPlan">-</td>
+              <td id="pdvDispersaoMediana">-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="stat-box"><div class="text-secondary small">Raio (das 10 tours)</div><div class="fs-4 fw-bold text-primary-dark" id="pdvRaio">-</div></div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-box"><div class="text-secondary small">Entrega Concluída (das 10 tours)</div><div class="fs-4 fw-bold text-primary-dark" id="pdvConcluido">-</div></div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-box"><div class="text-secondary small">Média Peso</div><div class="fs-4 fw-bold text-primary-dark" id="pdvMediaPeso">-</div></div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-box"><div class="text-secondary small">Média Volume</div><div class="fs-4 fw-bold text-primary-dark" id="pdvMediaVolume">-</div></div>
+        </div>
+      </div>
+
+      <p class="text-secondary small mb-2">10 tours mais recentes do PDV (a coluna "Usado no cálculo" marca as que entraram nas médias/medianas):</p>
+      <div class="table-preview-wrap border rounded-3" style="max-height:300px;">
+        <table class="table table-hover table-bordered table-sm mb-0 align-middle" style="font-size:0.8rem;">
+          <thead>
+            <tr>
+              <th>Mapa</th><th>Data</th><th>Placa</th><th>Tempo de Atendimento</th><th>Tempo Estimado</th><th>Status</th><th>Dentro_do_raio</th><th>Usado no cálculo</th>
+            </tr>
+          </thead>
+          <tbody id="pdvTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="pdvSemResultado" class="text-secondary small d-none">Nenhum apontamento encontrado para esse Cod_cliente.</div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// -1. CONFIGURAÇÃO DO BANCO DE DADOS (Supabase — mesmo projeto do index.html)
+// ============================================================
+const SUPABASE_URL = 'https://scbdlyfavqlzstbulrup.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_M55itc2oMAlK3bEFj9Le5Q_CeBsVBUV';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================================
+// 0. CONFIGURAÇÃO DAS REGRAS DE NEGÓCIO
+// ============================================================
+
+// Regra 1: mapeamento Cód_Revenda -> sigla da Revenda
+const MAPA_REVENDA = {
+  '607371': 'MGA',
+  '994227': 'GPA',
+  '1008641': 'PG',
+  '1027522': 'NP'
+};
+
+// Regra 3: colunas finais (chave = coluna de origem, valor = nome final)
+// A ordem deste objeto define a ordem das colunas no resultado.
+const COLUNAS_FINAIS = {
+  'Cód_Revenda': 'Revenda',
+  'tour_date': 'Data',
+  'tour_display_id_original': 'Mapa',
+  'Cod_cliente': 'Cod_cliente',
+  'Placa': 'Placa',
+  'Chegou_em': 'Chegou_em',
+  'Finalizada_em': 'Finalizada_em',
+  'Tempo de Atendimento': 'Tempo de Atendimento',
+  'Hora_estimada_chegada': 'Hora_estimada_chegada',
+  'Hora_estimada_partida': 'Hora_estimada_partida',
+  'Tempo Estimado de Atendimento': 'Tempo Estimado de Atendimento',
+  'Status': 'Status',
+  'Valor_total': 'Valor_total',
+  'Peso_total_kg': 'Peso_total_kg',
+  'Vol_total_entregue': 'Volume',
+  'Dentro_do_raio': 'Dentro_do_raio'
+};
+
+let arquivoSelecionado = null;
+let baseTratada = [];   // array de objetos já com as colunas finais (valores "cruus" para export)
+let basePreview = [];   // mesmos dados, formatados como texto para exibição em tela
+let filtroIndices = []; // índices de baseTratada/basePreview que passam nos filtros ativos (Revenda, Data, Mapa)
+
+// ============================================================
+// 1. UTILITÁRIOS DE DATA / TEMPO
+// ============================================================
+
+// Converte qualquer valor de célula (Date, texto ou serial do Excel) em objeto Date, ou null.
+function paraData(valor) {
+  if (valor === null || valor === undefined || valor === '') return null;
+  if (valor instanceof Date && !isNaN(valor)) return valor;
+  if (typeof valor === 'number') {
+    // número serial do Excel
+    const data = XLSX.SSF.parse_date_code(valor);
+    if (!data) return null;
+    return new Date(data.y, data.m - 1, data.d, data.H || 0, data.M || 0, Math.floor(data.S || 0));
+  }
+  const tentativa = new Date(valor);
+  return isNaN(tentativa) ? null : tentativa;
+}
+
+// Diferença entre duas datas formatada como HH:MM:SS (aceita passar de 24h). Retorna '' se alguma data faltar.
+function diferencaHoras(dataFim, dataInicio) {
+  const fim = paraData(dataFim);
+  const inicio = paraData(dataInicio);
+  if (!fim || !inicio) return '';
+  let diffMs = fim - inicio;
+  const sinal = diffMs < 0 ? '-' : '';
+  diffMs = Math.abs(diffMs);
+  const totalSegundos = Math.floor(diffMs / 1000);
+  const horas = Math.floor(totalSegundos / 3600);
+  const minutos = Math.floor((totalSegundos % 3600) / 60);
+  const segundos = totalSegundos % 60;
+  const pad = n => String(n).padStart(2, '0');
+  return `${sinal}${pad(horas)}:${pad(minutos)}:${pad(segundos)}`;
+}
+
+// Formata uma data para exibição (dd/mm/aaaa hh:mm:ss). Retorna '' se vazio.
+function formatarDataHora(valor) {
+  const data = paraData(valor);
+  if (!data) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(data.getDate())}/${pad(data.getMonth() + 1)}/${data.getFullYear()} ${pad(data.getHours())}:${pad(data.getMinutes())}:${pad(data.getSeconds())}`;
+}
+
+function formatarData(valor) {
+  const data = paraData(valor);
+  if (!data) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(data.getDate())}/${pad(data.getMonth() + 1)}/${data.getFullYear()}`;
+}
+
+// Formata só a hora (hh:mm:ss), sem a data — usado nas colunas Chegou_em,
+// Finalizada_em, Hora_estimada_chegada e Hora_estimada_partida, já que a
+// data completa desses registros já aparece na coluna "Data".
+function formatarHora(valor) {
+  const data = paraData(valor);
+  if (!data) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(data.getHours())}:${pad(data.getMinutes())}:${pad(data.getSeconds())}`;
+}
+
+// Formata um número com 2 casas decimais e vírgula como separador (padrão BR).
+// Retorna '' se o valor não for um número válido.
+function formatarNumero(valor) {
+  const numero = Number(valor);
+  if (valor === null || valor === undefined || valor === '' || isNaN(numero)) return '';
+  return numero.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Formata número como moeda Real (R$ 1.234,56). Retorna '' se não for número.
+function formatarMoeda(valor) {
+  if (valor === null || valor === undefined || isNaN(valor)) return '';
+  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+// ============================================================
+// 2. UPLOAD DO ARQUIVO
+// ============================================================
+const uploadZone = document.getElementById('uploadZone');
+const inputArquivo = document.getElementById('inputArquivo');
+const nomeArquivoEl = document.getElementById('nomeArquivo');
+const btnTrazerDados = document.getElementById('btnTrazerDados');
+
+uploadZone.addEventListener('click', () => inputArquivo.click());
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) selecionarArquivo(e.dataTransfer.files[0]);
+});
+
+inputArquivo.addEventListener('change', e => {
+  if (e.target.files.length) selecionarArquivo(e.target.files[0]);
+});
+
+function selecionarArquivo(arquivo) {
+  arquivoSelecionado = arquivo;
+  nomeArquivoEl.textContent = arquivo.name;
+  btnTrazerDados.disabled = false;
+}
+
+// ============================================================
+// 3. TRATAMENTO DOS DADOS (regras 1, 2 e 3)
+// ============================================================
+btnTrazerDados.addEventListener('click', processarArquivo);
+
+async function processarArquivo() {
+  if (!arquivoSelecionado) return;
+
+  const statusEl = document.getElementById('statusProcessamento');
+  const barra = document.getElementById('barraProgresso');
+  barra.classList.remove('d-none');
+  statusEl.textContent = 'Lendo arquivo...';
+  btnTrazerDados.disabled = true;
+
+  try {
+    const dadosBuffer = await arquivoSelecionado.arrayBuffer();
+    // Importante: NÃO usar cellDates aqui. Nesta planilha, algumas colunas
+    // numéricas (ex.: Cód_Revenda) têm formatação de célula "contaminada"
+    // e o SheetJS acaba convertendo-as erroneamente em datas quando
+    // cellDates está ativo. Por isso lemos tudo em modo "cru" (números
+    // seriais do Excel) e convertemos manualmente só onde interessa,
+    // usando a função paraData() abaixo.
+    const workbook = XLSX.read(dadosBuffer, { type: 'array' });
+
+    // Usa a aba "Export" se existir; caso contrário, a primeira aba do arquivo
+    const nomeAba = workbook.SheetNames.includes('Export') ? 'Export' : workbook.SheetNames[0];
+    const planilha = workbook.Sheets[nomeAba];
+    const linhasOrigem = XLSX.utils.sheet_to_json(planilha, { defval: null });
+
+    statusEl.textContent = `Aplicando regras em ${linhasOrigem.length} linhas...`;
+
+    // pequena pausa para o navegador atualizar a tela antes de processar tudo
+    await new Promise(r => setTimeout(r, 30));
+
+    const resultado = tratarLinhas(linhasOrigem);
+    baseTratada = resultado.tratado;
+    basePreview = resultado.preview;
+
+    atualizarResumo(resultado.estatisticas);
+    popularFiltroRevenda(resultado.estatisticas.revendas);
+    limparFiltros();
+    document.getElementById('resultadoAnalisePdv').classList.add('d-none');
+    document.getElementById('pdvSemResultado').classList.add('d-none');
+    document.getElementById('inputPdvCodCliente').value = '';
+    document.getElementById('pdvFiltroRevenda').value = '';
+
+    document.getElementById('cardResumo').classList.remove('d-none');
+    document.getElementById('cardPreview').classList.remove('d-none');
+    document.getElementById('cardAnalisePdv').classList.remove('d-none');
+    statusEl.textContent = `Concluído: ${baseTratada.length} linhas tratadas. Salvando no banco de dados...`;
+
+    try {
+      const salvas = await salvarBaseTratada(baseTratada);
+      statusEl.textContent = `Concluído: ${baseTratada.length} linhas tratadas e salvas no banco de dados.`;
+      mostrarToast(`✅ ${salvas} linhas salvas no banco de dados.`, 'success');
+      popularListaCodClientesDoBanco();
+    } catch (erroBanco) {
+      console.error(erroBanco);
+      statusEl.textContent = `Concluído: ${baseTratada.length} linhas tratadas (falha ao salvar no banco).`;
+      mostrarToast('⚠️ Base tratada, mas falhou ao salvar no banco: ' + erroBanco.message, 'warning');
+    }
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToast('❌ Erro ao processar o arquivo: ' + erro.message, 'danger');
+  } finally {
+    barra.classList.add('d-none');
+    btnTrazerDados.disabled = false;
+  }
+}
+
+function tratarLinhas(linhas) {
+  const tratado = [];
+  const preview = [];
+  const revendasEncontradas = new Set();
+  let semRevenda = 0;
+  let concluido = 0;
+
+  for (const linha of linhas) {
+    // ---- Regra 1: mapear Cód_Revenda -> Revenda ----
+    const codRevendaOriginal = linha['Cód_Revenda'];
+    const codRevendaChave = codRevendaOriginal !== null && codRevendaOriginal !== undefined
+      ? String(Math.trunc(Number(codRevendaOriginal)))
+      : '';
+    const revenda = MAPA_REVENDA[codRevendaChave] || null;
+
+    if (revenda) revendasEncontradas.add(revenda);
+    else semRevenda++;
+
+    // ---- Regra 2: colunas de tempo calculadas ----
+    const tempoAtendimento = diferencaHoras(linha['Finalizada_em'], linha['Chegou_em']);
+    const tempoEstimado = diferencaHoras(linha['Hora_estimada_partida'], linha['Hora_estimada_chegada']);
+
+    if (linha['Status'] === 'Concluído') concluido++;
+
+    // ---- Regra 3: seleção e renomeação das colunas finais ----
+    // Mapa, Cod_cliente, Valor_total e Peso_total_kg são convertidos para
+    // número de verdade (não texto), para que o Excel reconheça como valor
+    // numérico e permita somas/fórmulas.
+    const mapaNum = linha['tour_display_id_original'] != null && linha['tour_display_id_original'] !== ''
+      ? Number(linha['tour_display_id_original']) : null;
+    const codClienteNum = linha['Cod_cliente'] != null && linha['Cod_cliente'] !== ''
+      ? Number(linha['Cod_cliente']) : null;
+    const valorTotalNum = linha['Valor_total'] != null && linha['Valor_total'] !== ''
+      ? Number(linha['Valor_total']) : null;
+    const pesoTotalNum = linha['Peso_total_kg'] != null && linha['Peso_total_kg'] !== ''
+      ? Number(linha['Peso_total_kg']) : null;
+    const volumeNum = linha['Vol_total_entregue'] != null && linha['Vol_total_entregue'] !== ''
+      ? Number(linha['Vol_total_entregue']) : null;
+
+    // Objeto "cru" (para exportar ao Excel, com datas como Date de verdade)
+    const linhaFinal = {
+      'Revenda': revenda,
+      'Data': paraData(linha['tour_date']),
+      'Mapa': mapaNum,
+      'Cod_cliente': codClienteNum,
+      'Placa': linha['Placa'] ?? null,
+      'Chegou_em': formatarHora(linha['Chegou_em']),
+      'Finalizada_em': formatarHora(linha['Finalizada_em']),
+      'Tempo de Atendimento': tempoAtendimento,
+      'Hora_estimada_chegada': formatarHora(linha['Hora_estimada_chegada']),
+      'Hora_estimada_partida': formatarHora(linha['Hora_estimada_partida']),
+      'Tempo Estimado de Atendimento': tempoEstimado,
+      'Status': linha['Status'] ?? null,
+      'Valor_total': valorTotalNum,
+      'Peso_total_kg': pesoTotalNum,
+      'Volume': volumeNum,
+      'Dentro_do_raio': linha['Dentro_do_raio'] ?? null
+    };
+    tratado.push(linhaFinal);
+
+    // Objeto formatado (só texto, para exibir em tela)
+    preview.push({
+      'Revenda': revenda || '—',
+      'Data': formatarData(linha['tour_date']),
+      'Mapa': mapaNum ?? '',
+      'Cod_cliente': codClienteNum ?? '',
+      'Placa': linha['Placa'] ?? '',
+      'Chegou_em': formatarHora(linha['Chegou_em']),
+      'Finalizada_em': formatarHora(linha['Finalizada_em']),
+      'Tempo de Atendimento': tempoAtendimento,
+      'Hora_estimada_chegada': formatarHora(linha['Hora_estimada_chegada']),
+      'Hora_estimada_partida': formatarHora(linha['Hora_estimada_partida']),
+      'Tempo Estimado de Atendimento': tempoEstimado,
+      'Status': linha['Status'] ?? '',
+      'Valor_total': formatarMoeda(valorTotalNum),
+      'Peso_total_kg': formatarNumero(pesoTotalNum),
+      'Volume': formatarNumero(volumeNum),
+      'Dentro_do_raio': linha['Dentro_do_raio'] ?? ''
+    });
+  }
+
+  return {
+    tratado,
+    preview,
+    estatisticas: {
+      total: tratado.length,
+      revendas: Array.from(revendasEncontradas).sort(),
+      semRevenda,
+      concluido
+    }
+  };
+}
+
+// ============================================================
+// 4. RESUMO E PRÉVIA NA TELA
+// ============================================================
+function atualizarResumo(stats) {
+  document.getElementById('statTotal').textContent = stats.total.toLocaleString('pt-BR');
+  document.getElementById('statRevendas').textContent = stats.revendas.length;
+  document.getElementById('statSemRevenda').textContent = stats.semRevenda.toLocaleString('pt-BR');
+  document.getElementById('statConcluido').textContent = stats.concluido.toLocaleString('pt-BR');
+
+  const badgesEl = document.getElementById('badgesRevenda');
+  badgesEl.innerHTML = stats.revendas.map(r => `<span class="badge badge-revenda me-1">${r}</span>`).join('');
+}
+
+const LIMITE_PREVIEW = 200;
+
+function atualizarPreview() {
+  const thead = document.getElementById('theadPreview');
+  const tbody = document.getElementById('tbodyPreview');
+  const colunas = Object.values(COLUNAS_FINAIS);
+
+  thead.innerHTML = colunas.map(c => `<th>${c}</th>`).join('');
+
+  const linhasFiltradas = filtroIndices.map(i => basePreview[i]);
+  const linhasParaExibir = linhasFiltradas.slice(0, LIMITE_PREVIEW);
+  tbody.innerHTML = linhasParaExibir.map(linha => `
+    <tr>${colunas.map(c => `<td>${linha[c] ?? ''}</td>`).join('')}</tr>
+  `).join('');
+
+  document.getElementById('qtdPreview').textContent = linhasParaExibir.length.toLocaleString('pt-BR');
+  document.getElementById('qtdTotalPreview').textContent = linhasFiltradas.length.toLocaleString('pt-BR');
+}
+
+// ============================================================
+// 4.1 FILTROS (Revenda, Data, Mapa)
+// ============================================================
+function popularFiltroRevenda(revendas) {
+  const select = document.getElementById('filtroRevenda');
+  select.innerHTML = '<option value="">Todas</option>' +
+    revendas.map(r => `<option value="${r}">${r}</option>`).join('');
+}
+
+function aplicarFiltros() {
+  const revendaSel = document.getElementById('filtroRevenda').value;
+  const dataDeStr = document.getElementById('filtroDataDe').value;
+  const dataAteStr = document.getElementById('filtroDataAte').value;
+  const mapaStr = document.getElementById('filtroMapa').value.trim();
+  const codClienteStr = document.getElementById('filtroCodCliente').value.trim();
+
+  const dataDe = dataDeStr ? new Date(dataDeStr + 'T00:00:00') : null;
+  const dataAte = dataAteStr ? new Date(dataAteStr + 'T23:59:59') : null;
+
+  filtroIndices = [];
+  baseTratada.forEach((linha, i) => {
+    if (revendaSel && linha['Revenda'] !== revendaSel) return;
+    if (dataDe && (!linha['Data'] || linha['Data'] < dataDe)) return;
+    if (dataAte && (!linha['Data'] || linha['Data'] > dataAte)) return;
+    if (mapaStr && (linha['Mapa'] === null || !String(linha['Mapa']).includes(mapaStr))) return;
+    if (codClienteStr && (linha['Cod_cliente'] === null || !String(linha['Cod_cliente']).includes(codClienteStr))) return;
+    filtroIndices.push(i);
+  });
+
+  atualizarPreview();
+}
+
+function limparFiltros() {
+  document.getElementById('filtroRevenda').value = '';
+  document.getElementById('filtroDataDe').value = '';
+  document.getElementById('filtroDataAte').value = '';
+  document.getElementById('filtroMapa').value = '';
+  document.getElementById('filtroCodCliente').value = '';
+  aplicarFiltros();
+}
+
+document.getElementById('filtroRevenda').addEventListener('change', aplicarFiltros);
+document.getElementById('filtroDataDe').addEventListener('change', aplicarFiltros);
+document.getElementById('filtroDataAte').addEventListener('change', aplicarFiltros);
+document.getElementById('filtroMapa').addEventListener('input', aplicarFiltros);
+document.getElementById('filtroCodCliente').addEventListener('input', aplicarFiltros);
+document.getElementById('btnLimparFiltros').addEventListener('click', limparFiltros);
+
+// ============================================================
+// 5. DOWNLOAD DO EXCEL TRATADO
+// ============================================================
+document.getElementById('btnBaixarExcel').addEventListener('click', baixarExcel);
+
+function baixarExcel() {
+  const dadosParaExportar = filtroIndices.map(i => baseTratada[i]);
+  if (!dadosParaExportar.length) return;
+
+  const planilha = XLSX.utils.json_to_sheet(dadosParaExportar, { cellDates: true });
+  aplicarFormatosNumericos(planilha, dadosParaExportar.length);
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, planilha, 'Tratado');
+
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `base_tratada_${dataHoje}.xlsx`);
+  mostrarToast('✅ Arquivo baixado com sucesso.', 'success');
+}
+
+// Aplica formatação numérica nas colunas do Excel exportado:
+// - Mapa / Cod_cliente: número inteiro
+// - Valor_total: moeda em Real (R$)
+// - Peso_total_kg: número decimal
+function aplicarFormatosNumericos(planilha, totalLinhas) {
+  const colunas = Object.values(COLUNAS_FINAIS);
+
+  const formatos = {
+    'Mapa': '0',
+    'Cod_cliente': '0',
+    'Valor_total': 'R$ #,##0.00',
+    'Peso_total_kg': '#,##0.00',
+    'Volume': '#,##0.00'
+  };
+
+  Object.entries(formatos).forEach(([nomeColuna, formato]) => {
+    const indiceColuna = colunas.indexOf(nomeColuna);
+    if (indiceColuna === -1) return;
+    const letraColuna = XLSX.utils.encode_col(indiceColuna);
+    // linha 1 = cabeçalho; dados começam na linha 2
+    for (let linha = 2; linha <= totalLinhas + 1; linha++) {
+      const endereco = `${letraColuna}${linha}`;
+      const celula = planilha[endereco];
+      if (celula && typeof celula.v === 'number') {
+        celula.z = formato;
+      }
+    }
+  });
+}
+
+// ============================================================
+// 7. ANÁLISE POR PDV (Cod_cliente) — médias/medianas dos últimos 10 apontamentos
+// ============================================================
+function popularFiltroRevendaPdv(revendas) {
+  const select = document.getElementById('pdvFiltroRevenda');
+  select.innerHTML = '<option value="">Todas</option>' +
+    revendas.map(r => `<option value="${r}">${r}</option>`).join('');
+}
+
+// Busca os Cod_cliente já existentes no banco, para autocompletar o campo de busca
+// mesmo sem ter processado nenhum arquivo nesta sessão.
+async function popularListaCodClientesDoBanco() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('atendimentos')
+      .select('cod_cliente')
+      .not('cod_cliente', 'is', null)
+      .order('cod_cliente', { ascending: true })
+      .limit(2000);
+    if (error) throw error;
+    const codigos = Array.from(new Set((data || []).map(r => r.cod_cliente)));
+    document.getElementById('listaCodClientes').innerHTML =
+      codigos.map(c => `<option value="${c}"></option>`).join('');
+  } catch (erro) {
+    console.error('Falha ao carregar lista de Cod_cliente do banco:', erro);
+  }
+}
+
+// A análise por PDV funciona direto contra o banco, então já deixa o filtro de
+// Revenda e o autocomplete de Cod_cliente prontos assim que a página carrega.
+popularFiltroRevendaPdv(Array.from(new Set(Object.values(MAPA_REVENDA))));
+popularListaCodClientesDoBanco();
+
+// Converte "HH:MM:SS" (aceita prefixo "-") em segundos com sinal. Retorna null se inválido.
+function horaParaSegundos(str) {
+  if (!str) return null;
+  const negativo = str.startsWith('-');
+  const limpo = negativo ? str.slice(1) : str;
+  const partes = limpo.split(':').map(Number);
+  if (partes.length !== 3 || partes.some(isNaN)) return null;
+  const segundos = partes[0] * 3600 + partes[1] * 60 + partes[2];
+  return negativo ? -segundos : segundos;
+}
+
+// Converte segundos (com sinal) de volta para "HH:MM:SS".
+function segundosParaHora(segundos) {
+  if (segundos === null || segundos === undefined || isNaN(segundos)) return '';
+  const sinal = segundos < 0 ? '-' : '';
+  const abs = Math.round(Math.abs(segundos));
+  const pad = n => String(n).padStart(2, '0');
+  const h = Math.floor(abs / 3600);
+  const m = Math.floor((abs % 3600) / 60);
+  const s = abs % 60;
+  return `${sinal}${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+function media(numeros) {
+  if (!numeros.length) return null;
+  return numeros.reduce((a, b) => a + b, 0) / numeros.length;
+}
+
+function mediana(numeros) {
+  if (!numeros.length) return null;
+  const ordenado = [...numeros].sort((a, b) => a - b);
+  const meio = Math.floor(ordenado.length / 2);
+  return ordenado.length % 2 === 0
+    ? (ordenado[meio - 1] + ordenado[meio]) / 2
+    : ordenado[meio];
+}
+
+// Aceita boolean true, ou texto "true"/"verdadeiro"/"sim" (case-insensitive), ou 1.
+function ehVerdadeiro(valor) {
+  if (valor === true) return true;
+  if (typeof valor === 'number') return valor === 1;
+  if (typeof valor === 'string') {
+    const v = valor.trim().toLowerCase();
+    return v === 'true' || v === 'verdadeiro' || v === 'sim' || v === '1';
+  }
+  return false;
+}
+
+// Converte uma linha vinda do banco (colunas snake_case) para o mesmo formato
+// usado pela base tratada em memória (chaves = COLUNAS_FINAIS), para reaproveitar
+// os mesmos cálculos de média/mediana.
+function converterLinhaBancoParaLinhaPadrao(l) {
+  return {
+    'Revenda': l.revenda,
+    'Data': l.data ? new Date(l.data + 'T00:00:00') : null,
+    'Mapa': l.mapa,
+    'Cod_cliente': l.cod_cliente,
+    'Placa': l.placa,
+    'Chegou_em': l.chegou_em,
+    'Finalizada_em': l.finalizada_em,
+    'Tempo de Atendimento': l.tempo_atendimento,
+    'Hora_estimada_chegada': l.hora_estimada_chegada,
+    'Hora_estimada_partida': l.hora_estimada_partida,
+    'Tempo Estimado de Atendimento': l.tempo_estimado_atendimento,
+    'Status': l.status,
+    'Valor_total': l.valor_total,
+    'Peso_total_kg': l.peso_total_kg,
+    'Volume': l.volume,
+    'Dentro_do_raio': l.dentro_do_raio
+  };
+}
+
+document.getElementById('btnAnalisarPdv').addEventListener('click', analisarPdv);
+
+async function analisarPdv() {
+  const codDigitado = document.getElementById('inputPdvCodCliente').value.trim();
+  const resultadoEl = document.getElementById('resultadoAnalisePdv');
+  const semResultadoEl = document.getElementById('pdvSemResultado');
+  const btn = document.getElementById('btnAnalisarPdv');
+
+  if (!codDigitado) {
+    resultadoEl.classList.add('d-none');
+    semResultadoEl.classList.add('d-none');
+    return;
+  }
+
+  const codNum = Number(codDigitado);
+  const revendaSel = document.getElementById('pdvFiltroRevenda').value;
+
+  // Busca as 10 tours mais recentes desse cliente direto no banco de dados
+  // (histórico completo, não só o arquivo processado nesta sessão).
+  let dez;
+  btn.disabled = true;
+  const textoOriginalBtn = btn.innerHTML;
+  btn.innerHTML = 'Buscando...';
+  try {
+    let consulta = supabaseClient
+      .from('atendimentos')
+      .select('*')
+      .eq('cod_cliente', codNum)
+      .order('data', { ascending: false })
+      .limit(10);
+    if (revendaSel) consulta = consulta.eq('revenda', revendaSel);
+
+    const { data, error } = await consulta;
+    if (error) throw error;
+    dez = (data || []).map(converterLinhaBancoParaLinhaPadrao);
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast('❌ Erro ao buscar dados no banco: ' + erro.message, 'danger');
+    resultadoEl.classList.add('d-none');
+    semResultadoEl.classList.add('d-none');
+    return;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = textoOriginalBtn;
+  }
+
+  if (!dez.length) {
+    resultadoEl.classList.add('d-none');
+    semResultadoEl.classList.remove('d-none');
+    return;
+  }
+
+  // Dentre as 10, só entram no cálculo de médias/medianas as com Status Concluído e Dentro_do_raio verdadeiro
+  const validas = dez.filter(l => l['Status'] === 'Concluído' && ehVerdadeiro(l['Dentro_do_raio']));
+
+  const segundosReal = validas.map(l => horaParaSegundos(l['Tempo de Atendimento'])).filter(v => v !== null);
+  const segundosPlan = validas.map(l => horaParaSegundos(l['Tempo Estimado de Atendimento'])).filter(v => v !== null);
+  const pesos = validas.map(l => l['Peso_total_kg']).filter(v => v !== null && !isNaN(v));
+  const volumes = validas.map(l => l['Volume']).filter(v => v !== null && !isNaN(v));
+
+  const mediaReal = media(segundosReal);
+  const mediaPlan = media(segundosPlan);
+  const medianaReal = mediana(segundosReal);
+  const medianaPlan = mediana(segundosPlan);
+
+  const pctRaio = dez.length ? (dez.filter(l => ehVerdadeiro(l['Dentro_do_raio'])).length / dez.length) * 100 : 0;
+  const pctConcluido = dez.length ? (dez.filter(l => l['Status'] === 'Concluído').length / dez.length) * 100 : 0;
+
+  document.getElementById('pdvRevenda').textContent = dez[0]['Revenda'] || '—';
+  document.getElementById('pdvCodCliente').textContent = codDigitado;
+  document.getElementById('pdvQtdApontamentos').textContent = `${validas.length} de ${dez.length}`;
+
+  document.getElementById('pdvMediaReal').textContent = mediaReal !== null ? segundosParaHora(mediaReal) : '—';
+  document.getElementById('pdvMediaPlan').textContent = mediaPlan !== null ? segundosParaHora(mediaPlan) : '—';
+  document.getElementById('pdvDispersaoMedia').textContent = (mediaReal !== null && mediaPlan !== null) ? segundosParaHora(mediaReal - mediaPlan) : '—';
+
+  document.getElementById('pdvMedianaReal').textContent = medianaReal !== null ? segundosParaHora(medianaReal) : '—';
+  document.getElementById('pdvMedianaPlan').textContent = medianaPlan !== null ? segundosParaHora(medianaPlan) : '—';
+  document.getElementById('pdvDispersaoMediana').textContent = (medianaReal !== null && medianaPlan !== null) ? segundosParaHora(medianaReal - medianaPlan) : '—';
+
+  document.getElementById('pdvRaio').textContent = `${pctRaio.toFixed(0)}%`;
+  document.getElementById('pdvConcluido').textContent = `${pctConcluido.toFixed(0)}%`;
+  document.getElementById('pdvMediaPeso').textContent = pesos.length ? formatarNumero(media(pesos)) : '—';
+  document.getElementById('pdvMediaVolume').textContent = volumes.length ? formatarNumero(media(volumes)) : '—';
+
+  const tbody = document.getElementById('pdvTbody');
+  tbody.innerHTML = dez.map(l => {
+    const usado = validas.includes(l);
+    return `<tr class="${usado ? '' : 'text-secondary'}">
+      <td>${l['Mapa'] ?? ''}</td>
+      <td>${formatarData(l['Data'])}</td>
+      <td>${l['Placa'] ?? ''}</td>
+      <td>${l['Tempo de Atendimento'] ?? ''}</td>
+      <td>${l['Tempo Estimado de Atendimento'] ?? ''}</td>
+      <td>${l['Status'] ?? ''}</td>
+      <td>${ehVerdadeiro(l['Dentro_do_raio']) ? 'Verdadeiro' : 'Falso'}</td>
+      <td>${usado ? '✔' : ''}</td>
+    </tr>`;
+  }).join('');
+
+  resultadoEl.classList.remove('d-none');
+  semResultadoEl.classList.add('d-none');
+}
+
+// ============================================================
+// 6.1 GRAVAÇÃO NO BANCO DE DADOS (Supabase, tabela "atendimentos")
+// ============================================================
+const TAMANHO_LOTE_BANCO = 500;
+
+function formatarDataISO(data) {
+  if (!(data instanceof Date) || isNaN(data)) return null;
+  const pad = n => String(n).padStart(2, '0');
+  return `${data.getFullYear()}-${pad(data.getMonth() + 1)}-${pad(data.getDate())}`;
+}
+
+// Converte uma linha da base tratada (chaves = COLUNAS_FINAIS) para o formato
+// de colunas da tabela "atendimentos" no banco.
+function converterParaLinhaBanco(linha) {
+  return {
+    revenda: linha['Revenda'],
+    data: formatarDataISO(linha['Data']),
+    mapa: linha['Mapa'],
+    cod_cliente: linha['Cod_cliente'],
+    placa: linha['Placa'],
+    chegou_em: linha['Chegou_em'] || null,
+    finalizada_em: linha['Finalizada_em'] || null,
+    tempo_atendimento: linha['Tempo de Atendimento'] || null,
+    hora_estimada_chegada: linha['Hora_estimada_chegada'] || null,
+    hora_estimada_partida: linha['Hora_estimada_partida'] || null,
+    tempo_estimado_atendimento: linha['Tempo Estimado de Atendimento'] || null,
+    status: linha['Status'],
+    valor_total: linha['Valor_total'],
+    peso_total_kg: linha['Peso_total_kg'],
+    volume: linha['Volume'],
+    dentro_do_raio: ehVerdadeiro(linha['Dentro_do_raio'])
+  };
+}
+
+// Grava a base tratada no Supabase em lotes, fazendo upsert por (mapa, cod_cliente, data)
+// para não duplicar quando a mesma planilha for processada de novo.
+async function salvarBaseTratada(dados) {
+  if (!dados.length) return 0;
+  const linhasBanco = dados.map(converterParaLinhaBanco);
+  let salvas = 0;
+  for (let i = 0; i < linhasBanco.length; i += TAMANHO_LOTE_BANCO) {
+    const lote = linhasBanco.slice(i, i + TAMANHO_LOTE_BANCO);
+    const { error } = await supabaseClient
+      .from('atendimentos')
+      .upsert(lote, { onConflict: 'mapa,cod_cliente,data' });
+    if (error) throw error;
+    salvas += lote.length;
+  }
+  return salvas;
+}
+
+// ============================================================
+// 6. TOAST DE FEEDBACK
+// ============================================================
+function mostrarToast(mensagem, tipo) {
+  const div = document.createElement('div');
+  div.className = `toast-custom alert alert-${tipo}`;
+  div.textContent = mensagem;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 4000);
+}
+</script>
+</body>
+</html>
