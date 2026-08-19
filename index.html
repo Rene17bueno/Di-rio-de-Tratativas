@@ -212,6 +212,7 @@
             <option value="On Time">On Time</option>
             <option value="Dispersão de KM">Dispersão de KM</option>
             <option value="Dispersão de Tempo">Dispersão de Tempo</option>
+            <option value="Atualização Coordenadas">Atualização Coordenadas</option>
           </select>
         </div>
         <div class="col-md-3">
@@ -219,16 +220,17 @@
           <input type="text" class="form-control tratativa-input" id="inputDt" placeholder="30,86%">
         </div>
         <div class="col-md-12">
-          <label class="form-label small fw-semibold text-secondary">Descrição Geral / Observação</label>
-          <input type="text" class="form-control tratativa-input" id="inputDescricao" placeholder="Descrição geral da tratativa">
+          <label class="form-label small fw-semibold text-secondary">Observação geral <span class="text-secondary fw-normal">(opcional — o nome da tratativa já vem do Tipo de Ação)</span></label>
+          <input type="text" class="form-control tratativa-input" id="inputDescricao" placeholder="Ex: detalhe extra sobre esta tratativa (opcional)">
         </div>
         
         <div class="col-md-12">
-          <label class="form-label small fw-semibold text-secondary"><i class="bi bi-map me-1"></i> Mapas e Observações Individuais</label>
-          <div class="d-flex gap-2 mb-2">
-            <input type="text" class="form-control tratativa-input" id="inputMapa" placeholder="Nº do mapa (ex: 123456)" style="max-width: 250px;">
+          <label class="form-label small fw-semibold text-secondary"><i class="bi bi-layers me-1"></i> Itens da Tratativa <small class="text-secondary fw-normal" id="itensAjudaTexto"></small></label>
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <input type="text" class="form-control tratativa-input" id="inputMapa" placeholder="Nº do mapa (opcional)" style="max-width: 220px;">
+            <input type="text" class="form-control tratativa-input" id="inputCodPdvItem" placeholder="Cod PDV (opcional)" style="max-width: 220px;">
             <button class="btn btn-outline-primary btn-sm" id="addMapaBtn" type="button">
-              <i class="bi bi-plus-circle me-1"></i> Adicionar Mapa
+              <i class="bi bi-plus-circle me-1"></i> Adicionar Item
             </button>
           </div>
           <div id="mapasContainer" class="mt-2"></div>
@@ -650,6 +652,7 @@
                 <option value="On Time">On Time</option>
                 <option value="Dispersão de KM">Dispersão de KM</option>
                 <option value="Dispersão de Tempo">Dispersão de Tempo</option>
+                <option value="Atualização Coordenadas">Atualização Coordenadas</option>
               </select>
             </div>
             <div class="col-md-3">
@@ -657,14 +660,15 @@
               <input type="text" class="form-control" id="editDt">
             </div>
             <div class="col-md-12">
-              <label class="form-label small fw-semibold text-secondary">Descrição</label>
+              <label class="form-label small fw-semibold text-secondary">Observação geral <span class="text-secondary fw-normal">(opcional)</span></label>
               <input type="text" class="form-control" id="editDescricao">
             </div>
             <div class="col-md-12">
-              <label class="form-label small fw-semibold text-secondary"><i class="bi bi-map me-1"></i> Mapas e Observações Individuais</label>
-              <div class="d-flex gap-2 mb-2">
-                <input type="text" class="form-control form-control-sm" id="editNovoMapa" placeholder="Nº do mapa" style="max-width: 250px;">
-                <button class="btn btn-outline-primary btn-sm" id="editAddMapaBtn" type="button"><i class="bi bi-plus-circle me-1"></i> Adicionar Mapa</button>
+              <label class="form-label small fw-semibold text-secondary"><i class="bi bi-layers me-1"></i> Itens da Tratativa <small class="text-secondary fw-normal" id="editItensAjudaTexto"></small></label>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <input type="text" class="form-control form-control-sm" id="editNovoMapa" placeholder="Nº do mapa (opcional)" style="max-width: 220px;">
+                <input type="text" class="form-control form-control-sm" id="editNovoCodPdvItem" placeholder="Cod PDV (opcional)" style="max-width: 220px;">
+                <button class="btn btn-outline-primary btn-sm" id="editAddMapaBtn" type="button"><i class="bi bi-plus-circle me-1"></i> Adicionar Item</button>
               </div>
               <div id="editMapasContainer"></div>
             </div>
@@ -723,6 +727,7 @@
       const inputDt = document.getElementById('inputDt');
       const inputDescricao = document.getElementById('inputDescricao');
       const inputMapa = document.getElementById('inputMapa');
+      const inputCodPdvItem = document.getElementById('inputCodPdvItem');
       const inputStatus = document.getElementById('inputStatus');
       const mapasContainer = document.getElementById('mapasContainer');
 
@@ -742,6 +747,7 @@
       const editStatus = document.getElementById('editStatus');
       const editMapasContainer = document.getElementById('editMapasContainer');
       const editNovoMapa = document.getElementById('editNovoMapa');
+      const editNovoCodPdvItem = document.getElementById('editNovoCodPdvItem');
 
       // ============================================================
       // 2. FUNÇÕES AUXILIARES
@@ -795,7 +801,7 @@
       function atualizarMapasUI() {
         mapasContainer.innerHTML = '';
         if (mapasTemp.length === 0) {
-          mapasContainer.innerHTML = '<span class="text-secondary small">Nenhum mapa adicionado</span>';
+          mapasContainer.innerHTML = '<span class="text-secondary small">Nenhum item adicionado (opcional)</span>';
           return;
         }
         mapasTemp.forEach((itemMap, index) => {
@@ -807,24 +813,28 @@
             <div class="mapa-card-header d-flex align-items-center justify-content-between" data-index="${index}" style="cursor:pointer;">
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <i class="bi bi-map text-primary"></i>
-                <span class="fw-semibold text-primary-dark">${itemMap.numero}</span>
+                <span class="fw-semibold text-primary-dark">${itemMap.numero || '<span class=\"text-secondary fst-italic\">sem mapa</span>'}</span>
                 ${qtdPdv ? `<span class="badge bg-light text-dark border">${qtdPdv} PDV${qtdPdv > 1 ? 's' : ''}</span>` : ''}
                 ${badgeMapaStatusCurto(itemMap.status)}
               </div>
               <div class="d-flex align-items-center gap-3">
-                <button class="btn-remove-mapa" data-index="${index}" type="button" title="Remover mapa"><i class="bi bi-x-circle-fill"></i></button>
+                <button class="btn-remove-mapa" data-index="${index}" type="button" title="Remover item"><i class="bi bi-x-circle-fill"></i></button>
                 <i class="bi ${aberto ? 'bi-chevron-up' : 'bi-chevron-down'} mapa-toggle-icon text-secondary" data-index="${index}"></i>
               </div>
             </div>
             <div class="mapa-card-body" style="${aberto ? '' : 'display:none;'}">
               <div class="row g-2 mt-2">
                 <div class="col-12 col-md-5">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Nº do mapa</label>
+                  <input type="text" class="form-control form-control-sm mapa-numero-input" data-index="${index}" value="${itemMap.numero || ''}" placeholder="Opcional">
+                </div>
+                <div class="col-12 col-md-7">
                   <label class="form-label small fw-semibold text-secondary mb-1">Status</label>
                   <select class="form-select form-select-sm mapa-status-select" data-index="${index}">
                     ${opcoesStatusMapa(itemMap.status)}
                   </select>
                 </div>
-                <div class="col-12 col-md-7">
+                <div class="col-12">
                   <label class="form-label small fw-semibold text-secondary mb-1">Adicionar Cod PDV</label>
                   <div class="input-group input-group-sm">
                     <input type="text" class="form-control mapa-pdv-input" data-index="${index}" placeholder="Cod PDV">
@@ -873,6 +883,14 @@
             const idx = parseInt(this.dataset.index);
             mapasTemp[idx].expanded = !mapasTemp[idx].expanded;
             atualizarMapasUI();
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-numero-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            mapasTemp[idx].numero = this.value.trim();
           });
         });
 
@@ -973,7 +991,7 @@
       function atualizarEditMapasUI() {
         editMapasContainer.innerHTML = '';
         if (editMapasTemp.length === 0) {
-          editMapasContainer.innerHTML = '<span class="text-secondary small">Nenhum mapa adicionado</span>';
+          editMapasContainer.innerHTML = '<span class="text-secondary small">Nenhum item adicionado (opcional)</span>';
           return;
         }
         editMapasTemp.forEach((itemMap, index) => {
@@ -985,24 +1003,28 @@
             <div class="mapa-card-header d-flex align-items-center justify-content-between" data-index="${index}" style="cursor:pointer;">
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <i class="bi bi-map text-primary"></i>
-                <span class="fw-semibold text-primary-dark">${itemMap.numero}</span>
+                <span class="fw-semibold text-primary-dark">${itemMap.numero || '<span class=\"text-secondary fst-italic\">sem mapa</span>'}</span>
                 ${qtdPdv ? `<span class="badge bg-light text-dark border">${qtdPdv} PDV${qtdPdv > 1 ? 's' : ''}</span>` : ''}
                 ${badgeMapaStatusCurto(itemMap.status)}
               </div>
               <div class="d-flex align-items-center gap-3">
-                <button class="btn-remove-mapa edit-remove-mapa" data-index="${index}" type="button" title="Remover mapa"><i class="bi bi-x-circle-fill"></i></button>
+                <button class="btn-remove-mapa edit-remove-mapa" data-index="${index}" type="button" title="Remover item"><i class="bi bi-x-circle-fill"></i></button>
                 <i class="bi ${aberto ? 'bi-chevron-up' : 'bi-chevron-down'} mapa-toggle-icon text-secondary" data-index="${index}"></i>
               </div>
             </div>
             <div class="mapa-card-body" style="${aberto ? '' : 'display:none;'}">
               <div class="row g-2 mt-2">
                 <div class="col-12 col-md-5">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Nº do mapa</label>
+                  <input type="text" class="form-control form-control-sm edit-mapa-numero-input" data-index="${index}" value="${itemMap.numero || ''}" placeholder="Opcional">
+                </div>
+                <div class="col-12 col-md-7">
                   <label class="form-label small fw-semibold text-secondary mb-1">Status</label>
                   <select class="form-select form-select-sm edit-mapa-status-select" data-index="${index}">
                     ${opcoesStatusMapa(itemMap.status)}
                   </select>
                 </div>
-                <div class="col-12 col-md-7">
+                <div class="col-12">
                   <label class="form-label small fw-semibold text-secondary mb-1">Adicionar Cod PDV</label>
                   <div class="input-group input-group-sm">
                     <input type="text" class="form-control edit-mapa-pdv-input" data-index="${index}" placeholder="Cod PDV">
@@ -1051,6 +1073,14 @@
             const idx = parseInt(this.dataset.index);
             editMapasTemp[idx].expanded = !editMapasTemp[idx].expanded;
             atualizarEditMapasUI();
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-numero-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            editMapasTemp[idx].numero = this.value.trim();
           });
         });
 
@@ -1312,9 +1342,32 @@
       };
       const CORES_PALETA = ['#2b7af0', '#4d8cf0', '#7fb0f5', '#1f68d6', '#0a3e7c', '#b8d4ff'];
       const REVENDAS_LISTA = ['MGA', 'GPA', 'PG', 'NP'];
-      const TIPOS_ACAO_LISTA = ['On Time', 'Dispersão de KM', 'Dispersão de Tempo'];
+      const TIPOS_ACAO_LISTA = ['On Time', 'Dispersão de KM', 'Dispersão de Tempo', 'Atualização Coordenadas'];
       const CORES_REVENDA = { 'MGA': '#2b7af0', 'GPA': '#20c997', 'PG': '#fd7e14', 'NP': '#6f42c1' };
-      const CORES_TIPO_ACAO = { 'On Time': '#2b7af0', 'Dispersão de KM': '#fd7e14', 'Dispersão de Tempo': '#20c997' };
+      const CORES_TIPO_ACAO = { 'On Time': '#2b7af0', 'Dispersão de KM': '#fd7e14', 'Dispersão de Tempo': '#20c997', 'Atualização Coordenadas': '#e83e8c' };
+      // Configuração de campos por Tipo de Ação: todos usam Mapa + Cod PDV (cascata mantém os mesmos campos para os 4 tipos)
+      const CAMPOS_POR_TIPO_ACAO = {
+        'On Time': { mapa: true, codPdv: true },
+        'Dispersão de KM': { mapa: true, codPdv: true },
+        'Dispersão de Tempo': { mapa: true, codPdv: true },
+        'Atualização Coordenadas': { mapa: true, codPdv: true }
+      };
+      function camposDoTipoAcao(tipo) {
+        return CAMPOS_POR_TIPO_ACAO[tipo] || { mapa: true, codPdv: true };
+      }
+
+      // Ajusta os campos de Mapa / Cod PDV do "Adicionar Item" conforme o Tipo de Ação escolhido (cascata)
+      function aplicarCascataTipoAcao(tipo, mapaInputEl, codPdvInputEl, ajudaEl) {
+        const campos = camposDoTipoAcao(tipo);
+        if (mapaInputEl) mapaInputEl.style.display = campos.mapa ? '' : 'none';
+        if (codPdvInputEl) codPdvInputEl.style.display = campos.codPdv ? '' : 'none';
+        if (ajudaEl) {
+          if (campos.mapa && campos.codPdv) ajudaEl.textContent = '(Mapa e/ou Cod PDV, conforme "' + tipo + '")';
+          else if (campos.mapa) ajudaEl.textContent = '(apenas Mapa para "' + tipo + '")';
+          else if (campos.codPdv) ajudaEl.textContent = '(apenas Cod PDV para "' + tipo + '")';
+          else ajudaEl.textContent = '(não requer mapa nem Cod PDV para "' + tipo + '")';
+        }
+      }
       const DIAS_SEMANA_ORDEM = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
       const DIAS_SEMANA_JS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
       let agrupamentoData = 'semana'; // 'semana' | 'mes'
@@ -1725,7 +1778,7 @@
 
         corpo.innerHTML = mapas.map(m => `
           <tr>
-            <td class="fw-semibold text-primary-dark">${m.numero}</td>
+            <td class="fw-semibold text-primary-dark">${m.numero || '-'}</td>
             <td>${(m.pdvs && m.pdvs.length) ? m.pdvs.map(p => `<span class="badge bg-light text-dark border me-1" title="${[p.descricao, p.resolucao].filter(Boolean).join(' → ')}">${p.codigo}${p.descricao ? ' - ' + p.descricao : ''}${p.resolucao ? ' → ' + p.resolucao : ''}</span>`).join('') : '-'}</td>
             <td><span class="badge bg-info">${m.revenda}</span></td>
             <td>${m.data}</td>
@@ -2019,23 +2072,13 @@
         const descricao = inputDescricao.value.trim();
         const status = inputStatus.value;
 
-        if (!descricao && mapasTemp.length === 0) {
-          showToast('Preencha a descrição ou adicione mapas.', 'warning');
-          return;
-        }
-
-        if (mapasTemp.length === 0) {
-          showToast('Adicione pelo menos um mapa.', 'warning');
-          return;
-        }
-
         const nova = {
           id: gerarId(),
           data: data || new Date().toISOString().slice(0,10),
           revenda: revenda,
           tipoAcao: tipoAcao,
           dt: dt,
-          descricao: descricao || 'Sem descrição',
+          descricao: descricao || tipoAcao,
           mapas: mapasTemp.map(m => ({ numero: m.numero, pdvs: m.pdvs || [], problema: m.problema || '', resolucao: m.resolucao || '', status: m.status || 'Pendente' })),
           status: status
         };
@@ -2049,6 +2092,7 @@
         mapasTemp = [];
         atualizarMapasUI();
         inputMapa.value = '';
+        inputCodPdvItem.value = '';
       }
 
       function abrirEdicao(id) {
@@ -2062,7 +2106,7 @@
         editRevenda.value = item.revenda || 'MGA';
         editTipoAcao.value = item.tipoAcao || 'On Time';
         editDt.value = item.dt || '';
-        editDescricao.value = item.descricao || '';
+        editDescricao.value = (item.descricao && item.descricao !== item.tipoAcao) ? item.descricao : '';
         editStatus.value = item.status || 'Pendente';
         editMapasTemp = (item.mapas || []).map(m => ({
           numero: m.numero,
@@ -2074,6 +2118,8 @@
         }));
         atualizarEditMapasUI();
         editNovoMapa.value = '';
+        editNovoCodPdvItem.value = '';
+        aplicarCascataTipoAcao(editTipoAcao.value, editNovoMapa, editNovoCodPdvItem, document.getElementById('editItensAjudaTexto'));
         if (modalEditar) modalEditar.show();
       }
 
@@ -2085,21 +2131,11 @@
           return;
         }
 
-        if (!editDescricao.value.trim() && editMapasTemp.length === 0) {
-          showToast('Preencha a descrição ou adicione mapas.', 'warning');
-          return;
-        }
-
-        if (editMapasTemp.length === 0) {
-          showToast('Adicione pelo menos um mapa.', 'warning');
-          return;
-        }
-
         item.data = editData.value;
         item.revenda = editRevenda.value;
         item.tipoAcao = editTipoAcao.value;
         item.dt = editDt.value || '-';
-        item.descricao = editDescricao.value.trim() || 'Sem descrição';
+        item.descricao = editDescricao.value.trim() || editTipoAcao.value;
         item.mapas = editMapasTemp.map(m => ({ numero: m.numero, pdvs: m.pdvs || [], problema: m.problema || '', resolucao: m.resolucao || '', status: m.status || 'Pendente' }));
         item.status = editStatus.value;
 
@@ -2215,14 +2251,20 @@
       
       document.getElementById('addMapaBtn').addEventListener('click', function() {
         const mapa = inputMapa.value.trim();
-        if (mapa) {
-          mapasTemp.push({ numero: mapa, pdvs: [], problema: '', resolucao: '', status: 'Pendente', expanded: true });
-          atualizarMapasUI();
-          inputMapa.value = '';
-          inputMapa.focus();
-        } else {
-          showToast('Digite o número do mapa.', 'warning');
+        const codPdv = inputCodPdvItem.value.trim();
+        if (!mapa && !codPdv) {
+          showToast('Informe o nº do mapa e/ou o Cod PDV.', 'warning');
+          return;
         }
+        mapasTemp.push({
+          numero: mapa,
+          pdvs: codPdv ? [{ codigo: codPdv, descricao: '', resolucao: '' }] : [],
+          problema: '', resolucao: '', status: 'Pendente', expanded: true
+        });
+        atualizarMapasUI();
+        inputMapa.value = '';
+        inputCodPdvItem.value = '';
+        inputMapa.focus();
       });
 
       document.getElementById('limparMapasBtn').addEventListener('click', function() {
@@ -2271,14 +2313,20 @@
       
       document.getElementById('editAddMapaBtn').addEventListener('click', function() {
         const mapa = editNovoMapa.value.trim();
-        if (mapa) {
-          editMapasTemp.push({ numero: mapa, pdvs: [], problema: '', resolucao: '', status: 'Pendente', expanded: true });
-          atualizarEditMapasUI();
-          editNovoMapa.value = '';
-          editNovoMapa.focus();
-        } else {
-          showToast('Digite o número do mapa.', 'warning');
+        const codPdv = editNovoCodPdvItem.value.trim();
+        if (!mapa && !codPdv) {
+          showToast('Informe o nº do mapa e/ou o Cod PDV.', 'warning');
+          return;
         }
+        editMapasTemp.push({
+          numero: mapa,
+          pdvs: codPdv ? [{ codigo: codPdv, descricao: '', resolucao: '' }] : [],
+          problema: '', resolucao: '', status: 'Pendente', expanded: true
+        });
+        atualizarEditMapasUI();
+        editNovoMapa.value = '';
+        editNovoCodPdvItem.value = '';
+        editNovoMapa.focus();
       });
 
       inputMapa.addEventListener('keypress', (e) => {
@@ -2287,7 +2335,19 @@
           document.getElementById('addMapaBtn').click();
         }
       });
+      inputCodPdvItem.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('addMapaBtn').click();
+        }
+      });
       editNovoMapa.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('editAddMapaBtn').click();
+        }
+      });
+      editNovoCodPdvItem.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
           document.getElementById('editAddMapaBtn').click();
@@ -2302,6 +2362,14 @@
         const hoje = new Date().toISOString().slice(0,10);
         inputData.value = hoje;
       }
+
+      inputTipoAcao.addEventListener('change', function() {
+        aplicarCascataTipoAcao(this.value, inputMapa, inputCodPdvItem, document.getElementById('itensAjudaTexto'));
+      });
+      editTipoAcao.addEventListener('change', function() {
+        aplicarCascataTipoAcao(this.value, editNovoMapa, editNovoCodPdvItem, document.getElementById('editItensAjudaTexto'));
+      });
+      aplicarCascataTipoAcao(inputTipoAcao.value, inputMapa, inputCodPdvItem, document.getElementById('itensAjudaTexto'));
 
       // Carrega os dados
       carregarDados();

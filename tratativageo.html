@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
   <style>
     * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -221,9 +222,229 @@
       </div>
     </div>
 
+    <!-- ===================== SEÇÃO 3: HISTÓRICO DE PROCESSAMENTOS ===================== -->
+    <div class="card card-shadow p-3 p-md-4 mb-4">
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="step-badge">3</span>
+        <div class="text-primary-dark fw-semibold fs-5">Histórico de Processamentos</div>
+      </div>
+      <p class="text-secondary small mb-3">Todos os clientes já processados (Novos Clientes e Cliente Existente), salvos no banco de dados.</p>
+
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-md-2">
+          <label class="form-label small text-secondary mb-1">Tipo</label>
+          <select class="form-select form-select-sm tratativa-input" id="filtroHistTipo">
+            <option value="">Todos</option>
+            <option value="Novo Cliente">Novo Cliente</option>
+            <option value="Cliente Existente">Cliente Existente</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small text-secondary mb-1">Revenda</label>
+          <select class="form-select form-select-sm tratativa-input" id="filtroHistRevenda">
+            <option value="">Todas</option>
+            <option value="MGA">MGA</option>
+            <option value="GPA">GPA</option>
+            <option value="PG">PG</option>
+            <option value="NP">NP</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label small text-secondary mb-1">Código do cliente</label>
+          <input type="text" class="form-control form-control-sm tratativa-input" id="filtroHistCodigo" placeholder="Buscar código...">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small text-secondary mb-1">De</label>
+          <input type="date" class="form-control form-control-sm tratativa-input" id="filtroHistDataDe">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small text-secondary mb-1">Até</label>
+          <input type="date" class="form-control form-control-sm tratativa-input" id="filtroHistDataAte">
+        </div>
+        <div class="col-12 col-md-1 d-flex align-items-end">
+          <button class="btn btn-primary-soft btn-sm w-100" id="btnLimparFiltroHist" title="Limpar filtros"><i class="bi bi-x-lg"></i></button>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap align-items-center justify-content-between mb-2">
+        <div class="text-secondary small fw-semibold">
+          <i class="bi bi-clock-history me-1"></i>Registros <span class="badge bg-light text-dark border" id="contadorHistorico">0</span>
+        </div>
+        <button class="btn btn-primary-soft btn-sm" id="btnRecarregarHistorico"><i class="bi bi-arrow-clockwise me-1"></i> Atualizar</button>
+      </div>
+      <div class="table-preview-wrap card-shadow p-2">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Revenda</th>
+              <th>Código Cliente</th>
+              <th>Coordenadas</th>
+              <th>Arquivo de Origem</th>
+            </tr>
+          </thead>
+          <tbody id="corpoHistorico"><tr><td colspan="6" class="text-center text-secondary py-3">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 
   <script>
+    // ============================================================
+    // 0. SUPABASE (integração com o Diário de Tratativas / index.html)
+    // ============================================================
+    const SUPABASE_URL = 'https://scbdlyfavqlzstbulrup.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_M55itc2oMAlK3bEFj9Le5Q_CeBsVBUV';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Código MGA=0001 (Maringá), GPA=0002 (Guarapuava), PG=0003 (Ponta Grossa), NP=0004 (Norte Pioneiro)
+    const REVENDA_POR_NOME = [
+      { chave: 'maringa', revenda: 'MGA' },
+      { chave: 'guarapuava', revenda: 'GPA' },
+      { chave: 'pontagrossa', revenda: 'PG' },
+      { chave: 'nortepioneiro', revenda: 'NP' }
+    ];
+
+    function normalizarTexto(s) {
+      return String(s ?? '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, ''); // remove espaços/pontuação
+    }
+
+    function detectarRevendaPorArquivo(nomeArquivo) {
+      const n = normalizarTexto(nomeArquivo);
+      const encontrada = REVENDA_POR_NOME.find(r => n.includes(r.chave));
+      return encontrada ? encontrada.revenda : null;
+    }
+
+    function gerarIdTratativa() {
+      return Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+    }
+
+    // Cria 1 tratativa (Tipo de Ação "Atualização Coordenadas") por cliente processado
+    async function criarTratativasAtualizacaoCoordenadas(revenda, linhasProcessadas) {
+      const hoje = new Date().toISOString().slice(0, 10);
+      const payloads = linhasProcessadas
+        .filter(r => r.Codigo)
+        .map(r => ({
+          id: gerarIdTratativa(),
+          data_registro: hoje,
+          revenda: revenda,
+          tipoacao: 'Atualização Coordenadas',
+          dt: '-',
+          descricao: '',
+          mapas: [{
+            numero: '',
+            pdvs: [{ codigo: r.Codigo, descricao: String(r.Coordenadas ?? ''), resolucao: '' }],
+            problema: '',
+            resolucao: 'Coordenadas atualizadas via importação de geolocalizador.',
+            status: 'Resolvido'
+          }],
+          status: 'Resolvido'
+        }));
+
+      if (payloads.length === 0) return { inseridas: 0 };
+
+      const { error } = await supabaseClient.from('tratativas').insert(payloads);
+      if (error) throw error;
+      return { inseridas: payloads.length };
+    }
+
+    // ============================================================
+    // 0.1 HISTÓRICO DE PROCESSAMENTOS (tabela geolocalizador_processamentos)
+    // ============================================================
+    // Salva cada linha processada (Novos Clientes ou Cliente Existente) no histórico
+    async function salvarHistoricoProcessamento(tipo, revenda, arquivoOrigem, linhas) {
+      const registros = linhas.map(l => ({
+        tipo: tipo, // 'Novo Cliente' | 'Cliente Existente'
+        revenda: (l.revenda !== undefined ? l.revenda : revenda) || null,
+        codigo_cliente: l.codigo,
+        coordenadas: l.coordenadas,
+        concatenado: l.concatenado,
+        arquivo_origem: arquivoOrigem
+      })).filter(r => r.codigo_cliente);
+
+      if (registros.length === 0) return { salvas: 0 };
+
+      const { error } = await supabaseClient.from('geolocalizador_processamentos').insert(registros);
+      if (error) throw error;
+      return { salvas: registros.length };
+    }
+
+    let historicoCompleto = [];
+
+    async function carregarHistorico() {
+      const corpo = document.getElementById('corpoHistorico');
+      try {
+        const { data, error } = await supabaseClient
+          .from('geolocalizador_processamentos')
+          .select('*')
+          .order('data_processamento', { ascending: false })
+          .limit(500);
+        if (error) throw error;
+        historicoCompleto = data || [];
+        renderizarHistorico();
+      } catch (e) {
+        console.error('Erro ao carregar histórico:', e);
+        corpo.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-3">Erro ao carregar histórico.</td></tr>';
+      }
+    }
+
+    function renderizarHistorico() {
+      const corpo = document.getElementById('corpoHistorico');
+      const tipo = document.getElementById('filtroHistTipo').value;
+      const revenda = document.getElementById('filtroHistRevenda').value;
+      const codigo = normalizarTexto(document.getElementById('filtroHistCodigo').value);
+      const dataDe = document.getElementById('filtroHistDataDe').value;
+      const dataAte = document.getElementById('filtroHistDataAte').value;
+
+      const filtrado = historicoCompleto.filter(r => {
+        if (tipo && r.tipo !== tipo) return false;
+        if (revenda && r.revenda !== revenda) return false;
+        if (codigo && !normalizarTexto(r.codigo_cliente).includes(codigo)) return false;
+        const dataReg = (r.data_processamento || '').slice(0, 10);
+        if (dataDe && dataReg < dataDe) return false;
+        if (dataAte && dataReg > dataAte) return false;
+        return true;
+      });
+
+      document.getElementById('contadorHistorico').textContent = filtrado.length;
+
+      if (filtrado.length === 0) {
+        corpo.innerHTML = '<tr><td colspan="6" class="text-center text-secondary py-3">Nenhum registro encontrado.</td></tr>';
+        return;
+      }
+
+      corpo.innerHTML = filtrado.map(r => `
+        <tr>
+          <td>${(r.data_processamento || '').slice(0, 16).replace('T', ' ')}</td>
+          <td><span class="badge bg-info">${r.tipo || ''}</span></td>
+          <td>${r.revenda || '-'}</td>
+          <td>${r.codigo_cliente || ''}</td>
+          <td class="text-break">${r.coordenadas || ''}</td>
+          <td class="small text-secondary">${r.arquivo_origem || ''}</td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('filtroHistTipo').addEventListener('change', renderizarHistorico);
+    document.getElementById('filtroHistRevenda').addEventListener('change', renderizarHistorico);
+    document.getElementById('filtroHistCodigo').addEventListener('input', renderizarHistorico);
+    document.getElementById('filtroHistDataDe').addEventListener('change', renderizarHistorico);
+    document.getElementById('filtroHistDataAte').addEventListener('change', renderizarHistorico);
+    document.getElementById('btnRecarregarHistorico').addEventListener('click', carregarHistorico);
+    document.getElementById('btnLimparFiltroHist').addEventListener('click', function() {
+      document.getElementById('filtroHistTipo').value = '';
+      document.getElementById('filtroHistRevenda').value = '';
+      document.getElementById('filtroHistCodigo').value = '';
+      document.getElementById('filtroHistDataDe').value = '';
+      document.getElementById('filtroHistDataAte').value = '';
+      renderizarHistorico();
+    });
+
     // ============================================================
     // 1. UTILITÁRIOS
     // ============================================================
@@ -276,6 +497,8 @@
     // 2. SEÇÃO 1 — GEOLOCALIZAÇÃO DE NOVOS CLIENTES
     // ============================================================
     const FILIAL_MAP = { '1': 'Maringá', '2': 'Guarapuava', '3': 'Ponta_Grossa', '4': 'Norte_Pioneiro' };
+    // Filial (código Promax) -> Revenda: 1=MGA, 2=GPA, 3=PG, 4=NP
+    const FILIAL_REVENDA_MAP = { '1': 'MGA', '2': 'GPA', '3': 'PG', '4': 'NP' };
 
     // Equivalente a ajustar_coordenadas()
     function ajustarCoordenadas(coordenadas) {
@@ -312,12 +535,14 @@
       const processadas = linhas.map(row => {
         const filialCod = String(row['Filial'] ?? '').trim();
         const filialNome = FILIAL_MAP[filialCod] || row['Filial'] || '';
+        const filialRevenda = FILIAL_REVENDA_MAP[filialCod] || null;
         let coordenadas = String(row['Coordenadas'] ?? '').replace(/,/g, ';').replace(/\s+/g, '');
         coordenadas = ajustarCoordenadas(coordenadas);
         const cliente = String(row['Cliente'] ?? '');
         const dataInclusao = row['Data Inclusão'] ?? row['Data Inclusao'] ?? '';
         return {
           Filial: filialNome,
+          Revenda: filialRevenda,
           Cliente: cliente,
           Coordenadas: coordenadas,
           DataInclusao: dataInclusao,
@@ -374,6 +599,21 @@
         dadosNovosFiltrados = processarNovosClientes(linhas);
         renderizarNovos(dadosNovosFiltrados);
         showToast(`Arquivo processado! ${dadosNovosFiltrados.length} registros prontos para exportar.`);
+
+        // Salva no histórico (não cria tratativa para Novos Clientes, só o registro no banco)
+        try {
+          const linhasHist = dadosNovosFiltrados.map(r => ({
+            codigo: r.Cliente,
+            coordenadas: r.Coordenadas,
+            concatenado: r.Concatenar,
+            revenda: r.Revenda
+          }));
+          const resHist = await salvarHistoricoProcessamento('Novo Cliente', null, file.name, linhasHist);
+          if (resHist.salvas > 0) carregarHistorico();
+        } catch (errHist) {
+          console.error(errHist);
+          showToast('❌ Erro ao salvar histórico: ' + errHist.message, 'danger');
+        }
       } catch (err) {
         console.error(err);
         showToast('Erro ao processar o arquivo: ' + err.message, 'danger');
@@ -471,6 +711,36 @@
         dadosExistenteProcessados = processarClienteExistente(linhas);
         renderizarExistente(dadosExistenteProcessados);
         showToast(`Arquivo processado! ${dadosExistenteProcessados.length} registros prontos para exportar.`);
+
+        // Cria automaticamente as tratativas (Atualização Coordenadas) no Diário de Tratativas
+        const revendaDetectada = detectarRevendaPorArquivo(file.name);
+        if (!revendaDetectada) {
+          showToast('Não identifiquei a revenda pelo nome do arquivo (Maringá/Guarapuava/Ponta Grossa/Norte Pioneiro). Nenhuma tratativa foi criada automaticamente.', 'danger');
+        } else {
+          try {
+            const resultado = await criarTratativasAtualizacaoCoordenadas(revendaDetectada, dadosExistenteProcessados);
+            if (resultado.inseridas > 0) {
+              showToast(`✅ ${resultado.inseridas} tratativa(s) de "Atualização Coordenadas" criada(s) automaticamente para ${revendaDetectada}.`);
+            }
+          } catch (errSupabase) {
+            console.error(errSupabase);
+            showToast('❌ Erro ao criar tratativas automáticas: ' + errSupabase.message, 'danger');
+          }
+        }
+
+        // Salva no histórico
+        try {
+          const linhasHist = dadosExistenteProcessados.map(r => ({
+            codigo: r.Codigo,
+            coordenadas: r.Coordenadas,
+            concatenado: r.Concatenado
+          }));
+          const resHist = await salvarHistoricoProcessamento('Cliente Existente', revendaDetectada, file.name, linhasHist);
+          if (resHist.salvas > 0) carregarHistorico();
+        } catch (errHist) {
+          console.error(errHist);
+          showToast('❌ Erro ao salvar histórico: ' + errHist.message, 'danger');
+        }
       } catch (err) {
         console.error(err);
         showToast('Erro ao processar o arquivo: ' + err.message, 'danger');
@@ -498,6 +768,11 @@
       document.getElementById('resultadoExistenteWrap').style.display = 'none';
       showToast('Pronto para receber outro arquivo.');
     });
+
+    // ============================================================
+    // 4. INICIALIZAÇÃO
+    // ============================================================
+    carregarHistorico();
   </script>
 </body>
 </html>
