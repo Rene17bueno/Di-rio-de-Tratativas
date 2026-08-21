@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tratamento de Base de Clientes - Painel OT</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="estado-sessao.js"></script>
+<style>
+  :root {
+    --brand-50:  #eef4ff; --brand-100: #dce8ff; --brand-200: #b3ceff;
+    --brand-500: #245bc7; --brand-600: #1c4aa8; --brand-700: #163a85;
+    --ink-900: #101828; --ink-700: #344054; --ink-500: #667085; --ink-400: #98a2b3;
+    --surface-0: #ffffff; --surface-1: #e9edf4; --surface-2: #eef2f8;
+    --border-soft: #e3e8f0; --border-strong: #c9d3e0;
+    --success: #0f9d58; --success-bg: #e6f7ee; --danger: #c0362c; --danger-bg: #fbeae8;
+    --radius-lg: 1rem; --radius-md: 0.7rem; --radius-sm: 0.5rem;
+    --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+    --shadow-pop: 0 4px 10px rgba(16,24,40,.10), 0 12px 32px rgba(16,24,40,.10);
+    --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem;
+    --space-5: 1.5rem; --space-6: 2rem; --space-7: 2.5rem;
+  }
+  * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  html { -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--surface-1); color: var(--ink-700); padding-bottom: 4rem; overflow-x: hidden; }
+  h1, h2, h3, h4, h5, h6 { color: var(--ink-900); letter-spacing: -0.01em; }
+  .text-primary-dark { color: var(--brand-700) !important; }
+  .text-muted-ink { color: var(--ink-500) !important; }
+  small, .small { color: var(--ink-500); }
+
+  .card-shadow {
+    box-shadow: var(--shadow-card); border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg); background: var(--surface-0);
+  }
+  .section-head { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-4); }
+  .section-head > div { min-width: 0; }
+  .section-head .icon-chip {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    background: var(--brand-50); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; flex-shrink: 0;
+  }
+  .section-head h5 { font-weight: 700; font-size: 1.05rem; margin-bottom: .1rem; }
+  .section-head p { margin-bottom: 0; font-size: .84rem; color: var(--ink-500); max-width: 62ch; }
+  .step-badge {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--brand-500); color: white;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+  }
+  #barraImportacao { transition: all 0.15s; }
+  #barraImportacao.dragover { outline: 2px dashed var(--brand-500); outline-offset: -2px; background: var(--brand-50); }
+
+  .btn { font-weight: 600; letter-spacing: -0.005em; }
+  .btn-primary-brand { background: var(--brand-500); border: 1px solid var(--brand-500); color: #fff; }
+  .btn-primary-brand:hover { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+  .btn-primary-brand:disabled { background: var(--brand-200); border-color: var(--brand-200); opacity: .7; }
+  .btn-primary-soft { background: var(--brand-50); border: 1px solid var(--brand-100); color: var(--brand-700); }
+  .btn-primary-soft:hover { background: var(--brand-100); border-color: var(--brand-200); color: var(--brand-700); }
+  .btn-primary-soft:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-excel { background: #1a7a4c; border: 1px solid #1a7a4c; color: white; }
+  .btn-excel:hover { background: #15603c; border-color: #15603c; color: white; }
+  .btn-excel:disabled { background: #a7c9b6; border-color: #a7c9b6; }
+  .btn-outline-secondary { border-color: var(--border-strong); color: var(--ink-700); }
+  .btn-outline-danger { border-color: #e3aaa5; }
+
+  .form-label { font-size: .78rem; font-weight: 600; color: var(--ink-700); }
+  .form-control, .form-select { border-color: var(--border-strong); font-size: .88rem; }
+  .form-control:focus, .form-select:focus { border-color: var(--brand-500); box-shadow: 0 0 0 .2rem var(--brand-50); }
+
+  .table-preview-wrap { max-height: 480px; overflow: auto; border-radius: var(--radius-md); }
+  .table-preview-wrap table { font-size: 0.8rem; margin-bottom: 0; }
+  .table-preview-wrap thead th {
+    position: sticky; top: 0; background: var(--surface-2); color: var(--ink-700); z-index: 1;
+    text-align: center; vertical-align: middle; white-space: normal;
+    font-size: .74rem; text-transform: uppercase; letter-spacing: .03em; font-weight: 700;
+    border-color: var(--border-soft);
+  }
+  .table-preview-wrap tbody td { border-color: var(--border-soft); vertical-align: middle; }
+  .table-hover > tbody > tr:hover > * { background-color: var(--brand-50); }
+
+  .stat-box { background: var(--surface-1); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: .9rem 1.1rem; }
+  .stat-box .stat-label { font-size: .74rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .03em; }
+  .stat-box .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+  .stat-box.stat-danger .stat-value { color: var(--danger); }
+
+  .toast-custom {
+    position: fixed; top: 20px; right: 20px; z-index: 9999;
+    max-width: 350px; min-width: 250px; animation: slideIn 0.3s ease;
+    box-shadow: var(--shadow-pop);
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .progress-thin { height: 6px; }
+
+  .navbar-site { background: var(--surface-0); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); margin-top: 1rem; }
+  .navbar-site .navbar-brand { display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .brand-mark {
+    width: 32px; height: 32px; border-radius: .55rem; background: var(--brand-500); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .navbar-site .brand-text { line-height: 1.05; }
+  .navbar-site .brand-text .sub { display: block; font-size: .66rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .05em; }
+  .navbar-site .nav-link { color: var(--ink-700); font-weight: 600; font-size: .88rem; border-radius: var(--radius-sm); padding: .5rem .85rem; transition: background 0.15s, color .15s; }
+  .navbar-site .nav-link:hover { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .nav-link.active { background: var(--brand-500); color: #fff !important; }
+  .navbar-site .nav-item.dropdown.section-active > .nav-link { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-menu { border: 1px solid var(--border-soft); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); padding: .4rem; margin-top: .4rem; }
+  .navbar-site .dropdown-item { border-radius: var(--radius-sm); font-size: .86rem; font-weight: 500; color: var(--ink-700); padding: .5rem .65rem; display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .dropdown-item i { color: var(--brand-500); width: 1.1em; text-align: center; }
+  .navbar-site .dropdown-item:hover, .navbar-site .dropdown-item:focus { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-item.active { background: var(--brand-500); color: #fff; }
+  .navbar-site .dropdown-item.active i { color: #fff; }
+
+  .breadcrumb-trail { font-size: .78rem; color: var(--ink-500); margin-bottom: .35rem; }
+  .breadcrumb-trail i { font-size: .65rem; vertical-align: middle; margin: 0 .3rem; }
+  .page-header { margin-bottom: var(--space-4); }
+  .page-header h3 { font-weight: 700; font-size: 1.5rem; }
+
+  .info-card {
+    display: flex; gap: var(--space-3); align-items: flex-start;
+    background: var(--brand-50); border: 1px solid var(--brand-100);
+    border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+  }
+  .info-card .info-card-icon {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--surface-0); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+    box-shadow: 0 1px 2px rgba(16,24,40,.06);
+  }
+  .info-card p { color: var(--ink-700); font-size: .88rem; margin-bottom: .6rem; max-width: 78ch; }
+  .info-card p:last-child { margin-bottom: 0; }
+  .info-card .info-card-ref {
+    display: flex; gap: .5rem; align-items: flex-start;
+    background: var(--surface-0); border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+    padding: .55rem .75rem; font-size: .78rem; color: var(--ink-500); max-width: 78ch;
+  }
+  .info-card .info-card-ref i { color: var(--brand-500); margin-top: .15rem; flex-shrink: 0; }
+  .info-card .info-card-ref strong { color: var(--ink-700); }
+</style>
+</head>
+<body>
+  <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-site px-3 py-2 mb-2">
+      <div class="container-fluid px-0">
+        <a class="navbar-brand" href="index.html">
+          <span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span>
+          <span class="brand-text"><span class="sub">Painel</span>OT</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir menu">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+          <ul class="navbar-nav ms-auto gap-1 align-items-lg-center">
+            <li class="nav-item">
+              <a class="nav-link" href="index.html"><i class="bi bi-journal-richtext me-1"></i>Diário de Tratativas</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="tratativageo.html"><i class="bi bi-geo-alt-fill me-1"></i>Geolocalizador</a>
+            </li>
+            <li class="nav-item dropdown section-active">
+              <a class="nav-link dropdown-toggle" href="#" id="menuImportacao" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-cloud-arrow-up-fill me-1"></i>Importação de Dados
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuImportacao">
+                <li><a class="dropdown-item" href="tratamento-dados.html"><i class="bi bi-truck"></i>Tratamento de Base</a></li>
+                <li><a class="dropdown-item" href="tratamento-2art.html"><i class="bi bi-files"></i>Base 2art</a></li>
+                <li><a class="dropdown-item active" aria-current="page" href="tratamento-clientes.html"><i class="bi bi-people-fill"></i>Base de Clientes</a></li>
+              </ul>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="menuAnalises" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-graph-up-arrow me-1"></i>Consultas &amp; Análises
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuAnalises">
+                <li><a class="dropdown-item" href="consulta-mapa.html"><i class="bi bi-signpost-2-fill"></i>Consulta por Mapa</a></li>
+                <li><a class="dropdown-item" href="vinculo-tabelas.html"><i class="bi bi-link-45deg"></i>Vínculo de Tabelas</a></li>
+                <li><a class="dropdown-item" href="ranking-estouro.html"><i class="bi bi-graph-up-arrow"></i>Ranking de Estouro</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <!-- BARRA COMPACTA DE IMPORTAÇÃO — funciona como sub-navegação, sempre visível -->
+  <div class="container">
+    <div class="card card-shadow px-3 py-2 mb-2" id="barraImportacao">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <select class="form-select form-select-sm" style="max-width: 150px;" id="selectRevenda">
+          <option value="" selected disabled>Revenda...</option>
+          <option value="MGA">MGA</option>
+          <option value="GPA">GPA</option>
+          <option value="PG">PG</option>
+          <option value="NP">NP</option>
+        </select>
+
+        <button class="btn btn-sm btn-outline-primary" id="btnEscolherArquivos" type="button" title="Aceita múltiplos .csv (separador ; , codificação UTF-8) com cabeçalho na 1ª linha">
+          <i class="bi bi-cloud-arrow-up me-1"></i> Escolher .csv
+        </button>
+        <input type="file" id="inputArquivosClientes" accept=".csv" multiple hidden>
+        <span class="text-secondary small" id="listaArquivosTexto">Nenhum arquivo selecionado (ou arraste aqui)</span>
+
+        <button class="btn btn-sm btn-primary-brand ms-auto" id="btnProcessar" disabled>
+          <i class="bi bi-database-fill-gear me-1"></i> Processar
+        </button>
+        <span id="statusProcessamento" class="small"></span>
+      </div>
+      <div class="progress progress-thin mt-2 d-none" id="barraProgresso">
+        <div class="progress-bar" role="progressbar" style="width: 100%"></div>
+      </div>
+    </div>
+  </div>
+
+<div class="container py-4" style="max-width: 1200px;">
+
+  <div class="page-header">
+    <div class="breadcrumb-trail">Importação de Dados <i class="bi bi-chevron-right"></i> Base de Clientes</div>
+    <h3 class="text-primary-dark mb-0"><i class="bi bi-people-fill me-2"></i>Tratamento de Base de Clientes</h3>
+  </div>
+
+  <div class="info-card mb-4">
+    <span class="info-card-icon"><i class="bi bi-info-circle-fill"></i></span>
+    <div>
+      <p class="mb-0">Selecione a revenda, importe o(s) .csv de clientes (separador <code>;</code>, UTF-8) e baixe a base consolidada já com as colunas Revenda e Chave.</p>
+    </div>
+  </div>
+
+  <!-- PASSO 1: RESUMO -->
+  <div class="card card-shadow p-4 mb-4 d-none" id="cardResumo">
+    <div class="section-head">
+      <span class="icon-chip"><i class="bi bi-clipboard-data-fill"></i></span>
+      <div><h5 class="mb-0">Resumo do Processamento</h5></div>
+    </div>
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <div class="stat-box">
+          <div class="stat-label">Arquivos processados</div>
+          <div class="stat-value" id="statArquivos">0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-box">
+          <div class="stat-label">Clientes processados</div>
+          <div class="stat-value" id="statRegistros">0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-box">
+          <div class="stat-label">Revenda aplicada</div>
+          <div class="stat-value" id="statRevenda">-</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-box stat-danger">
+          <div class="stat-label">Sem Código Cliente (ignorados)</div>
+          <div class="stat-value" id="statSemChave">0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-box stat-danger">
+          <div class="stat-label">Sem Latitude/Longitude</div>
+          <div class="stat-value" id="statSemCoordenada">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSO 2: PREVIEW + DOWNLOAD -->
+  <div class="card card-shadow p-4 d-none" id="cardPreview">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="section-head mb-0">
+        <span class="icon-chip"><i class="bi bi-table"></i></span>
+        <div><h5 class="mb-0">Prévia e Download</h5></div>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span id="statusSalvarBanco" class="small"></span>
+        <button class="btn btn-primary-brand" id="btnSalvarBanco">
+          <i class="bi bi-database-fill-gear me-1"></i> Salvar no Banco de Dados
+        </button>
+        <button class="btn btn-excel" id="btnBaixarExcel">
+          <i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel
+        </button>
+      </div>
+    </div>
+    <p class="small mb-3"><i class="bi bi-info-circle me-1"></i>Confira a prévia abaixo antes de salvar — nada é gravado no banco até você clicar em "Salvar no Banco de Dados".</p>
+    <div class="row g-2 mb-3">
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Revenda</label>
+        <select class="form-select form-select-sm" id="filtroRevenda">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Cidade</label>
+        <input type="text" class="form-control form-control-sm" id="filtroCidade" list="listaCidadesFiltro" placeholder="Ex: Maringá">
+        <datalist id="listaCidadesFiltro"></datalist>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Tipo Cliente</label>
+        <input type="text" class="form-control form-control-sm" id="filtroTipoCliente" placeholder="Ex: Varejo">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Código Cliente</label>
+        <input type="text" class="form-control form-control-sm" id="filtroCodigoCliente" placeholder="Ex: 6789">
+      </div>
+    </div>
+    <div class="mb-2">
+      <button class="btn btn-sm btn-primary-soft" id="btnLimparFiltros"><i class="bi bi-x-circle me-1"></i>Limpar filtros</button>
+    </div>
+
+    <p class="text-secondary small mb-2">Exibindo as primeiras <span id="qtdPreview">0</span> de <span id="qtdTotalPreview">0</span> linhas filtradas. O arquivo baixado contém as linhas filtradas (a base completa, se nenhum filtro estiver aplicado).</p>
+    <div class="table-preview-wrap border rounded-3">
+      <table class="table table-hover table-bordered mb-0 align-middle">
+        <thead>
+          <tr id="theadPreview"></tr>
+        </thead>
+        <tbody id="tbodyPreview"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CONSULTA E EXCLUSÃO DA BASE SALVA (compacta, recolhida por padrão) -->
+  <div class="card card-shadow p-3 mt-4" id="cardConsultaBanco">
+    <button class="btn btn-sm btn-link text-decoration-none p-0 d-flex align-items-center gap-2 w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#collapseConsultaBanco" aria-expanded="false" aria-controls="collapseConsultaBanco">
+      <i class="bi bi-search text-primary-dark"></i>
+      <span class="fw-semibold text-primary-dark small">Consultar / Excluir Base Salva</span>
+      <i class="bi bi-chevron-down ms-auto small text-secondary"></i>
+    </button>
+
+    <div class="collapse mt-3" id="collapseConsultaBanco">
+      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+        <p class="text-secondary small mb-0">Busca direto no banco de dados (tabela <code>clientes</code>) — não depende de ter processado um arquivo nesta sessão.</p>
+        <button class="btn btn-sm btn-excel" id="btnBaixarExcelConsulta" disabled>
+          <i class="bi bi-file-earmark-excel me-1"></i> Excel
+        </button>
+      </div>
+
+      <div class="row g-2 mb-2 align-items-end">
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Revenda</label>
+          <select class="form-select form-select-sm" id="consultaRevenda">
+            <option value="">Todas</option>
+            <option value="MGA">MGA</option>
+            <option value="GPA">GPA</option>
+            <option value="PG">PG</option>
+            <option value="NP">NP</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Cidade</label>
+          <input type="text" class="form-control form-control-sm" id="consultaCidade" list="listaCidadesConsulta" placeholder="Ex: Maringá">
+          <datalist id="listaCidadesConsulta"></datalist>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Estado</label>
+          <input type="text" class="form-control form-control-sm" id="consultaEstado" placeholder="Ex: PR">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Código Cliente <small class="text-secondary fw-normal">(exato)</small></label>
+          <input type="text" class="form-control form-control-sm" id="consultaCodigoCliente" placeholder="Ex: 6789">
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+        <button class="btn btn-sm btn-primary-soft" id="btnBuscarBanco"><i class="bi bi-search me-1"></i>Buscar</button>
+        <button class="btn btn-sm btn-outline-secondary" id="btnLimparConsulta"><i class="bi bi-x-circle me-1"></i>Limpar filtros</button>
+        <button class="btn btn-sm btn-outline-danger" id="btnExcluirConsulta" disabled>
+          <i class="bi bi-trash3 me-1"></i>Excluir estes registros
+        </button>
+        <span id="statusConsultaBanco" class="text-secondary small"></span>
+      </div>
+
+      <p class="text-secondary small mb-2" id="infoConsultaBanco"></p>
+      <div class="table-preview-wrap border rounded-3" style="max-height: 360px;">
+        <table class="table table-hover table-bordered mb-0 align-middle" style="font-size:0.8rem;">
+          <thead>
+            <tr id="theadConsulta"></tr>
+          </thead>
+          <tbody id="tbodyConsulta"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PADRONIZAÇÃO DE CIDADE (compacta, recolhida por padrão) -->
+  <div class="card card-shadow p-3 mt-4" id="cardPadronizarCidade">
+    <button class="btn btn-sm btn-link text-decoration-none p-0 d-flex align-items-center gap-2 w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePadronizarCidade" aria-expanded="false" aria-controls="collapsePadronizarCidade">
+      <i class="bi bi-signpost-split-fill text-primary-dark"></i>
+      <span class="fw-semibold text-primary-dark small">Padronizar Nome da Cidade</span>
+      <i class="bi bi-chevron-down ms-auto small text-secondary"></i>
+    </button>
+
+    <div class="collapse mt-3" id="collapsePadronizarCidade">
+      <p class="text-secondary small mb-3">
+        Analisa a cidade de todos os clientes já salvos (tabela <code>clientes</code>) e agrupa grafias
+        parecidas do mesmo nome — maiúscula/minúscula, acento, espaço a mais, letra faltando. Confira cada
+        grupo encontrado e aplique o nome padrão; a correção é gravada direto no banco, um grupo de cada vez
+        (nada muda até você clicar em "Aplicar").
+      </p>
+
+      <div class="row g-2 mb-2 align-items-end">
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Revenda</label>
+          <select class="form-select form-select-sm" id="padronizarRevenda">
+            <option value="">Todas</option>
+            <option value="MGA">MGA</option>
+            <option value="GPA">GPA</option>
+            <option value="PG">PG</option>
+            <option value="NP">NP</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <button class="btn btn-sm btn-primary-soft w-100" id="btnAnalisarCidades"><i class="bi bi-search me-1"></i>Analisar Cidades</button>
+        </div>
+        <div class="col-6 col-md-3">
+          <button class="btn btn-sm btn-primary-brand w-100" id="btnAplicarTodosCidade" disabled><i class="bi bi-check2-all me-1"></i>Aplicar Todos</button>
+        </div>
+        <div class="col-6 col-md-3">
+          <button class="btn btn-sm btn-outline-secondary w-100" id="btnBaixarExcelPadronizacao" disabled><i class="bi bi-file-earmark-excel me-1"></i>Baixar relatório</button>
+        </div>
+      </div>
+      <div class="mb-2"><span id="statusPadronizarCidade" class="small"></span></div>
+
+      <div id="resultadoPadronizarCidade"></div>
+    </div>
+  </div>
+
+  <!-- VERIFICAR CIDADE PELA GEOLOCALIZAÇÃO (compacta, recolhida por padrão) -->
+  <div class="card card-shadow p-3 mt-4" id="cardVerificarGeoCidade">
+    <button class="btn btn-sm btn-link text-decoration-none p-0 d-flex align-items-center gap-2 w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVerificarGeoCidade" aria-expanded="false" aria-controls="collapseVerificarGeoCidade">
+      <i class="bi bi-geo-alt-fill text-primary-dark"></i>
+      <span class="fw-semibold text-primary-dark small">Verificar Cidade pela Geolocalização</span>
+      <i class="bi bi-chevron-down ms-auto small text-secondary"></i>
+    </button>
+
+    <div class="collapse mt-3" id="collapseVerificarGeoCidade">
+      <p class="text-secondary small mb-3">
+        Usa a Latitude/Longitude já salva de cada cliente pra confirmar a cidade real via
+        <a href="https://www.openstreetmap.org" target="_blank" rel="noopener">OpenStreetMap (Nominatim)</a>
+        e compara com o que está gravado no banco. É um serviço gratuito limitado a 1 consulta por segundo,
+        então em bases grandes pode demorar alguns minutos — dá pra parar a qualquer momento e continuar depois.
+        Nada é alterado no banco até você clicar em "Aplicar" em cada divergência encontrada (ou "Aplicar Todos").
+      </p>
+
+      <div class="row g-2 mb-2 align-items-end">
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Revenda</label>
+          <select class="form-select form-select-sm" id="verificarGeoRevenda">
+            <option value="" selected disabled>Revenda...</option>
+            <option value="MGA">MGA</option>
+            <option value="GPA">GPA</option>
+            <option value="PG">PG</option>
+            <option value="NP">NP</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <button class="btn btn-sm btn-primary-soft w-100" id="btnVerificarCidadeGeo"><i class="bi bi-geo-alt me-1"></i>Iniciar Verificação</button>
+        </div>
+        <div class="col-6 col-md-2">
+          <button class="btn btn-sm btn-outline-danger w-100" id="btnPararVerificacaoGeo" disabled><i class="bi bi-stop-circle me-1"></i>Parar</button>
+        </div>
+        <div class="col-6 col-md-2">
+          <button class="btn btn-sm btn-primary-brand w-100" id="btnAplicarTodosVerificarGeo" disabled><i class="bi bi-check2-all me-1"></i>Aplicar Todos</button>
+        </div>
+        <div class="col-6 col-md-2">
+          <button class="btn btn-sm btn-outline-secondary w-100" id="btnBaixarExcelVerificarGeo" disabled><i class="bi bi-file-earmark-excel me-1"></i>Relatório</button>
+        </div>
+      </div>
+
+      <div class="progress mb-2" style="height: 6px;">
+        <div class="progress-bar bg-primary" id="barraVerificarGeoCidade" role="progressbar" style="width: 0%;"></div>
+      </div>
+      <div class="mb-2"><span id="statusVerificarGeoCidade" class="small"></span></div>
+
+      <div id="resultadoVerificarGeoCidade" style="max-height: 480px; overflow-y: auto;"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// -1. CONFIGURAÇÃO DO BANCO DE DADOS (Supabase — mesmo projeto das outras páginas)
+// ============================================================
+const SUPABASE_URL = 'https://scbdlyfavqlzstbulrup.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_M55itc2oMAlK3bEFj9Le5Q_CeBsVBUV';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================================
+// 0. ESTADO GLOBAL
+// ============================================================
+let arquivosSelecionados = [];
+let baseProcessada = [];    // array de objetos, um por cliente (já com "Chave" e "Revenda")
+let filtroIndices = [];     // índices de baseProcessada que passam nos filtros ativos
+const LIMITE_PREVIEW = 200;
+const TAMANHO_LOTE_BANCO = 500;
+
+// Ordem final das colunas na prévia/exportação.
+const COLUNAS_FINAIS_FIXAS = [
+  'Chave', 'Revenda', 'Código Cliente', 'Nome Cliente', 'Tipo Cliente', 'Setor',
+  'Endereço', 'Cidade', 'Estado', 'Latitude', 'Longitude', 'Rótulo'
+];
+
+// ============================================================
+// 1. UPLOAD DOS ARQUIVOS
+// ============================================================
+const barraImportacao = document.getElementById('barraImportacao');
+const btnEscolherArquivos = document.getElementById('btnEscolherArquivos');
+const inputArquivosClientes = document.getElementById('inputArquivosClientes');
+const listaArquivosTexto = document.getElementById('listaArquivosTexto');
+const selectRevenda = document.getElementById('selectRevenda');
+const btnProcessar = document.getElementById('btnProcessar');
+
+btnEscolherArquivos.addEventListener('click', () => inputArquivosClientes.click());
+
+// A barra inteira aceita arrastar-e-soltar arquivos .csv.
+barraImportacao.addEventListener('dragover', e => { e.preventDefault(); barraImportacao.classList.add('dragover'); });
+barraImportacao.addEventListener('dragleave', () => barraImportacao.classList.remove('dragover'));
+barraImportacao.addEventListener('drop', e => {
+  e.preventDefault();
+  barraImportacao.classList.remove('dragover');
+  if (e.dataTransfer.files.length) selecionarArquivos(e.dataTransfer.files);
+});
+
+inputArquivosClientes.addEventListener('change', e => {
+  if (e.target.files.length) selecionarArquivos(e.target.files);
+});
+
+function selecionarArquivos(fileList) {
+  arquivosSelecionados = Array.from(fileList).filter(f => f.name.toLowerCase().endsWith('.csv'));
+
+  if (arquivosSelecionados.length) {
+    listaArquivosTexto.textContent = arquivosSelecionados.length === 1
+      ? arquivosSelecionados[0].name
+      : `${arquivosSelecionados.length} arquivos selecionados`;
+  } else {
+    listaArquivosTexto.textContent = 'Nenhum arquivo .csv válido selecionado';
+  }
+  atualizarEstadoBotaoProcessar();
+}
+
+selectRevenda.addEventListener('change', atualizarEstadoBotaoProcessar);
+
+function atualizarEstadoBotaoProcessar() {
+  btnProcessar.disabled = !(selectRevenda.value && arquivosSelecionados.length);
+}
+
+// ============================================================
+// 2. LEITURA DO CSV (separador ";", UTF-8) E RECONHECIMENTO DAS COLUNAS
+// ============================================================
+// Cada campo final aceita variações de nome de cabeçalho (com/sem acento,
+// espaço/underscore, etc.) — o casamento é feito por normalização + palavras-chave.
+const CAMPOS_CSV = [
+  { destino: 'Código Cliente', palavrasChave: ['codigo cliente', 'cod cliente', 'codigo_cliente', 'cod_cliente', 'codcliente'] },
+  { destino: 'Nome Cliente', palavrasChave: ['nome cliente', 'nome_cliente', 'nomecliente'] },
+  { destino: 'Tipo Cliente', palavrasChave: ['tipo cliente', 'tipo_cliente', 'tipocliente'] },
+  { destino: 'Setor', palavrasChave: ['setor'] },
+  { destino: 'Endereço', palavrasChave: ['endereco', 'endereço'] },
+  { destino: 'Cidade', palavrasChave: ['cidade'] },
+  { destino: 'Estado', palavrasChave: ['estado', 'uf'] },
+  { destino: 'Latitude', palavrasChave: ['latitude', 'lat'] },
+  { destino: 'Longitude', palavrasChave: ['longitude', 'long', 'lng'] },
+  { destino: 'Rótulo', palavrasChave: ['rotulo', 'rótulo', 'label'] }
+];
+const CAMPOS_NUMERICOS = new Set(['Latitude', 'Longitude']);
+
+// Remove acentos e normaliza espaços/underscores pra comparar nomes de coluna sem depender de acentuação exata.
+function normalizarNomeColuna(nome) {
+  return String(nome ?? '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[_]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+// Recebe o cabeçalho (1ª linha do CSV, já dividido por ";") e devolve um mapa
+// { destino -> índice da coluna no arquivo }, casando pelas palavrasChave de CAMPOS_CSV.
+function mapearColunasCsv(cabecalho) {
+  const normalizados = cabecalho.map(normalizarNomeColuna);
+  const indicePorDestino = {};
+  CAMPOS_CSV.forEach(campo => {
+    const idx = normalizados.findIndex(nome => campo.palavrasChave.some(chave => nome.includes(chave)));
+    indicePorDestino[campo.destino] = idx; // -1 se não encontrou essa coluna neste arquivo
+  });
+  return indicePorDestino;
+}
+
+// Lê o arquivo como texto tentando UTF-8 primeiro; se a decodificação falhar
+// (sinal de que o arquivo na verdade está em Windows-1252/Latin1, comum em
+// exports desse tipo mesmo quando "dizem" ser UTF-8), cai pro Windows-1252.
+async function lerArquivoTexto(arquivo) {
+  const buffer = await arquivo.arrayBuffer();
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+  } catch {
+    return new TextDecoder('windows-1252').decode(buffer);
+  }
+}
+
+// Faz o split de uma linha CSV respeitando aspas (campos podem vir entre "…",
+// com "" representando uma aspa literal dentro do valor) — um split(';') simples
+// deixaria as aspas coladas no valor final.
+function parseLinhaCsv(linha, delimitador) {
+  const valores = [];
+  let atual = '';
+  let dentroAspas = false;
+  for (let i = 0; i < linha.length; i++) {
+    const ch = linha[i];
+    if (dentroAspas) {
+      if (ch === '"') {
+        if (linha[i + 1] === '"') { atual += '"'; i++; }
+        else { dentroAspas = false; }
+      } else {
+        atual += ch;
+      }
+    } else if (ch === '"') {
+      dentroAspas = true;
+    } else if (ch === delimitador) {
+      valores.push(atual);
+      atual = '';
+    } else {
+      atual += ch;
+    }
+  }
+  valores.push(atual);
+  return valores;
+}
+
+// Converte "-23,456789" ou "-23.456789" em número. null se vazio/inválido.
+function parseCoordenada(valor) {
+  const texto = String(valor ?? '').trim();
+  if (texto === '') return null;
+  const numero = Number(texto.replace(',', '.'));
+  return isNaN(numero) ? null : numero;
+}
+
+function formatarValorCsv(bruto, destino) {
+  if (CAMPOS_NUMERICOS.has(destino)) return parseCoordenada(bruto);
+  const texto = String(bruto ?? '').trim();
+  return texto === '' ? null : texto;
+}
+
+// ============================================================
+// 3. PROCESSAMENTO DOS ARQUIVOS
+// ============================================================
+btnProcessar.addEventListener('click', processarArquivos);
+
+async function processarArquivos() {
+  const revenda = selectRevenda.value;
+  if (!revenda || !arquivosSelecionados.length) return;
+
+  const nomesArquivos = arquivosSelecionados.map(f => f.name).join('\n - ');
+  const confirmado = confirm(
+    `Confirma que estes ${arquivosSelecionados.length} arquivo(s) são da revenda ${revenda}?\n\n` +
+    ` - ${nomesArquivos}\n\n` +
+    `Os clientes vão ser tratados com Revenda = "${revenda}" e mostrados na prévia — nada é salvo ` +
+    `no banco ainda, você confere a tabela e decide se clica em "Salvar no Banco de Dados". ` +
+    `Se algum desses arquivos for de outra revenda, cancele e selecione a revenda certa antes de processar.`
+  );
+  if (!confirmado) return;
+
+  const statusEl = document.getElementById('statusProcessamento');
+  const barra = document.getElementById('barraProgresso');
+  barra.classList.remove('d-none');
+  statusEl.textContent = 'Lendo arquivos...';
+  btnProcessar.disabled = true;
+
+  try {
+    const todosRegistros = [];
+    let semChave = 0;
+    let semCoordenada = 0;
+
+    for (const arquivo of arquivosSelecionados) {
+      const texto = await lerArquivoTexto(arquivo);
+      const linhas = texto.split(/\r\n|\r|\n/).filter(l => l.trim() !== '');
+      if (!linhas.length) continue;
+
+      const cabecalho = parseLinhaCsv(linhas[0], ';').map(c => c.trim());
+      const indicePorDestino = mapearColunasCsv(cabecalho);
+
+      for (let i = 1; i < linhas.length; i++) {
+        const valoresLinha = parseLinhaCsv(linhas[i], ';');
+        const registro = { 'Revenda': revenda };
+        CAMPOS_CSV.forEach(campo => {
+          const idx = indicePorDestino[campo.destino];
+          const bruto = idx >= 0 && valoresLinha[idx] !== undefined ? valoresLinha[idx].trim() : null;
+          registro[campo.destino] = formatarValorCsv(bruto, campo.destino);
+        });
+
+        registro['Chave'] = (revenda && registro['Código Cliente'])
+          ? `${revenda}-${registro['Código Cliente']}` : null;
+
+        if (!registro['Chave']) { semChave++; continue; } // sem Código Cliente não dá pra montar a Chave nem salvar sem duplicar
+        if (registro['Latitude'] === null || registro['Longitude'] === null) semCoordenada++;
+
+        todosRegistros.push(registro);
+      }
+    }
+
+    statusEl.textContent = `Aplicando regras em ${todosRegistros.length} clientes...`;
+    await new Promise(r => setTimeout(r, 20));
+
+    baseProcessada = todosRegistros;
+    const statsResumo = {
+      arquivos: arquivosSelecionados.length,
+      registros: baseProcessada.length,
+      revenda,
+      semChave,
+      semCoordenada
+    };
+    atualizarResumo(statsResumo);
+    popularFiltroRevenda([revenda]);
+    limparFiltros();
+
+    document.getElementById('cardResumo').classList.remove('d-none');
+    document.getElementById('cardPreview').classList.remove('d-none');
+    document.getElementById('statusSalvarBanco').textContent = '';
+    statusEl.textContent = `Concluído: ${baseProcessada.length} clientes tratados. Confira a prévia antes de salvar no banco.`;
+
+    salvarEstadoAtual(statsResumo, [revenda]);
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToast('❌ Erro ao processar os arquivos: ' + erro.message, 'danger');
+  } finally {
+    barra.classList.add('d-none');
+    btnProcessar.disabled = false;
+    arquivosSelecionados = [];
+    listaArquivosTexto.textContent = 'Nenhum arquivo selecionado (ou arraste aqui)';
+    atualizarEstadoBotaoProcessar();
+  }
+}
+
+// ============================================================
+// 4. RESUMO E PRÉVIA NA TELA
+// ============================================================
+function atualizarResumo(stats) {
+  document.getElementById('statArquivos').textContent = stats.arquivos.toLocaleString('pt-BR');
+  document.getElementById('statRegistros').textContent = stats.registros.toLocaleString('pt-BR');
+  document.getElementById('statRevenda').textContent = stats.revenda;
+  document.getElementById('statSemChave').textContent = stats.semChave.toLocaleString('pt-BR');
+  document.getElementById('statSemCoordenada').textContent = stats.semCoordenada.toLocaleString('pt-BR');
+}
+
+function formatarCelula(valor, coluna) {
+  if (CAMPOS_NUMERICOS.has(coluna)) {
+    return (valor === null || valor === undefined || isNaN(valor)) ? '' : Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+  }
+  return valor ?? '';
+}
+
+function atualizarPreview() {
+  const thead = document.getElementById('theadPreview');
+  const tbody = document.getElementById('tbodyPreview');
+
+  thead.innerHTML = COLUNAS_FINAIS_FIXAS.map(c => `<th>${c}</th>`).join('');
+
+  const linhasFiltradas = filtroIndices.map(i => baseProcessada[i]);
+  const linhasParaExibir = linhasFiltradas.slice(0, LIMITE_PREVIEW);
+  tbody.innerHTML = linhasParaExibir.map(registro => `
+    <tr>${COLUNAS_FINAIS_FIXAS.map(c => `<td>${formatarCelula(registro[c], c)}</td>`).join('')}</tr>
+  `).join('');
+
+  document.getElementById('qtdPreview').textContent = linhasParaExibir.length.toLocaleString('pt-BR');
+  document.getElementById('qtdTotalPreview').textContent = linhasFiltradas.length.toLocaleString('pt-BR');
+}
+
+// ============================================================
+// 4.1 FILTROS (Revenda, Cidade, Tipo Cliente, Código Cliente)
+// ============================================================
+function popularFiltroRevenda(revendas) {
+  const select = document.getElementById('filtroRevenda');
+  select.innerHTML = '<option value="">Todas</option>' +
+    revendas.map(r => `<option value="${r}">${r}</option>`).join('');
+}
+
+// Cidades presentes na base já carregada (client-side, sem consulta ao banco),
+// filtradas pela revenda escolhida — alimenta o dropdown do campo Cidade.
+function popularDatalistCidade() {
+  const revendaSel = document.getElementById('filtroRevenda').value;
+  const datalistEl = document.getElementById('listaCidadesFiltro');
+  const cidades = new Set();
+  baseProcessada.forEach(r => {
+    if (revendaSel && r['Revenda'] !== revendaSel) return;
+    if (r['Cidade']) cidades.add(String(r['Cidade']).trim());
+  });
+  const lista = Array.from(cidades).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  datalistEl.innerHTML = '';
+  lista.forEach(cidade => {
+    const opcao = document.createElement('option');
+    opcao.value = cidade;
+    datalistEl.appendChild(opcao);
+  });
+}
+
+function aplicarFiltros() {
+  const revendaSel = document.getElementById('filtroRevenda').value;
+  const cidadeStr = document.getElementById('filtroCidade').value.trim().toLowerCase();
+  const tipoStr = document.getElementById('filtroTipoCliente').value.trim().toLowerCase();
+  const codigoStr = document.getElementById('filtroCodigoCliente').value.trim();
+
+  filtroIndices = [];
+  baseProcessada.forEach((registro, i) => {
+    if (revendaSel && registro['Revenda'] !== revendaSel) return;
+    if (cidadeStr && !String(registro['Cidade'] ?? '').toLowerCase().includes(cidadeStr)) return;
+    if (tipoStr && !String(registro['Tipo Cliente'] ?? '').toLowerCase().includes(tipoStr)) return;
+    if (codigoStr && !String(registro['Código Cliente'] ?? '').includes(codigoStr)) return;
+    filtroIndices.push(i);
+  });
+
+  atualizarPreview();
+}
+
+function limparFiltros() {
+  document.getElementById('filtroRevenda').value = '';
+  document.getElementById('filtroCidade').value = '';
+  document.getElementById('filtroTipoCliente').value = '';
+  document.getElementById('filtroCodigoCliente').value = '';
+  popularDatalistCidade();
+  aplicarFiltros();
+}
+
+document.getElementById('filtroRevenda').addEventListener('change', () => { popularDatalistCidade(); aplicarFiltros(); });
+document.getElementById('filtroCidade').addEventListener('input', aplicarFiltros);
+document.getElementById('filtroTipoCliente').addEventListener('input', aplicarFiltros);
+document.getElementById('filtroCodigoCliente').addEventListener('input', aplicarFiltros);
+document.getElementById('btnLimparFiltros').addEventListener('click', limparFiltros);
+
+// ============================================================
+// 5. DOWNLOAD DO EXCEL
+// ============================================================
+function baixarExcelGenerico(registros, nomeBase) {
+  if (!registros.length) return;
+  const linhas = registros.map(r => {
+    const linha = {};
+    COLUNAS_FINAIS_FIXAS.forEach(c => { linha[c] = r[c] ?? null; });
+    return linha;
+  });
+  const planilha = XLSX.utils.json_to_sheet(linhas);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, planilha, 'Clientes');
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `${nomeBase}_${dataHoje}.xlsx`);
+  mostrarToast('✅ Arquivo baixado com sucesso.', 'success');
+}
+
+document.getElementById('btnBaixarExcel').addEventListener('click', () => {
+  baixarExcelGenerico(filtroIndices.map(i => baseProcessada[i]), 'base_clientes');
+});
+
+// ============================================================
+// 6. GRAVAÇÃO NO BANCO DE DADOS (Supabase, tabela "clientes")
+// ============================================================
+// Converte um registro (chaves = COLUNAS_FINAIS_FIXAS) pro formato de colunas da tabela "clientes".
+function converterParaLinhaBanco(registro) {
+  return {
+    chave: registro['Chave'],
+    revenda: registro['Revenda'],
+    codigo_cliente: registro['Código Cliente'],
+    nome_cliente: registro['Nome Cliente'],
+    tipo_cliente: registro['Tipo Cliente'],
+    setor: registro['Setor'],
+    endereco: registro['Endereço'],
+    cidade: registro['Cidade'],
+    estado: registro['Estado'],
+    latitude: registro['Latitude'],
+    longitude: registro['Longitude'],
+    rotulo: registro['Rótulo']
+  };
+}
+
+// Converte uma linha do banco (colunas snake_case) de volta pro formato da tela.
+function converterLinhaBancoParaPadrao(l) {
+  return {
+    'Chave': l.chave,
+    'Revenda': l.revenda,
+    'Código Cliente': l.codigo_cliente,
+    'Nome Cliente': l.nome_cliente,
+    'Tipo Cliente': l.tipo_cliente,
+    'Setor': l.setor,
+    'Endereço': l.endereco,
+    'Cidade': l.cidade,
+    'Estado': l.estado,
+    'Latitude': l.latitude,
+    'Longitude': l.longitude,
+    'Rótulo': l.rotulo
+  };
+}
+
+// Grava no Supabase em lotes, inserindo só quem ainda não existe (por
+// "chave") — clientes já cadastrados NÃO são sobrescritos, pra não perder
+// correções feitas depois no banco (ex.: a Padronização de Cidade acima).
+// ON CONFLICT DO NOTHING (ignoreDuplicates) faz isso no próprio Postgres,
+// então não precisa buscar as chaves existentes antes.
+async function salvarBaseClientes(registros) {
+  if (!registros.length) return { salvas: 0, duplicadas: 0, jaExistentes: 0 };
+
+  // O CSV pode ter o mesmo Código Cliente repetido (mesma Chave duas vezes).
+  // O upsert não aceita duas linhas com a mesma chave no mesmo lote ("ON CONFLICT
+  // DO UPDATE command cannot affect row a second time"), então deduplica aqui,
+  // mantendo a última ocorrência de cada Chave — vale pra qualquer arquivo
+  // futuro, não só pro de agora.
+  const porChave = new Map();
+  registros.forEach(r => porChave.set(r['Chave'], r));
+  const duplicadas = registros.length - porChave.size;
+  const linhasBanco = Array.from(porChave.values()).map(converterParaLinhaBanco);
+
+  let salvas = 0;
+  for (let i = 0; i < linhasBanco.length; i += TAMANHO_LOTE_BANCO) {
+    const lote = linhasBanco.slice(i, i + TAMANHO_LOTE_BANCO);
+    const { data, error } = await supabaseClient
+      .from('clientes')
+      .upsert(lote, { onConflict: 'chave', ignoreDuplicates: true })
+      .select('chave');
+    if (error) throw error;
+    salvas += data ? data.length : 0;
+  }
+  const jaExistentes = linhasBanco.length - salvas;
+  return { salvas, duplicadas, jaExistentes };
+}
+
+// Botão "Salvar no Banco de Dados" — só grava depois que o usuário conferiu a prévia.
+document.getElementById('btnSalvarBanco').addEventListener('click', async () => {
+  if (!baseProcessada.length) {
+    mostrarToast('⚠️ Nada pra salvar — processe um arquivo primeiro.', 'warning');
+    return;
+  }
+
+  const statusEl = document.getElementById('statusSalvarBanco');
+  const btn = document.getElementById('btnSalvarBanco');
+  btn.disabled = true;
+  statusEl.textContent = 'Salvando no banco de dados...';
+
+  try {
+    const { salvas, duplicadas, jaExistentes } = await salvarBaseClientes(baseProcessada);
+    const avisos = [
+      duplicadas ? `${duplicadas} repetido(s) no arquivo (mantida só a última ocorrência de cada Chave)` : null,
+      jaExistentes ? `${jaExistentes} já existiam no banco e não foram alterados` : null
+    ].filter(Boolean).join(' · ');
+    statusEl.textContent = `${salvas} cliente(s) novo(s) salvos.${avisos ? ' (' + avisos + ')' : ''}`;
+    mostrarToast(`✅ ${salvas} cliente(s) novo(s) salvos no banco de dados.${avisos ? ' (' + avisos + ')' : ''}`, 'success');
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToast('❌ Falhou ao salvar no banco: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ============================================================
+// 7. CONSULTA E EXCLUSÃO DA BASE SALVA (tabela "clientes")
+// ============================================================
+let resultadoConsultaBanco = [];
+let ultimoFiltroConsultaBanco = null; // guarda os filtros da última busca, pra exclusão usar exatamente o mesmo critério
+const LIMITE_CONSULTA_BANCO = 3000;
+const TAMANHO_PAGINA_BANCO = 1000;
+
+async function buscarTodasLinhas(montarQuery, limiteMaximo) {
+  let todasLinhas = [];
+  let pagina = 0;
+  while (true) {
+    let query = montarQuery(supabaseClient.from('clientes').select('*'))
+      .order('id', { ascending: true })
+      .range(pagina * TAMANHO_PAGINA_BANCO, pagina * TAMANHO_PAGINA_BANCO + TAMANHO_PAGINA_BANCO - 1);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    todasLinhas = todasLinhas.concat(data || []);
+    if (!data || data.length < TAMANHO_PAGINA_BANCO) break;
+    if (limiteMaximo && todasLinhas.length >= limiteMaximo) break;
+    pagina++;
+  }
+  return limiteMaximo ? todasLinhas.slice(0, limiteMaximo) : todasLinhas;
+}
+
+function montarFiltrosConsulta(query, filtros) {
+  if (filtros.revendaSel) query = query.eq('revenda', filtros.revendaSel);
+  if (filtros.cidadeStr) query = query.ilike('cidade', `%${filtros.cidadeStr}%`);
+  if (filtros.estadoStr) query = query.ilike('estado', `%${filtros.estadoStr}%`);
+  if (filtros.codigoStr) query = query.eq('codigo_cliente', filtros.codigoStr);
+  return query;
+}
+
+function lerFiltrosConsulta() {
+  return {
+    revendaSel: document.getElementById('consultaRevenda').value,
+    cidadeStr: document.getElementById('consultaCidade').value.trim(),
+    estadoStr: document.getElementById('consultaEstado').value.trim(),
+    codigoStr: document.getElementById('consultaCodigoCliente').value.trim()
+  };
+}
+
+// Cidades distintas da revenda escolhida, direto do banco (tabela "clientes"),
+// pra alimentar o dropdown do campo Cidade da consulta salva.
+const cacheCidadesConsultaBanco = new Map();
+
+async function popularDatalistCidadeConsulta() {
+  const revendaSel = document.getElementById('consultaRevenda').value;
+  const datalistEl = document.getElementById('listaCidadesConsulta');
+  if (!revendaSel) { datalistEl.innerHTML = ''; return; }
+
+  if (!cacheCidadesConsultaBanco.has(revendaSel)) {
+    const cidades = new Set();
+    try {
+      const linhas = await buscarTodasLinhas(query => query.eq('revenda', revendaSel), null);
+      linhas.forEach(l => { if (l.cidade) cidades.add(String(l.cidade).trim()); });
+    } catch (erro) {
+      console.warn('Não deu pra buscar cidades da revenda:', erro.message);
+    }
+    cacheCidadesConsultaBanco.set(revendaSel, Array.from(cidades).sort((a, b) => a.localeCompare(b, 'pt-BR')));
+  }
+
+  datalistEl.innerHTML = '';
+  cacheCidadesConsultaBanco.get(revendaSel).forEach(cidade => {
+    const opcao = document.createElement('option');
+    opcao.value = cidade;
+    datalistEl.appendChild(opcao);
+  });
+}
+
+document.getElementById('consultaRevenda').addEventListener('change', popularDatalistCidadeConsulta);
+document.getElementById('btnBuscarBanco').addEventListener('click', buscarBanco);
+document.getElementById('btnLimparConsulta').addEventListener('click', () => {
+  document.getElementById('consultaRevenda').value = '';
+  document.getElementById('consultaCidade').value = '';
+  document.getElementById('consultaEstado').value = '';
+  document.getElementById('consultaCodigoCliente').value = '';
+  document.getElementById('listaCidadesConsulta').innerHTML = '';
+});
+
+async function buscarBanco() {
+  const filtros = lerFiltrosConsulta();
+  const statusEl = document.getElementById('statusConsultaBanco');
+  const btnBuscar = document.getElementById('btnBuscarBanco');
+  statusEl.textContent = 'Buscando...';
+  btnBuscar.disabled = true;
+
+  try {
+    ultimoFiltroConsultaBanco = filtros;
+
+    const data = await buscarTodasLinhas(query => montarFiltrosConsulta(query, filtros), LIMITE_CONSULTA_BANCO);
+    resultadoConsultaBanco = data.map(converterLinhaBancoParaPadrao);
+    renderizarConsultaBanco();
+
+    const atingiuLimite = resultadoConsultaBanco.length === LIMITE_CONSULTA_BANCO;
+    statusEl.textContent = `${resultadoConsultaBanco.length.toLocaleString('pt-BR')} cliente(s) encontrados${atingiuLimite ? ' (limite atingido — refine os filtros)' : ''}.`;
+
+    const temResultado = resultadoConsultaBanco.length > 0;
+    document.getElementById('btnBaixarExcelConsulta').disabled = !temResultado;
+    document.getElementById('btnExcluirConsulta').disabled = !temResultado;
+
+    salvarEstadoConsulta(statusEl.textContent);
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToast('❌ Erro ao consultar o banco: ' + erro.message, 'danger');
+  } finally {
+    btnBuscar.disabled = false;
+  }
+}
+
+function renderizarConsultaBanco() {
+  const thead = document.getElementById('theadConsulta');
+  const tbody = document.getElementById('tbodyConsulta');
+
+  thead.innerHTML = COLUNAS_FINAIS_FIXAS.map(c => `<th>${c}</th>`).join('');
+
+  const linhasParaExibir = resultadoConsultaBanco.slice(0, LIMITE_PREVIEW);
+  tbody.innerHTML = linhasParaExibir.map(registro => `
+    <tr>${COLUNAS_FINAIS_FIXAS.map(c => `<td>${formatarCelula(registro[c], c)}</td>`).join('')}</tr>
+  `).join('');
+
+  document.getElementById('infoConsultaBanco').textContent = resultadoConsultaBanco.length
+    ? `Exibindo os primeiros ${linhasParaExibir.length.toLocaleString('pt-BR')} de ${resultadoConsultaBanco.length.toLocaleString('pt-BR')} clientes encontrados.`
+    : 'Nenhum cliente encontrado pra esses filtros.';
+}
+
+document.getElementById('btnBaixarExcelConsulta').addEventListener('click', () => baixarExcelGenerico(resultadoConsultaBanco, 'consulta_clientes'));
+
+// Apaga do banco exatamente os clientes que batem com o filtro atual da consulta.
+// Antes de apagar, conta de novo no banco (a tela só mostra até LIMITE_CONSULTA_BANCO
+// linhas, mas o filtro pode bater em mais do que isso) pra confirmação mostrar o número real.
+document.getElementById('btnExcluirConsulta').addEventListener('click', excluirRegistrosConsulta);
+
+async function excluirRegistrosConsulta() {
+  if (!ultimoFiltroConsultaBanco) return;
+  const filtros = ultimoFiltroConsultaBanco;
+
+  const btn = document.getElementById('btnExcluirConsulta');
+  btn.disabled = true;
+  try {
+    let queryContagem = supabaseClient.from('clientes').select('*', { count: 'exact', head: true });
+    queryContagem = montarFiltrosConsulta(queryContagem, filtros);
+    const { count, error: erroContagem } = await queryContagem;
+    if (erroContagem) throw erroContagem;
+
+    const descricaoFiltro = [
+      filtros.revendaSel ? `Revenda = ${filtros.revendaSel}` : 'todas as revendas',
+      filtros.cidadeStr ? `Cidade contém "${filtros.cidadeStr}"` : null,
+      filtros.estadoStr ? `Estado contém "${filtros.estadoStr}"` : null,
+      filtros.codigoStr ? `Código Cliente = ${filtros.codigoStr}` : null
+    ].filter(Boolean).join(', ');
+    const semFiltroNenhum = !filtros.revendaSel && !filtros.cidadeStr && !filtros.estadoStr && !filtros.codigoStr;
+    const aviso = semFiltroNenhum ? '\n\n⚠️ NENHUM FILTRO aplicado — isso apaga a TABELA INTEIRA.' : '';
+
+    const confirmado = confirm(
+      `Isso vai APAGAR PERMANENTEMENTE ${count ?? '?'} cliente(s) do banco de dados.\n\n` +
+      `Filtro: ${descricaoFiltro}${aviso}\n\n` +
+      `Essa ação não pode ser desfeita. Confirma?`
+    );
+    if (!confirmado) { btn.disabled = false; return; }
+
+    let queryDelete = supabaseClient.from('clientes').delete();
+    queryDelete = montarFiltrosConsulta(queryDelete, filtros);
+    const { error } = await queryDelete;
+    if (error) throw error;
+
+    mostrarToast(`✅ ${count ?? ''} cliente(s) excluído(s) do banco.`, 'success');
+    resultadoConsultaBanco = [];
+    renderizarConsultaBanco();
+    document.getElementById('btnBaixarExcelConsulta').disabled = true;
+    limparEstadoPagina(CHAVE_ESTADO_CONSULTA);
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast('❌ Erro ao excluir os registros: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = resultadoConsultaBanco.length === 0;
+  }
+}
+
+// ============================================================
+// 7.1 PADRONIZAÇÃO DE CIDADE — agrupa grafias parecidas e corrige em lote
+// ============================================================
+// Nome de cidade é dado externo (vindo do CSV importado) — nunca confiar
+// direto em innerHTML com ele, escapa antes de colocar em atributo/texto.
+function escapeHtmlSeguro(texto) {
+  return String(texto ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function normalizarChaveCidade(cidade) {
+  return (cidade || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // remove acentos
+    .trim().replace(/\s+/g, ' ')
+    .toUpperCase();
+}
+
+// Distância de Levenshtein (nº mínimo de inserções/remoções/trocas de letra
+// pra transformar uma string na outra) — usada pra pegar variações por
+// letra faltando/trocada que a normalização de acento/maiúscula não cobre.
+function distanciaLevenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const linha = new Array(n + 1);
+  for (let j = 0; j <= n; j++) linha[j] = j;
+  for (let i = 1; i <= m; i++) {
+    let anterior = linha[0];
+    linha[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const temp = linha[j];
+      linha[j] = a[i - 1] === b[j - 1] ? anterior : 1 + Math.min(anterior, linha[j], linha[j - 1]);
+      anterior = temp;
+    }
+  }
+  return linha[n];
+}
+
+// Quantas diferenças de letra ainda são "a mesma cidade escrita errado",
+// proporcional ao tamanho do nome — pra não juntar cidades diferentes que
+// só coincidem de ter tamanho parecido.
+function limiarSimilaridadeCidade(tamanho) {
+  if (tamanho <= 5) return 1;
+  if (tamanho <= 9) return 2;
+  return 3;
+}
+
+const PALAVRAS_MINUSCULAS_CIDADE = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
+
+// Sugere um nome padrão a partir do grupo: pega a grafia mais completa
+// (mais letras) e ajusta a capitalização — o usuário ainda pode editar
+// antes de aplicar (ex.: pra colocar o acento certo).
+function sugerirNomeCidade(variantes) {
+  const base = [...variantes].sort((a, b) => b.original.length - a.original.length)[0].original;
+  return base
+    .toLowerCase()
+    .split(' ')
+    .map((palavra, i) => (i > 0 && PALAVRAS_MINUSCULAS_CIDADE.has(palavra)) ? palavra : (palavra.charAt(0).toUpperCase() + palavra.slice(1)))
+    .join(' ');
+}
+
+async function buscarTodasCidades(revendaSel) {
+  const linhas = [];
+  let pagina = 0;
+  while (true) {
+    let query = supabaseClient.from('clientes').select('cidade')
+      .range(pagina * TAMANHO_PAGINA_BANCO, pagina * TAMANHO_PAGINA_BANCO + TAMANHO_PAGINA_BANCO - 1);
+    if (revendaSel) query = query.eq('revenda', revendaSel);
+    const { data, error } = await query;
+    if (error) throw error;
+    linhas.push(...(data || []));
+    if (!data || data.length < TAMANHO_PAGINA_BANCO) break;
+    pagina++;
+  }
+  return linhas;
+}
+
+// Agrupa as grafias de cidade em clusters (union-find): primeiro por chave
+// normalizada igual, depois por distância de Levenshtein pequena o
+// suficiente pra ser "a mesma cidade escrita diferente". Só devolve grupos
+// com mais de uma grafia distinta — é isso que precisa de correção.
+function agruparCidades(linhas) {
+  const porVariante = new Map();
+  linhas.forEach(l => {
+    const original = (l.cidade || '').trim();
+    if (!original) return;
+    porVariante.set(original, (porVariante.get(original) || 0) + 1);
+  });
+
+  const nos = Array.from(porVariante.entries()).map(([original, qtd]) => ({
+    original, qtd, chave: normalizarChaveCidade(original)
+  }));
+
+  const paiDoIndice = nos.map((_, i) => i);
+  function encontrar(i) {
+    while (paiDoIndice[i] !== i) { paiDoIndice[i] = paiDoIndice[paiDoIndice[i]]; i = paiDoIndice[i]; }
+    return i;
+  }
+  function unir(i, j) {
+    const ri = encontrar(i), rj = encontrar(j);
+    if (ri !== rj) paiDoIndice[ri] = rj;
+  }
+
+  for (let i = 0; i < nos.length; i++) {
+    for (let j = i + 1; j < nos.length; j++) {
+      if (nos[i].chave === nos[j].chave) { unir(i, j); continue; }
+      const tamanhoMin = Math.min(nos[i].chave.length, nos[j].chave.length);
+      if (tamanhoMin < 4) continue; // nomes muito curtos — não arrisca (ex.: siglas)
+      const limiar = limiarSimilaridadeCidade(tamanhoMin);
+      if (Math.abs(nos[i].chave.length - nos[j].chave.length) > limiar) continue;
+      if (distanciaLevenshtein(nos[i].chave, nos[j].chave) <= limiar) unir(i, j);
+    }
+  }
+
+  const grupos = new Map();
+  nos.forEach((no, i) => {
+    const raiz = encontrar(i);
+    if (!grupos.has(raiz)) grupos.set(raiz, { variantes: [], totalQtd: 0 });
+    const g = grupos.get(raiz);
+    g.variantes.push({ original: no.original, qtd: no.qtd });
+    g.totalQtd += no.qtd;
+  });
+
+  return Array.from(grupos.values())
+    .filter(g => g.variantes.length > 1)
+    .map(g => { g.variantes.sort((a, b) => b.qtd - a.qtd || b.original.length - a.original.length); return g; })
+    .sort((a, b) => b.totalQtd - a.totalQtd);
+}
+
+let gruposCidadeAtual = [];
+let revendaAnalisadaCidade = '';
+
+document.getElementById('btnAnalisarCidades').addEventListener('click', analisarCidades);
+
+async function analisarCidades() {
+  const revendaSel = document.getElementById('padronizarRevenda').value;
+  const statusEl = document.getElementById('statusPadronizarCidade');
+  const btn = document.getElementById('btnAnalisarCidades');
+  btn.disabled = true;
+  statusEl.textContent = 'Buscando cidades no banco...';
+
+  try {
+    const linhas = await buscarTodasCidades(revendaSel);
+    gruposCidadeAtual = agruparCidades(linhas);
+    revendaAnalisadaCidade = revendaSel;
+    renderizarGruposCidade();
+
+    const totalClientes = gruposCidadeAtual.reduce((s, g) => s + g.totalQtd, 0);
+    statusEl.textContent = gruposCidadeAtual.length
+      ? `${gruposCidadeAtual.length} grupo(s) com grafias diferentes encontrado(s), afetando ${totalClientes.toLocaleString('pt-BR')} cliente(s).`
+      : 'Nenhuma inconsistência encontrada — todas as cidades já estão com grafia única.';
+    document.getElementById('btnBaixarExcelPadronizacao').disabled = !gruposCidadeAtual.length;
+    document.getElementById('btnAplicarTodosCidade').disabled = !gruposCidadeAtual.length;
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToast('❌ Erro ao analisar as cidades: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderizarGruposCidade() {
+  const container = document.getElementById('resultadoPadronizarCidade');
+  if (!gruposCidadeAtual.length) { container.innerHTML = ''; return; }
+
+  container.innerHTML = gruposCidadeAtual.map((g, i) => `
+    <div class="border rounded-3 p-3 mb-2" data-grupo="${i}">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <span class="badge bg-secondary-subtle text-secondary-emphasis">${g.totalQtd} cliente(s)</span>
+        <span class="small text-muted-ink">${g.variantes.map(v => `"${escapeHtmlSeguro(v.original)}" (${v.qtd})`).join(' · ')}</span>
+      </div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <input type="text" class="form-control form-control-sm" style="max-width: 260px;" value="${escapeHtmlSeguro(sugerirNomeCidade(g.variantes))}" data-input-canonico>
+        <button class="btn btn-sm btn-primary-brand" data-btn-aplicar>
+          <i class="bi bi-check2-circle me-1"></i>Aplicar
+        </button>
+        <span class="small" data-status-grupo></span>
+      </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('[data-grupo]').forEach(bloco => {
+    const i = Number(bloco.dataset.grupo);
+    bloco.querySelector('[data-btn-aplicar]').addEventListener('click', () => aplicarPadronizacaoGrupo(gruposCidadeAtual[i], bloco));
+  });
+}
+
+// Grava no banco a troca de cidade de um grupo (sem confirmação — quem chama
+// decide quando confirmar) e atualiza o bloco na tela. Reaproveitada tanto
+// pelo "Aplicar" individual quanto pelo "Aplicar Todos".
+async function executarPadronizacaoGrupo(bloco, nomeNovo, variantesParaTrocar) {
+  const statusGrupo = bloco.querySelector('[data-status-grupo]');
+  const btnAplicar = bloco.querySelector('[data-btn-aplicar]');
+  const inputCanonico = bloco.querySelector('[data-input-canonico]');
+
+  btnAplicar.disabled = true;
+  statusGrupo.textContent = 'Aplicando...';
+  try {
+    let query = supabaseClient.from('clientes').update({ cidade: nomeNovo }).in('cidade', variantesParaTrocar.map(v => v.original));
+    if (revendaAnalisadaCidade) query = query.eq('revenda', revendaAnalisadaCidade);
+    const { error } = await query;
+    if (error) throw error;
+
+    statusGrupo.innerHTML = '<span class="text-success">✅ Aplicado.</span>';
+    bloco.classList.add('opacity-50');
+    inputCanonico.disabled = true;
+    cacheCidadesConsultaBanco.delete(revendaAnalisadaCidade); // datalist de cidade fica desatualizado após a correção
+    return { ok: true };
+  } catch (erro) {
+    console.error(erro);
+    statusGrupo.textContent = '';
+    mostrarToast('❌ Erro ao aplicar: ' + erro.message, 'danger');
+    btnAplicar.disabled = false;
+    return { ok: false, erro };
+  }
+}
+
+async function aplicarPadronizacaoGrupo(grupo, bloco) {
+  const inputCanonico = bloco.querySelector('[data-input-canonico]');
+  const statusGrupo = bloco.querySelector('[data-status-grupo]');
+  const nomeNovo = inputCanonico.value.trim();
+  if (!nomeNovo) { mostrarToast('⚠️ Digite o nome padrão da cidade.', 'warning'); return; }
+
+  const variantesParaTrocar = grupo.variantes.filter(v => v.original !== nomeNovo);
+  if (!variantesParaTrocar.length) { statusGrupo.textContent = 'Nada pra alterar — já está padronizado.'; return; }
+
+  const qtdAlterada = variantesParaTrocar.reduce((s, v) => s + v.qtd, 0);
+  const confirmado = confirm(
+    `Isso vai atualizar a cidade de ${qtdAlterada} cliente(s) pra "${nomeNovo}", substituindo:\n` +
+    variantesParaTrocar.map(v => `"${v.original}" (${v.qtd})`).join('\n') +
+    `${revendaAnalisadaCidade ? `\n\nRevenda: ${revendaAnalisadaCidade}` : '\n\nTodas as revendas.'}\n\nConfirma?`
+  );
+  if (!confirmado) return;
+
+  const resultado = await executarPadronizacaoGrupo(bloco, nomeNovo, variantesParaTrocar);
+  if (resultado.ok) mostrarToast(`✅ Cidade padronizada pra "${nomeNovo}" em ${qtdAlterada} cliente(s).`, 'success');
+}
+
+// "Aplicar Todos" — usa o nome que estiver em cada campo de texto nesse
+// momento (o usuário pode ter editado algum antes de clicar aqui), pula
+// grupos já aplicados e mostra uma única confirmação com o total.
+document.getElementById('btnAplicarTodosCidade').addEventListener('click', aplicarTodosGruposCidade);
+
+async function aplicarTodosGruposCidade() {
+  const container = document.getElementById('resultadoPadronizarCidade');
+  const blocos = Array.from(container.querySelectorAll('[data-grupo]')).filter(b => !b.classList.contains('opacity-50'));
+
+  const pendentes = [];
+  blocos.forEach(bloco => {
+    const grupo = gruposCidadeAtual[Number(bloco.dataset.grupo)];
+    const nomeNovo = bloco.querySelector('[data-input-canonico]').value.trim();
+    if (!nomeNovo) return;
+    const variantesParaTrocar = grupo.variantes.filter(v => v.original !== nomeNovo);
+    if (!variantesParaTrocar.length) return;
+    pendentes.push({ bloco, nomeNovo, variantesParaTrocar });
+  });
+
+  if (!pendentes.length) { mostrarToast('⚠️ Nada pra aplicar — confira se os grupos têm um nome padrão definido.', 'warning'); return; }
+
+  const totalClientes = pendentes.reduce((soma, p) => soma + p.variantesParaTrocar.reduce((s, v) => s + v.qtd, 0), 0);
+  const confirmado = confirm(
+    `Isso vai aplicar a padronização em ${pendentes.length} grupo(s), atualizando a cidade de ` +
+    `${totalClientes} cliente(s) no total` +
+    `${revendaAnalisadaCidade ? ` (Revenda: ${revendaAnalisadaCidade})` : ' (todas as revendas)'}.\n\nConfirma?`
+  );
+  if (!confirmado) return;
+
+  const btnTodos = document.getElementById('btnAplicarTodosCidade');
+  const statusEl = document.getElementById('statusPadronizarCidade');
+  btnTodos.disabled = true;
+
+  let aplicados = 0, falharam = 0;
+  for (let i = 0; i < pendentes.length; i++) {
+    const { bloco, nomeNovo, variantesParaTrocar } = pendentes[i];
+    statusEl.textContent = `Aplicando grupo ${i + 1} de ${pendentes.length}...`;
+    const resultado = await executarPadronizacaoGrupo(bloco, nomeNovo, variantesParaTrocar);
+    if (resultado.ok) aplicados++; else falharam++;
+  }
+
+  statusEl.textContent = `${aplicados} grupo(s) padronizado(s)${falharam ? `, ${falharam} com erro` : ''}.`;
+  mostrarToast(
+    falharam ? `⚠️ ${aplicados} grupo(s) aplicados, ${falharam} falharam.` : `✅ ${aplicados} grupo(s) padronizados com sucesso.`,
+    falharam ? 'warning' : 'success'
+  );
+  btnTodos.disabled = false;
+}
+
+document.getElementById('btnBaixarExcelPadronizacao').addEventListener('click', () => {
+  if (!gruposCidadeAtual.length) return;
+  const linhas = [];
+  gruposCidadeAtual.forEach((g, i) => {
+    const sugestao = sugerirNomeCidade(g.variantes);
+    g.variantes.forEach(v => linhas.push({
+      'Grupo': i + 1,
+      'Cidade (grafia encontrada)': v.original,
+      'Qtd. Clientes': v.qtd,
+      'Cidade Sugerida': sugestao
+    }));
+  });
+  const planilha = XLSX.utils.json_to_sheet(linhas);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, planilha, 'Padronizacao Cidade');
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `padronizacao_cidade_${dataHoje}.xlsx`);
+  mostrarToast('✅ Arquivo baixado com sucesso.', 'success');
+});
+
+// ============================================================
+// 7.2 VERIFICAR CIDADE PELA GEOLOCALIZAÇÃO — reverse geocoding via Nominatim
+// (OpenStreetMap). Compara a cidade real (por Latitude/Longitude) com o que
+// está gravado no banco e deixa o usuário confirmar/corrigir cada divergência
+// antes de gravar. Gratuito, mas limitado a 1 requisição/segundo — por isso
+// roda em lote sequencial com pausa entre cada cliente.
+// ============================================================
+function aguardar(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+const NOMINATIM_INTERVALO_MS = 1100; // Nominatim: máx. 1 req/seg — margem de folga
+
+async function buscarClientesComCoordenadas(revendaSel) {
+  const linhas = [];
+  let pagina = 0;
+  while (true) {
+    const { data, error } = await supabaseClient
+      .from('clientes')
+      .select('chave, codigo_cliente, nome_cliente, cidade, latitude, longitude')
+      .eq('revenda', revendaSel)
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null)
+      .range(pagina * TAMANHO_PAGINA_BANCO, pagina * TAMANHO_PAGINA_BANCO + TAMANHO_PAGINA_BANCO - 1);
+    if (error) throw error;
+    linhas.push(...(data || []));
+    if (!data || data.length < TAMANHO_PAGINA_BANCO) break;
+    pagina++;
+  }
+  // Descarta coordenada (0,0) — não é uma localização válida, é ausência de dado.
+  return linhas.filter(l => Number(l.latitude) !== 0 || Number(l.longitude) !== 0);
+}
+
+// Pede o endereço pro Nominatim a partir de lat/long e devolve a melhor
+// cidade que der pra extrair da resposta (o campo varia: city/town/village
+// dependendo do tamanho do município).
+async function geocodificarReverso(lat, lon) {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=10&addressdetails=1&accept-language=pt-BR`;
+  const resposta = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if (!resposta.ok) throw new Error(`Nominatim respondeu ${resposta.status}`);
+  const dados = await resposta.json();
+  const endereco = dados.address || {};
+  const cidade = endereco.city || endereco.town || endereco.village || endereco.municipality || endereco.city_district || null;
+  return { cidade, enderecoCompleto: dados.display_name || '' };
+}
+
+let divergenciasCidadeGeoAtual = [];
+let pararVerificacaoGeoSolicitado = false;
+
+document.getElementById('btnVerificarCidadeGeo').addEventListener('click', verificarCidadesPorGeo);
+document.getElementById('btnPararVerificacaoGeo').addEventListener('click', () => { pararVerificacaoGeoSolicitado = true; });
+
+async function verificarCidadesPorGeo() {
+  const revendaSel = document.getElementById('verificarGeoRevenda').value;
+  if (!revendaSel) { mostrarToast('⚠️ Selecione a Revenda.', 'warning'); return; }
+
+  const statusEl = document.getElementById('statusVerificarGeoCidade');
+  const barraEl = document.getElementById('barraVerificarGeoCidade');
+  const btnIniciar = document.getElementById('btnVerificarCidadeGeo');
+  const btnParar = document.getElementById('btnPararVerificacaoGeo');
+  const btnExcel = document.getElementById('btnBaixarExcelVerificarGeo');
+  const btnTodos = document.getElementById('btnAplicarTodosVerificarGeo');
+
+  btnIniciar.disabled = true;
+  btnParar.disabled = false;
+  btnExcel.disabled = true;
+  btnTodos.disabled = true;
+  pararVerificacaoGeoSolicitado = false;
+  divergenciasCidadeGeoAtual = [];
+  document.getElementById('resultadoVerificarGeoCidade').innerHTML = '';
+  barraEl.style.width = '0%';
+  statusEl.textContent = 'Buscando clientes com Latitude/Longitude...';
+
+  try {
+    const clientes = await buscarClientesComCoordenadas(revendaSel);
+    if (!clientes.length) {
+      statusEl.textContent = 'Nenhum cliente com Latitude/Longitude válida pra essa revenda.';
+      return;
+    }
+
+    let verificados = 0, comDivergencia = 0, comErro = 0;
+    for (const cliente of clientes) {
+      if (pararVerificacaoGeoSolicitado) {
+        statusEl.textContent = `Parado pelo usuário — ${verificados} de ${clientes.length} verificado(s), ${comDivergencia} divergência(s).`;
+        break;
+      }
+
+      try {
+        const resultado = await geocodificarReverso(cliente.latitude, cliente.longitude);
+        if (resultado.cidade && normalizarChaveCidade(resultado.cidade) !== normalizarChaveCidade(cliente.cidade)) {
+          comDivergencia++;
+          const divergencia = {
+            chave: cliente.chave,
+            codigoCliente: cliente.codigo_cliente,
+            nomeCliente: cliente.nome_cliente,
+            cidadeAtual: cliente.cidade || '(vazio)',
+            cidadeSugerida: resultado.cidade,
+            latitude: cliente.latitude,
+            longitude: cliente.longitude,
+            enderecoCompleto: resultado.enderecoCompleto
+          };
+          divergenciasCidadeGeoAtual.push(divergencia);
+          adicionarLinhaDivergenciaGeo(divergencia);
+        }
+      } catch (erroCliente) {
+        comErro++;
+        console.warn(`Não deu pra geocodificar o cliente ${cliente.codigo_cliente}:`, erroCliente.message);
+      }
+
+      verificados++;
+      barraEl.style.width = `${Math.round((verificados / clientes.length) * 100)}%`;
+      statusEl.textContent = `Verificando ${verificados} de ${clientes.length} — ${comDivergencia} divergência(s) encontrada(s)${comErro ? `, ${comErro} erro(s)` : ''}...`;
+
+      if (verificados < clientes.length) await aguardar(NOMINATIM_INTERVALO_MS);
+    }
+
+    if (!pararVerificacaoGeoSolicitado) {
+      statusEl.textContent = `Concluído: ${verificados} cliente(s) verificado(s), ${comDivergencia} divergência(s) encontrada(s)${comErro ? `, ${comErro} erro(s) de geocodificação` : ''}.`;
+    }
+    btnExcel.disabled = !divergenciasCidadeGeoAtual.length;
+    btnTodos.disabled = !divergenciasCidadeGeoAtual.length;
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToast('❌ Erro ao verificar cidades: ' + erro.message, 'danger');
+  } finally {
+    btnIniciar.disabled = false;
+    btnParar.disabled = true;
+  }
+}
+
+function adicionarLinhaDivergenciaGeo(d) {
+  const container = document.getElementById('resultadoVerificarGeoCidade');
+  const bloco = document.createElement('div');
+  bloco.className = 'border rounded-3 p-3 mb-2';
+  bloco.dataset.chave = d.chave;
+  bloco.innerHTML = `
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+      <span class="fw-semibold">${escapeHtmlSeguro(d.codigoCliente)} — ${escapeHtmlSeguro(d.nomeCliente || '-')}</span>
+      <span class="badge bg-secondary-subtle text-secondary-emphasis">${escapeHtmlSeguro(d.latitude)}, ${escapeHtmlSeguro(d.longitude)}</span>
+    </div>
+    <div class="small text-muted-ink mb-2">Endereço encontrado: ${escapeHtmlSeguro(d.enderecoCompleto)}</div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <span class="small">Atual: <strong class="text-danger">${escapeHtmlSeguro(d.cidadeAtual)}</strong></span>
+      <i class="bi bi-arrow-right small text-muted-ink"></i>
+      <input type="text" class="form-control form-control-sm" style="max-width: 220px;" value="${escapeHtmlSeguro(d.cidadeSugerida)}" data-input-cidade-geo>
+      <button class="btn btn-sm btn-primary-brand" data-btn-aplicar-geo><i class="bi bi-check2-circle me-1"></i>Aplicar</button>
+      <span class="small" data-status-geo></span>
+    </div>
+  `;
+  bloco.querySelector('[data-btn-aplicar-geo]').addEventListener('click', () => aplicarCorrecaoGeo(bloco));
+  container.appendChild(bloco);
+}
+
+async function aplicarCorrecaoGeo(bloco) {
+  const input = bloco.querySelector('[data-input-cidade-geo]');
+  const statusSpan = bloco.querySelector('[data-status-geo]');
+  const btn = bloco.querySelector('[data-btn-aplicar-geo]');
+  const novaCidade = input.value.trim();
+  if (!novaCidade) { mostrarToast('⚠️ Digite o nome da cidade.', 'warning'); return; }
+
+  btn.disabled = true;
+  statusSpan.textContent = 'Aplicando...';
+  try {
+    const { error } = await supabaseClient.from('clientes').update({ cidade: novaCidade }).eq('chave', bloco.dataset.chave);
+    if (error) throw error;
+    statusSpan.innerHTML = '<span class="text-success">✅ Aplicado.</span>';
+    bloco.classList.add('opacity-50');
+    input.disabled = true;
+  } catch (erro) {
+    console.error(erro);
+    statusSpan.textContent = '';
+    mostrarToast('❌ Erro ao aplicar: ' + erro.message, 'danger');
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('btnAplicarTodosVerificarGeo').addEventListener('click', aplicarTodasDivergenciasGeo);
+
+async function aplicarTodasDivergenciasGeo() {
+  const container = document.getElementById('resultadoVerificarGeoCidade');
+  const blocos = Array.from(container.querySelectorAll('[data-chave]')).filter(b => !b.classList.contains('opacity-50'));
+  if (!blocos.length) { mostrarToast('⚠️ Nada pra aplicar.', 'warning'); return; }
+
+  const confirmado = confirm(`Isso vai atualizar a cidade de ${blocos.length} cliente(s) com base na geolocalização confirmada. Confirma?`);
+  if (!confirmado) return;
+
+  const btnTodos = document.getElementById('btnAplicarTodosVerificarGeo');
+  btnTodos.disabled = true;
+
+  let aplicados = 0, falharam = 0;
+  for (const bloco of blocos) {
+    const input = bloco.querySelector('[data-input-cidade-geo]');
+    const novaCidade = input.value.trim();
+    if (!novaCidade) continue;
+    const statusSpan = bloco.querySelector('[data-status-geo]');
+    const btn = bloco.querySelector('[data-btn-aplicar-geo]');
+    btn.disabled = true;
+    statusSpan.textContent = 'Aplicando...';
+    try {
+      const { error } = await supabaseClient.from('clientes').update({ cidade: novaCidade }).eq('chave', bloco.dataset.chave);
+      if (error) throw error;
+      statusSpan.innerHTML = '<span class="text-success">✅ Aplicado.</span>';
+      bloco.classList.add('opacity-50');
+      input.disabled = true;
+      aplicados++;
+    } catch (erro) {
+      console.error(erro);
+      statusSpan.textContent = '';
+      btn.disabled = false;
+      falharam++;
+    }
+  }
+
+  mostrarToast(
+    falharam ? `⚠️ ${aplicados} cidade(s) corrigida(s), ${falharam} falharam.` : `✅ ${aplicados} cidade(s) corrigida(s) com sucesso.`,
+    falharam ? 'warning' : 'success'
+  );
+  btnTodos.disabled = false;
+}
+
+document.getElementById('btnBaixarExcelVerificarGeo').addEventListener('click', () => {
+  if (!divergenciasCidadeGeoAtual.length) return;
+  const linhas = divergenciasCidadeGeoAtual.map(d => ({
+    'Código Cliente': d.codigoCliente,
+    'Nome Cliente': d.nomeCliente,
+    'Cidade Atual (banco)': d.cidadeAtual,
+    'Cidade Sugerida (GPS)': d.cidadeSugerida,
+    'Latitude': d.latitude,
+    'Longitude': d.longitude,
+    'Endereço Encontrado': d.enderecoCompleto
+  }));
+  const planilha = XLSX.utils.json_to_sheet(linhas);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, planilha, 'Divergencias Cidade GPS');
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `divergencias_cidade_gps_${dataHoje}.xlsx`);
+  mostrarToast('✅ Arquivo baixado com sucesso.', 'success');
+});
+
+// ============================================================
+// 8. TOAST DE FEEDBACK
+// ============================================================
+function mostrarToast(mensagem, tipo) {
+  const div = document.createElement('div');
+  div.className = `toast-custom alert alert-${tipo}`;
+  div.textContent = mensagem;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 4000);
+}
+
+// ============================================================
+// 9. MANTER RESULTADO AO TROCAR DE ABA (sessionStorage — some só se fechar o navegador)
+// ============================================================
+const CHAVE_ESTADO_PROCESSAMENTO = 'estado_tratamento_clientes_processamento';
+const CHAVE_ESTADO_CONSULTA = 'estado_tratamento_clientes_consulta';
+
+function salvarEstadoAtual(statsResumo, revendas) {
+  salvarEstadoPagina(CHAVE_ESTADO_PROCESSAMENTO, {
+    baseProcessada,
+    statsResumo,
+    revendas,
+    filtros: {
+      revenda: document.getElementById('filtroRevenda').value,
+      cidade: document.getElementById('filtroCidade').value,
+      tipoCliente: document.getElementById('filtroTipoCliente').value,
+      codigoCliente: document.getElementById('filtroCodigoCliente').value
+    }
+  });
+}
+
+function salvarEstadoConsulta(statusTexto) {
+  salvarEstadoPagina(CHAVE_ESTADO_CONSULTA, {
+    filtros: lerFiltrosConsulta(),
+    resultadoConsultaBanco,
+    ultimoFiltroConsultaBanco,
+    statusTexto
+  });
+}
+
+(function restaurarEstadoAtual() {
+  const estadoProcessamento = carregarEstadoPagina(CHAVE_ESTADO_PROCESSAMENTO);
+  if (estadoProcessamento && estadoProcessamento.baseProcessada && estadoProcessamento.baseProcessada.length) {
+    baseProcessada = estadoProcessamento.baseProcessada;
+    atualizarResumo(estadoProcessamento.statsResumo);
+    popularFiltroRevenda(estadoProcessamento.revendas || []);
+    document.getElementById('filtroRevenda').value = estadoProcessamento.filtros.revenda || '';
+    document.getElementById('filtroCidade').value = estadoProcessamento.filtros.cidade || '';
+    document.getElementById('filtroTipoCliente').value = estadoProcessamento.filtros.tipoCliente || '';
+    document.getElementById('filtroCodigoCliente').value = estadoProcessamento.filtros.codigoCliente || '';
+    popularDatalistCidade();
+    aplicarFiltros();
+    document.getElementById('cardResumo').classList.remove('d-none');
+    document.getElementById('cardPreview').classList.remove('d-none');
+  }
+
+  const estadoConsulta = carregarEstadoPagina(CHAVE_ESTADO_CONSULTA);
+  if (estadoConsulta && estadoConsulta.resultadoConsultaBanco && estadoConsulta.resultadoConsultaBanco.length) {
+    document.getElementById('consultaRevenda').value = estadoConsulta.filtros.revendaSel || '';
+    document.getElementById('consultaCidade').value = estadoConsulta.filtros.cidadeStr || '';
+    document.getElementById('consultaEstado').value = estadoConsulta.filtros.estadoStr || '';
+    document.getElementById('consultaCodigoCliente').value = estadoConsulta.filtros.codigoStr || '';
+
+    resultadoConsultaBanco = estadoConsulta.resultadoConsultaBanco;
+    ultimoFiltroConsultaBanco = estadoConsulta.ultimoFiltroConsultaBanco;
+    renderizarConsultaBanco();
+    document.getElementById('statusConsultaBanco').textContent = estadoConsulta.statusTexto || '';
+    document.getElementById('btnBaixarExcelConsulta').disabled = false;
+    document.getElementById('btnExcluirConsulta').disabled = false;
+  }
+})();
+</script>
+</body>
+</html>

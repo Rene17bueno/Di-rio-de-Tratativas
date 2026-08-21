@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ranking de Estouro por Cliente - Painel OT</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="estado-sessao.js"></script>
+<style>
+  /* ================================================================
+     DESIGN TOKENS — sistema visual do Painel OT (piloto de repaginada)
+     Paleta mais "enterprise": azul mais profundo como cor de marca,
+     tinta neutra pra texto (não azulada), superfícies com contraste
+     real em vez de branco-quase-transparente. Escala de espaçamento
+     e tipografia consistentes pra dar ritmo às seções.
+     ================================================================ */
+  :root {
+    --brand-50:  #eef4ff;
+    --brand-100: #dce8ff;
+    --brand-200: #b3ceff;
+    --brand-500: #245bc7;
+    --brand-600: #1c4aa8;
+    --brand-700: #163a85;
+    --ink-900: #101828;
+    --ink-700: #344054;
+    --ink-500: #667085;
+    --ink-400: #98a2b3;
+    --surface-0: #ffffff;
+    --surface-1: #e9edf4;
+    --surface-2: #eef2f8;
+    --border-soft: #e3e8f0;
+    --border-strong: #c9d3e0;
+    --success: #0f9d58;
+    --success-bg: #e6f7ee;
+    --danger: #c0362c;
+    --danger-bg: #fbeae8;
+    --radius-lg: 1rem;
+    --radius-md: 0.7rem;
+    --radius-sm: 0.5rem;
+    --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+    --shadow-pop: 0 4px 10px rgba(16,24,40,.10), 0 12px 32px rgba(16,24,40,.10);
+    --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem;
+    --space-5: 1.5rem; --space-6: 2rem; --space-7: 2.5rem;
+  }
+
+  * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  html { -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--surface-1); color: var(--ink-700); padding-bottom: 4rem; overflow-x: hidden; }
+  ::selection { background: var(--brand-200); }
+
+  h1, h2, h3, h4, h5, h6 { color: var(--ink-900); letter-spacing: -0.01em; }
+  .text-primary-dark { color: var(--brand-700) !important; }
+  .text-muted-ink { color: var(--ink-500) !important; }
+  small, .small { color: var(--ink-500); }
+
+  /* ---------- Cartões ---------- */
+  .card-shadow {
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--surface-0);
+  }
+  .section-head {
+    display: flex; align-items: flex-start; gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+  .section-head > div { min-width: 0; } /* deixa o texto quebrar em vez de forçar overflow no flex item */
+  .section-head .icon-chip {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    background: var(--brand-50); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; flex-shrink: 0;
+  }
+  .section-head h5 { font-weight: 700; font-size: 1.05rem; margin-bottom: .1rem; }
+  .section-head p { margin-bottom: 0; font-size: .84rem; color: var(--ink-500); max-width: 62ch; }
+  .step-badge {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--brand-500); color: white;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+  }
+
+  /* ---------- Botões ---------- */
+  .btn { font-weight: 600; letter-spacing: -0.005em; }
+  .btn-primary-brand {
+    background: var(--brand-500); border: 1px solid var(--brand-500); color: #fff;
+  }
+  .btn-primary-brand:hover { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+  .btn-primary-brand:disabled { background: var(--brand-200); border-color: var(--brand-200); opacity: .7; }
+  .btn-primary-soft {
+    background: var(--brand-50); border: 1px solid var(--brand-100); color: var(--brand-700);
+  }
+  .btn-primary-soft:hover { background: var(--brand-100); border-color: var(--brand-200); color: var(--brand-700); }
+  .btn-primary-soft:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-excel { background: #1a7a4c; border: 1px solid #1a7a4c; color: white; }
+  .btn-excel:hover { background: #15603c; border-color: #15603c; color: white; }
+  .btn-excel:disabled { background: #a7c9b6; border-color: #a7c9b6; }
+  .btn-outline-secondary { border-color: var(--border-strong); color: var(--ink-700); }
+
+  /* ---------- Formulários ---------- */
+  .form-label { font-size: .78rem; font-weight: 600; color: var(--ink-700); }
+  .form-control, .form-select {
+    border-color: var(--border-strong); font-size: .88rem;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: var(--brand-500); box-shadow: 0 0 0 .2rem var(--brand-50);
+  }
+
+  /* ---------- Tabelas ---------- */
+  .table-preview-wrap { max-height: 560px; overflow: auto; border-radius: var(--radius-md); }
+  .table-preview-wrap table { font-size: 0.82rem; margin-bottom: 0; }
+  .table-preview-wrap thead th {
+    position: sticky; top: 0; background: var(--surface-2); color: var(--ink-700); z-index: 1;
+    text-align: center; vertical-align: middle; white-space: normal;
+    font-size: .74rem; text-transform: uppercase; letter-spacing: .03em; font-weight: 700;
+    border-color: var(--border-soft);
+  }
+  .table-preview-wrap tbody td { border-color: var(--border-soft); vertical-align: middle; }
+  .table-hover > tbody > tr:hover > * { background-color: var(--brand-50); }
+
+  /* ---------- Stat tiles ---------- */
+  .stat-box {
+    background: var(--surface-1); border: 1px solid var(--border-soft); border-radius: var(--radius-md);
+    padding: .9rem 1.1rem;
+  }
+  .stat-box .stat-label { font-size: .74rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .03em; }
+  .stat-box .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+  .stat-box.stat-danger .stat-value { color: var(--danger); }
+
+  .badge-estouro { background: var(--danger-bg); color: var(--danger); border: 1px solid #f2c6c2; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .toast-custom {
+    position: fixed; top: 20px; right: 20px; z-index: 9999;
+    max-width: 350px; min-width: 250px; animation: slideIn 0.3s ease;
+    box-shadow: var(--shadow-pop);
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* ---------- Navbar ---------- */
+  .navbar-site {
+    background: var(--surface-0);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    margin-top: 1rem;
+  }
+  .navbar-site .navbar-brand { display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .brand-mark {
+    width: 32px; height: 32px; border-radius: .55rem;
+    background: var(--brand-500); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .navbar-site .brand-text { line-height: 1.05; }
+  .navbar-site .brand-text .sub { display: block; font-size: .66rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .05em; }
+  .navbar-site .nav-link {
+    color: var(--ink-700);
+    font-weight: 600; font-size: .88rem;
+    border-radius: var(--radius-sm);
+    padding: .5rem .85rem;
+    transition: background 0.15s, color .15s;
+  }
+  .navbar-site .nav-link:hover { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .nav-link.active {
+    background: var(--brand-500);
+    color: #fff !important;
+  }
+  .navbar-site .nav-item.dropdown.section-active > .nav-link {
+    background: var(--brand-50); color: var(--brand-700);
+  }
+  .navbar-site .dropdown-menu {
+    border: 1px solid var(--border-soft); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-pop); padding: .4rem; margin-top: .4rem;
+  }
+  .navbar-site .dropdown-item {
+    border-radius: var(--radius-sm); font-size: .86rem; font-weight: 500; color: var(--ink-700);
+    padding: .5rem .65rem; display: flex; align-items: center; gap: .55rem;
+  }
+  .navbar-site .dropdown-item i { color: var(--brand-500); width: 1.1em; text-align: center; }
+  .navbar-site .dropdown-item:hover, .navbar-site .dropdown-item:focus { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-item.active { background: var(--brand-500); color: #fff; }
+  .navbar-site .dropdown-item.active i { color: #fff; }
+
+  .breadcrumb-trail { font-size: .78rem; color: var(--ink-500); margin-bottom: .35rem; }
+  .breadcrumb-trail i { font-size: .65rem; vertical-align: middle; margin: 0 .3rem; }
+
+  .page-header { margin-bottom: var(--space-4); }
+  .page-header h3 { font-weight: 700; font-size: 1.5rem; }
+
+  /* ---------- Card de metodologia (o que está sendo calculado + referência à documentação) ---------- */
+  .info-card {
+    display: flex; gap: var(--space-3); align-items: flex-start;
+    background: var(--brand-50); border: 1px solid var(--brand-100);
+    border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+  }
+  .info-card .info-card-icon {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--surface-0); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+    box-shadow: 0 1px 2px rgba(16,24,40,.06);
+  }
+  .info-card p { color: var(--ink-700); font-size: .88rem; margin-bottom: .6rem; max-width: 78ch; }
+  .info-card p:last-child { margin-bottom: 0; }
+  .info-card .info-card-ref {
+    display: flex; gap: .5rem; align-items: flex-start;
+    background: var(--surface-0); border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+    padding: .55rem .75rem; font-size: .78rem; color: var(--ink-500); max-width: 78ch;
+  }
+  .info-card .info-card-ref i { color: var(--brand-500); margin-top: .15rem; flex-shrink: 0; }
+  .info-card .info-card-ref strong { color: var(--ink-700); }
+
+  /* ---------- Painel por cidade ---------- */
+  .grafico-cidade-card {
+    border: 1px solid var(--border-soft); border-radius: var(--radius-md); background: var(--surface-1); padding: 1rem;
+  }
+  .grafico-cidade-legenda { display: flex; align-items: center; gap: 1rem; font-size: 0.78rem; color: var(--ink-500); }
+  .grafico-cidade-legenda .chave { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .grafico-cidade-legenda .chave-cor { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .grafico-barra-hit { cursor: pointer; }
+  .grafico-barra-hit:hover rect.barra, .grafico-barra-hit:focus rect.barra { filter: brightness(1.08); }
+  .grafico-tooltip {
+    position: absolute; z-index: 20; pointer-events: none;
+    background: var(--ink-900); color: #ffffff; font-size: 0.76rem;
+    padding: 0.35rem 0.6rem; border-radius: 0.5rem; white-space: nowrap;
+    box-shadow: var(--shadow-pop);
+    opacity: 0; transition: opacity 0.1s;
+  }
+  .grafico-tooltip.mostrar { opacity: 1; }
+  .grafico-tooltip .valor { font-weight: 700; }
+
+  /* ---------- Tabelas de detalhe por dia da semana (3 lado a lado) ---------- */
+  /* table-layout:fixed + largura em % (não px) — as 3 tabelas ficam em colunas
+     de mesma largura (col-xl-4), então mesma % vira o mesmo tamanho de célula
+     nas 3, não importa se o conteúdo é hora, número ou nome. */
+  .tabela-dia-semana-wrap { max-height: 560px; overflow: auto; }
+  .tabela-dia-semana { font-size: 0.56rem; table-layout: fixed; width: 100%; }
+  .tabela-dia-semana th, .tabela-dia-semana td { padding: .16rem .15rem; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; }
+  .tabela-dia-semana thead th { font-size: .54rem; padding: .28rem .15rem; }
+  .tabela-dia-semana td.col-cliente, .tabela-dia-semana th.col-cliente {
+    width: 28%; white-space: normal; line-height: 1.1;
+  }
+  .tabela-dia-semana td.col-cliente span { font-size: .52rem; }
+  .tabela-dia-semana th:not(.col-cliente), .tabela-dia-semana td:not(.col-cliente) {
+    width: 12%; white-space: nowrap;
+  }
+
+  /* Célula cortada por um traço do canto superior direito ao canto inferior
+     esquerdo — valor principal (total) em cima à esquerda, valor secundário
+     (qtd. que estourou) embaixo à direita. Usada só na tabela de Qtd. de
+     Atendimentos por Dia. */
+  .celula-diagonal { position: relative; height: 30px; padding: 0 !important; }
+  .celula-diagonal::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom right, transparent calc(50% - .5px), rgba(0,0,0,.28) calc(50% - .5px) calc(50% + .5px), transparent calc(50% + .5px));
+    pointer-events: none;
+  }
+  .celula-diagonal .valor-principal, .celula-diagonal .valor-secundario {
+    position: absolute; font-size: .54rem; font-weight: 700; line-height: 1;
+  }
+  .celula-diagonal .valor-principal { top: 3px; left: 4px; }
+  .celula-diagonal .valor-secundario { bottom: 3px; right: 4px; color: var(--danger); }
+</style>
+</head>
+<body>
+  <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-site px-3 py-2 mb-2">
+      <div class="container-fluid px-0">
+        <a class="navbar-brand" href="index.html">
+          <span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span>
+          <span class="brand-text"><span class="sub">Painel</span>OT</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir menu">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+          <ul class="navbar-nav ms-auto gap-1 align-items-lg-center">
+            <li class="nav-item">
+              <a class="nav-link" href="index.html"><i class="bi bi-journal-richtext me-1"></i>Diário de Tratativas</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="tratativageo.html"><i class="bi bi-geo-alt-fill me-1"></i>Geolocalizador</a>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="menuImportacao" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-cloud-arrow-up-fill me-1"></i>Importação de Dados
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuImportacao">
+                <li><a class="dropdown-item" href="tratamento-dados.html"><i class="bi bi-truck"></i>Tratamento de Base</a></li>
+                <li><a class="dropdown-item" href="tratamento-2art.html"><i class="bi bi-files"></i>Base 2art</a></li>
+                <li><a class="dropdown-item" href="tratamento-clientes.html"><i class="bi bi-people-fill"></i>Base de Clientes</a></li>
+              </ul>
+            </li>
+            <li class="nav-item dropdown section-active">
+              <a class="nav-link dropdown-toggle" href="#" id="menuAnalises" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-graph-up-arrow me-1"></i>Consultas &amp; Análises
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuAnalises">
+                <li><a class="dropdown-item" href="consulta-mapa.html"><i class="bi bi-signpost-2-fill"></i>Consulta por Mapa</a></li>
+                <li><a class="dropdown-item" href="vinculo-tabelas.html"><i class="bi bi-link-45deg"></i>Vínculo de Tabelas</a></li>
+                <li><a class="dropdown-item active" aria-current="page" href="ranking-estouro.html"><i class="bi bi-graph-up-arrow"></i>Ranking de Estouro</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+<div class="container py-4" style="max-width: 1400px;">
+
+  <div class="page-header">
+    <div class="breadcrumb-trail">Consultas &amp; Análises <i class="bi bi-chevron-right"></i> Ranking de Estouro</div>
+    <h3 class="text-primary-dark mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Ranking de Estouro por Cliente</h3>
+  </div>
+
+  <div class="info-card mb-4">
+    <span class="info-card-icon"><i class="bi bi-info-circle-fill"></i></span>
+    <div>
+      <p>
+        Pra cada cliente, considera as 10 tours mais recentes (pela Data) e calcula a dispersão média entre o
+        Tempo de Atendimento real e o Tempo Estimado, usando só as tours com Status "Concluído" e Dentro_do_raio
+        verdadeiro. Ordena do maior estouro (atendimento demorou mais que o planejado) pro menor.
+      </p>
+      <div class="info-card-ref">
+        <i class="bi bi-file-earmark-text-fill"></i>
+        <span>
+          Metodologia de cálculo (real − planejado) segue o mesmo princípio da <strong>% Dispersão de Tempo</strong>
+          do DPO AC-REG-LOG-00066 (item 4.36) — mas aplicada aqui por <strong>parada/PDV</strong>
+          (Tempo de Atendimento × Tempo Estimado), e não por <strong>Mapa/rota</strong>
+          (Tempo em Rota × Tempo Previsto) como no documento oficial. Não é o mesmo indicador corporativo —
+          é uma métrica derivada, própria desta análise.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUSCA -->
+  <div class="card card-shadow p-4 mb-4">
+    <div class="section-head">
+      <span class="icon-chip"><i class="bi bi-sliders"></i></span>
+      <div>
+        <h5 class="mb-0">Filtros da busca</h5>
+        <p>Selecione a revenda e ajuste os parâmetros antes de gerar o ranking.</p>
+      </div>
+    </div>
+    <div class="row g-3 align-items-end">
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Revenda</label>
+        <select class="form-select form-select-sm" id="inputRevenda">
+          <option value="" selected disabled>Revenda...</option>
+          <option value="MGA">MGA</option>
+          <option value="GPA">GPA</option>
+          <option value="PG">PG</option>
+          <option value="NP">NP</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Cidade <span class="fw-normal text-muted-ink">(opcional)</span></label>
+        <input type="text" class="form-control form-control-sm" id="inputCidade" list="listaCidadesRanking" placeholder="Escolha a revenda pra ver as cidades...">
+        <datalist id="listaCidadesRanking"></datalist>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label mb-1">Mín. apontamentos válidos</label>
+        <input type="number" class="form-control form-control-sm" id="inputMinApontamentos" value="3" min="1" max="10">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label mb-1">Top N clientes</label>
+        <input type="number" class="form-control form-control-sm" id="inputTopN" value="30" min="1" max="500">
+      </div>
+      <div class="col-6 col-md-2">
+        <button class="btn btn-sm btn-primary-brand w-100" id="btnGerarRanking"><i class="bi bi-search me-1"></i>Gerar Ranking</button>
+      </div>
+    </div>
+    <div class="mt-2"><span id="statusBusca" class="small"></span></div>
+  </div>
+
+  <!-- RESULTADO -->
+  <div class="card card-shadow p-4 d-none" id="cardResultado">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-3">
+      <div class="section-head mb-0">
+        <span class="icon-chip"><i class="bi bi-trophy-fill"></i></span>
+        <div>
+          <h5 class="mb-0">Clientes com Maior Estouro</h5>
+          <p>Ordenado do maior atraso médio pro menor.</p>
+        </div>
+      </div>
+      <button class="btn btn-excel" id="btnBaixarExcelRanking" disabled>
+        <i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel
+      </button>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-3">
+        <div class="stat-box"><div class="stat-label">Clientes analisados</div><div class="stat-value" id="statClientesAnalisados">0</div></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-box"><div class="stat-label">Exibidos no ranking</div><div class="stat-value" id="statClientesRanking">0</div></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-box"><div class="stat-label">Apontamentos lidos</div><div class="stat-value" id="statApontamentosLidos">0</div></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-box stat-danger"><div class="stat-label">Maior estouro</div><div class="stat-value" id="statMaiorEstouro">-</div></div>
+      </div>
+    </div>
+    <div class="table-preview-wrap border rounded-3">
+      <table class="table table-hover table-bordered mb-0 align-middle">
+        <thead>
+          <tr id="theadRanking"></tr>
+        </thead>
+        <tbody id="tbodyRanking"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PAINEL POR CIDADE -->
+  <div class="card card-shadow p-4 mt-4" id="cardPainelCidades">
+    <div class="section-head">
+      <span class="icon-chip"><i class="bi bi-bar-chart-fill"></i></span>
+      <div>
+        <h5 class="mb-0">Top 10 Cidades — Maior Estouro por Revenda</h5>
+        <p>
+          Pra cada uma das 4 revendas, calcula o Estouro de cada cliente (mesma regra do ranking acima) e
+          tira a média por cidade. Barras vermelhas = atendimento demorou mais que o planejado; azuis = adiantado.
+        </p>
+      </div>
+    </div>
+    <div class="row g-3 align-items-end mb-3">
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Mín. apontamentos válidos</label>
+        <input type="number" class="form-control form-control-sm" id="inputMinApontamentosCidades" value="3" min="1" max="10">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Ordenar por</label>
+        <select class="form-select form-select-sm" id="selectModoCidades">
+          <option value="tempo">Estouro (Média) — tempo</option>
+          <option value="quantidade">Quantidade de apontamentos com estouro</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <button class="btn btn-sm btn-primary-brand w-100" id="btnGerarGraficosCidades"><i class="bi bi-bar-chart-fill me-1"></i>Gerar Gráficos</button>
+      </div>
+      <div class="col-12 col-md-3">
+        <span id="statusGraficosCidades" class="small"></span>
+      </div>
+    </div>
+    <div class="row g-3" id="gridGraficosCidades"></div>
+  </div>
+
+  <!-- DETALHE POR DIA DA SEMANA -->
+  <div class="card card-shadow p-4 mt-4" id="cardDetalheDiaSemana">
+    <div class="section-head">
+      <span class="icon-chip"><i class="bi bi-calendar-week-fill"></i></span>
+      <div>
+        <h5 class="mb-0">Piores Clientes de uma Cidade — Detalhe por Dia da Semana</h5>
+        <p>
+          Escolha revenda e cidade pra ver os clientes com maior estouro médio (mesma regra do ranking) e o
+          padrão de atendimento — quantidade, tempo médio e peso médio — por dia da semana.
+        </p>
+      </div>
+    </div>
+    <div class="row g-3 align-items-end mb-3">
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Revenda</label>
+        <select class="form-select form-select-sm" id="inputRevendaDetalhe">
+          <option value="" selected disabled>Revenda...</option>
+          <option value="MGA">MGA</option>
+          <option value="GPA">GPA</option>
+          <option value="PG">PG</option>
+          <option value="NP">NP</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Cidade</label>
+        <input type="text" class="form-control form-control-sm" id="inputCidadeDetalhe" list="listaCidadesDetalhe" placeholder="Escolha a revenda pra ver as cidades...">
+        <datalist id="listaCidadesDetalhe"></datalist>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label mb-1">Mín. apontamentos</label>
+        <input type="number" class="form-control form-control-sm" id="inputMinApontamentosDetalhe" value="3" min="1" max="10">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label mb-1">Qtd. clientes</label>
+        <input type="number" class="form-control form-control-sm" id="inputTopNDetalhe" value="10" min="1" max="50">
+      </div>
+      <div class="col-6 col-md-2">
+        <button class="btn btn-sm btn-primary-brand w-100" id="btnGerarDetalheDiaSemana"><i class="bi bi-search me-1"></i>Gerar</button>
+      </div>
+    </div>
+    <div class="mb-2"><span id="statusDetalheDiaSemana" class="small"></span></div>
+    <div id="resultadoDetalheDiaSemana"></div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// -1. CONFIGURAÇÃO DO BANCO DE DADOS (Supabase — mesmo projeto das outras páginas)
+// ============================================================
+const SUPABASE_URL = 'https://scbdlyfavqlzstbulrup.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_M55itc2oMAlK3bEFj9Le5Q_CeBsVBUV';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================================
+// 0. CONSTANTES
+// ============================================================
+const TAMANHO_PAGINA_BANCO = 1000;      // o Supabase limita a 1000 linhas por request
+const LIMITE_ATENDIMENTOS = 20000;      // teto de apontamentos lidos por busca, pra não travar o navegador
+const QTD_TOURS_POR_CLIENTE = 10;       // mesma regra da "Análise por PDV" do tratamento-dados.html
+
+// ============================================================
+// 1. UTILITÁRIOS (mesmas fórmulas da Análise por PDV em tratamento-dados.html)
+// ============================================================
+function horaParaSegundos(str) {
+  if (!str) return null;
+  const negativo = str.startsWith('-');
+  const limpo = negativo ? str.slice(1) : str;
+  const partes = limpo.split(':').map(Number);
+  if (partes.length !== 3 || partes.some(isNaN)) return null;
+  const segundos = partes[0] * 3600 + partes[1] * 60 + partes[2];
+  return negativo ? -segundos : segundos;
+}
+
+function segundosParaHora(segundos) {
+  if (segundos === null || segundos === undefined || isNaN(segundos)) return '';
+  const sinal = segundos < 0 ? '-' : '';
+  const abs = Math.round(Math.abs(segundos));
+  const pad = n => String(n).padStart(2, '0');
+  const h = Math.floor(abs / 3600);
+  const m = Math.floor((abs % 3600) / 60);
+  const s = abs % 60;
+  return `${sinal}${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+function media(numeros) {
+  if (!numeros.length) return null;
+  return numeros.reduce((a, b) => a + b, 0) / numeros.length;
+}
+
+function mediana(numeros) {
+  if (!numeros.length) return null;
+  const ordenado = [...numeros].sort((a, b) => a - b);
+  const meio = Math.floor(ordenado.length / 2);
+  return ordenado.length % 2 === 0
+    ? (ordenado[meio - 1] + ordenado[meio]) / 2
+    : ordenado[meio];
+}
+
+function formatarNumero(valor) {
+  if (valor === null || valor === undefined || isNaN(valor)) return '-';
+  return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function ehVerdadeiro(valor) {
+  if (valor === true) return true;
+  if (typeof valor === 'number') return valor === 1;
+  if (typeof valor === 'string') {
+    const v = valor.trim().toLowerCase();
+    return v === 'true' || v === 'verdadeiro' || v === 'sim' || v === '1';
+  }
+  return false;
+}
+
+// ============================================================
+// 2. BUSCA PAGINADA
+// ============================================================
+async function buscarTodosAtendimentos(revenda) {
+  let todasLinhas = [];
+  let pagina = 0;
+  while (true) {
+    const { data, error } = await supabaseClient
+      .from('atendimentos')
+      .select('cod_cliente,data,status,dentro_do_raio,tempo_atendimento,tempo_estimado_atendimento,peso_total_kg,volume')
+      .eq('revenda', revenda)
+      .not('cod_cliente', 'is', null)
+      .order('cod_cliente', { ascending: true })
+      .order('data', { ascending: false })
+      .range(pagina * TAMANHO_PAGINA_BANCO, pagina * TAMANHO_PAGINA_BANCO + TAMANHO_PAGINA_BANCO - 1);
+    if (error) throw error;
+
+    todasLinhas = todasLinhas.concat(data || []);
+    if (!data || data.length < TAMANHO_PAGINA_BANCO) break;
+    if (todasLinhas.length >= LIMITE_ATENDIMENTOS) break;
+    pagina++;
+  }
+  return todasLinhas.slice(0, LIMITE_ATENDIMENTOS);
+}
+
+// Busca Nome Cliente + Cidade na tabela "clientes" (chave = Revenda-Cod_cliente).
+// Se a tabela não existir/estiver vazia, devolve um mapa vazio (não quebra o ranking).
+async function buscarClientesPorRevenda(revenda) {
+  const mapa = new Map();
+  try {
+    let pagina = 0;
+    while (true) {
+      const { data, error } = await supabaseClient
+        .from('clientes')
+        .select('codigo_cliente, nome_cliente, cidade')
+        .eq('revenda', revenda)
+        .range(pagina * TAMANHO_PAGINA_BANCO, pagina * TAMANHO_PAGINA_BANCO + TAMANHO_PAGINA_BANCO - 1);
+      if (error) throw error;
+      (data || []).forEach(c => mapa.set(String(c.codigo_cliente).trim(), c));
+      if (!data || data.length < TAMANHO_PAGINA_BANCO) break;
+      pagina++;
+    }
+  } catch (erro) {
+    console.warn('Não deu pra buscar a tabela "clientes":', erro.message);
+  }
+  return mapa;
+}
+
+// Cidades distintas de uma revenda (tabela "clientes"), pra alimentar os
+// dropdowns de cidade. Cacheada por revenda pra não refazer a busca toda
+// vez que o usuário trocar de revenda entre os dois filtros da página.
+const cacheCidadesPorRevenda = new Map();
+
+async function buscarCidadesPorRevenda(revenda) {
+  if (cacheCidadesPorRevenda.has(revenda)) return cacheCidadesPorRevenda.get(revenda);
+  const mapaClientes = await buscarClientesPorRevenda(revenda);
+  const cidades = new Set();
+  mapaClientes.forEach(c => { if (c.cidade) cidades.add(c.cidade.trim()); });
+  const lista = Array.from(cidades).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  cacheCidadesPorRevenda.set(revenda, lista);
+  return lista;
+}
+
+async function atualizarDatalistCidade(revendaSelectId, datalistId) {
+  const revenda = document.getElementById(revendaSelectId).value;
+  const datalistEl = document.getElementById(datalistId);
+  if (!revenda) { datalistEl.innerHTML = ''; return; }
+  const cidades = await buscarCidadesPorRevenda(revenda);
+  datalistEl.innerHTML = cidades.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
+}
+
+document.getElementById('inputRevenda').addEventListener('change', () => atualizarDatalistCidade('inputRevenda', 'listaCidadesRanking'));
+document.getElementById('inputRevendaDetalhe').addEventListener('change', () => atualizarDatalistCidade('inputRevendaDetalhe', 'listaCidadesDetalhe'));
+
+// ============================================================
+// 3. CÁLCULO DO RANKING
+// ============================================================
+let rankingAtual = [];
+
+document.getElementById('btnGerarRanking').addEventListener('click', gerarRanking);
+
+async function gerarRanking() {
+  const revenda = document.getElementById('inputRevenda').value;
+  const cidadeFiltro = document.getElementById('inputCidade').value.trim().toLowerCase();
+  const minApontamentos = Math.max(1, Number(document.getElementById('inputMinApontamentos').value) || 1);
+  const topN = Math.max(1, Number(document.getElementById('inputTopN').value) || 30);
+
+  if (!revenda) {
+    mostrarToast('⚠️ Selecione a Revenda.', 'warning');
+    return;
+  }
+
+  const statusEl = document.getElementById('statusBusca');
+  const btn = document.getElementById('btnGerarRanking');
+  btn.disabled = true;
+  statusEl.textContent = 'Buscando apontamentos no banco...';
+
+  try {
+    const [atendimentos, mapaClientes] = await Promise.all([
+      buscarTodosAtendimentos(revenda),
+      buscarClientesPorRevenda(revenda)
+    ]);
+
+    statusEl.textContent = 'Calculando dispersão por cliente...';
+    await new Promise(r => setTimeout(r, 10));
+
+    // Agrupa por Cod_cliente (a busca já veio ordenada por cod_cliente, data desc).
+    const porCliente = new Map();
+    atendimentos.forEach(a => {
+      const chave = String(a.cod_cliente);
+      if (!porCliente.has(chave)) porCliente.set(chave, []);
+      porCliente.get(chave).push(a);
+    });
+
+    const linhas = [];
+    porCliente.forEach((registros, codCliente) => {
+      const ultimasDez = registros.slice(0, QTD_TOURS_POR_CLIENTE); // já ordenado por data desc
+      const validas = ultimasDez.filter(r => r.status === 'Concluído' && ehVerdadeiro(r.dentro_do_raio));
+
+      const segundosReal = validas.map(r => horaParaSegundos(r.tempo_atendimento)).filter(v => v !== null);
+      const segundosPlan = validas.map(r => horaParaSegundos(r.tempo_estimado_atendimento)).filter(v => v !== null);
+      const qtdValida = Math.min(segundosReal.length, segundosPlan.length);
+      if (qtdValida < minApontamentos) return;
+
+      const mediaReal = media(segundosReal);
+      const mediaPlan = media(segundosPlan);
+      const estouroSegundos = mediaReal - mediaPlan;
+
+      const medianaReal = mediana(segundosReal);
+      const medianaPlan = mediana(segundosPlan);
+      const estouroMedianaSegundos = medianaReal - medianaPlan;
+
+      // Contagem pareada apontamento a apontamento (real > planejado nesse
+      // atendimento específico), mesma regra usada no painel por cidade.
+      let qtdEstouros = 0;
+      validas.forEach(r => {
+        const segReal = horaParaSegundos(r.tempo_atendimento);
+        const segPlan = horaParaSegundos(r.tempo_estimado_atendimento);
+        if (segReal === null || segPlan === null) return;
+        if (segReal - segPlan > 0) qtdEstouros++;
+      });
+
+      const volumes = validas.map(r => r.volume).filter(v => v !== null && v !== undefined && !isNaN(v));
+      const pesos = validas.map(r => r.peso_total_kg).filter(v => v !== null && v !== undefined && !isNaN(v));
+      const volumeMedio = media(volumes);
+      const pesoMedio = media(pesos);
+
+      const cliente = mapaClientes.get(codCliente);
+      const cidade = cliente ? (cliente.cidade || '') : '';
+      if (cidadeFiltro && !cidade.toLowerCase().includes(cidadeFiltro)) return;
+
+      linhas.push({
+        revenda,
+        codCliente,
+        medianaReal, medianaPlan, estouroMedianaSegundos,
+        nomeCliente: cliente ? (cliente.nome_cliente || '') : '',
+        cidade,
+        apontamentosUsados: `${validas.length} de ${ultimasDez.length}`,
+        mediaReal, mediaPlan, estouroSegundos,
+        volumeMedio, pesoMedio, qtdEstouros
+      });
+    });
+
+    linhas.sort((a, b) => b.estouroSegundos - a.estouroSegundos);
+    rankingAtual = linhas.slice(0, topN);
+
+    renderizarRanking();
+
+    document.getElementById('statClientesAnalisados').textContent = porCliente.size.toLocaleString('pt-BR');
+    document.getElementById('statClientesRanking').textContent = rankingAtual.length.toLocaleString('pt-BR');
+    document.getElementById('statApontamentosLidos').textContent = atendimentos.length.toLocaleString('pt-BR');
+    document.getElementById('statMaiorEstouro').textContent = rankingAtual.length ? segundosParaHora(rankingAtual[0].estouroSegundos) : '-';
+
+    document.getElementById('cardResultado').classList.remove('d-none');
+    document.getElementById('btnBaixarExcelRanking').disabled = !rankingAtual.length;
+
+    const atingiuLimite = atendimentos.length === LIMITE_ATENDIMENTOS;
+    statusEl.textContent = `${linhas.length.toLocaleString('pt-BR')} cliente(s) com apontamentos válidos suficientes${atingiuLimite ? ' (limite de ' + LIMITE_ATENDIMENTOS.toLocaleString('pt-BR') + ' apontamentos lidos atingido — resultado pode estar incompleto)' : ''}.`;
+
+    salvarEstadoAtual(statusEl.textContent);
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToast('❌ Erro ao gerar o ranking: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+const COLUNAS_RANKING = [
+  { chave: 'posicao', label: '#' },
+  { chave: 'revenda', label: 'Revenda' },
+  { chave: 'cidade', label: 'Cidade' },
+  { chave: 'codCliente', label: 'Cod_cliente' },
+  { chave: 'nomeCliente', label: 'Nome Cliente' },
+  { chave: 'apontamentosUsados', label: 'Apontamentos Usados' },
+  { chave: 'mediaRealFmt', label: 'Média Real' },
+  { chave: 'mediaPlanFmt', label: 'Média Planejado' },
+  { chave: 'estouroFmt', label: 'Estouro (Média)' },
+  { chave: 'medianaRealFmt', label: 'Mediana Real' },
+  { chave: 'medianaPlanFmt', label: 'Mediana Planejado' },
+  { chave: 'estouroMedianaFmt', label: 'Estouro (Mediana)' },
+  { chave: 'volumeMedioFmt', label: 'Volume Médio' },
+  { chave: 'pesoMedioFmt', label: 'Peso Médio (kg)' },
+  { chave: 'qtdEstouros', label: 'Qtd. Estouros' }
+];
+
+function renderizarRanking() {
+  const thead = document.getElementById('theadRanking');
+  const tbody = document.getElementById('tbodyRanking');
+
+  thead.innerHTML = COLUNAS_RANKING.map(c => `<th>${c.label}</th>`).join('');
+  tbody.innerHTML = rankingAtual.map((l, i) => {
+    const linha = {
+      posicao: i + 1,
+      revenda: l.revenda,
+      cidade: l.cidade || '-',
+      codCliente: l.codCliente,
+      nomeCliente: l.nomeCliente || '-',
+      apontamentosUsados: l.apontamentosUsados,
+      mediaRealFmt: segundosParaHora(l.mediaReal),
+      mediaPlanFmt: segundosParaHora(l.mediaPlan),
+      estouroFmt: segundosParaHora(l.estouroSegundos),
+      medianaRealFmt: segundosParaHora(l.medianaReal),
+      medianaPlanFmt: segundosParaHora(l.medianaPlan),
+      estouroMedianaFmt: segundosParaHora(l.estouroMedianaSegundos),
+      volumeMedioFmt: formatarNumero(l.volumeMedio),
+      pesoMedioFmt: formatarNumero(l.pesoMedio),
+      qtdEstouros: l.qtdEstouros
+    };
+    return `<tr>${COLUNAS_RANKING.map(c => {
+      if (c.chave === 'estouroFmt' || c.chave === 'estouroMedianaFmt') return `<td><span class="badge badge-estouro">${linha[c.chave]}</span></td>`;
+      return `<td>${linha[c.chave] ?? ''}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+}
+
+// ============================================================
+// 3.1 PAINEL POR CIDADE — Top 10 cidades com maior Estouro (Média), por revenda
+// Diverging: vermelho = estouro positivo (atrasado), azul = negativo (adiantado).
+// Cores tiradas da paleta validada do site (par diverging azul↔vermelho).
+// ============================================================
+const REVENDAS_PAINEL = ['MGA', 'GPA', 'PG', 'NP'];
+const COR_ESTOURO_POSITIVO = '#e34948'; // atrasado
+const COR_ESTOURO_NEGATIVO = '#2a78d6'; // adiantado
+const COR_ZERO_LINHA = '#c3c2b7';
+const COR_GRID = '#e1e0d9';
+
+let resultadosCidadesCache = null; // todas as cidades (não cortado), pra reordenar sem buscar de novo
+
+document.getElementById('btnGerarGraficosCidades').addEventListener('click', gerarGraficosCidades);
+document.getElementById('selectModoCidades').addEventListener('change', () => {
+  if (resultadosCidadesCache) montarGraficosCidades(resultadosCidadesCache);
+});
+
+async function gerarGraficosCidades() {
+  const minApontamentos = Math.max(1, Number(document.getElementById('inputMinApontamentosCidades').value) || 1);
+  const statusEl = document.getElementById('statusGraficosCidades');
+  const btn = document.getElementById('btnGerarGraficosCidades');
+  btn.disabled = true;
+  statusEl.textContent = 'Buscando as 4 revendas e calculando por cidade...';
+
+  try {
+    const resultadosPorRevenda = {};
+    for (const revenda of REVENDAS_PAINEL) {
+      const [atendimentos, mapaClientes] = await Promise.all([
+        buscarTodosAtendimentos(revenda),
+        buscarClientesPorRevenda(revenda)
+      ]);
+      resultadosPorRevenda[revenda] = calcularTopCidades(atendimentos, mapaClientes, minApontamentos);
+    }
+
+    resultadosCidadesCache = resultadosPorRevenda;
+    montarGraficosCidades(resultadosPorRevenda);
+    salvarEstadoGraficosCidades(resultadosPorRevenda, minApontamentos);
+    statusEl.textContent = `Gráficos gerados (${new Date().toLocaleTimeString('pt-BR')}).`;
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToast('❌ Erro ao gerar os gráficos por cidade: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Mesma regra de estouro por cliente do ranking (últimas 10 tours, Concluído +
+// Dentro_do_raio). Calcula, por cidade (via join com a tabela "clientes"), duas
+// métricas — pra depois o usuário escolher qual delas manda no Top 10:
+//   - valorMedioSegundos: média do Estouro (Real - Planejado) dos clientes da cidade
+//   - qtdEstouros: quantidade TOTAL de apontamentos (entre os usados no cálculo)
+//     que tiveram estouro de verdade (real > planejado) — não conta os adiantados
+// Devolve TODAS as cidades (sem cortar em 10 ainda), pra dar pra reordenar por
+// qualquer uma das métricas sem precisar buscar tudo de novo no banco.
+function calcularTopCidades(atendimentos, mapaClientes, minApontamentos) {
+  const porCliente = new Map();
+  atendimentos.forEach(a => {
+    const chave = String(a.cod_cliente);
+    if (!porCliente.has(chave)) porCliente.set(chave, []);
+    porCliente.get(chave).push(a);
+  });
+
+  const porCidade = new Map(); // cidade -> { somaEstouro: [], qtdEstouros: 0, qtdClientes: 0 }
+  porCliente.forEach((registros, codCliente) => {
+    const ultimasDez = registros.slice(0, QTD_TOURS_POR_CLIENTE);
+    const validas = ultimasDez.filter(r => r.status === 'Concluído' && ehVerdadeiro(r.dentro_do_raio));
+
+    // Pareado por registro (não por array filtrado à parte), pra contar estouro
+    // apontamento a apontamento: real > planejado nesse atendimento específico.
+    let qtdEstourosCliente = 0;
+    const dispersoesCliente = [];
+    validas.forEach(r => {
+      const segReal = horaParaSegundos(r.tempo_atendimento);
+      const segPlan = horaParaSegundos(r.tempo_estimado_atendimento);
+      if (segReal === null || segPlan === null) return;
+      dispersoesCliente.push(segReal - segPlan);
+      if (segReal - segPlan > 0) qtdEstourosCliente++;
+    });
+    if (dispersoesCliente.length < minApontamentos) return;
+
+    const cliente = mapaClientes.get(codCliente);
+    const cidade = cliente ? (cliente.cidade || '').trim() : '';
+    if (!cidade) return;
+
+    if (!porCidade.has(cidade)) porCidade.set(cidade, { somaEstouro: [], qtdEstouros: 0, qtdTotalApontamentos: 0, qtdClientes: 0 });
+    const acumulado = porCidade.get(cidade);
+    acumulado.somaEstouro.push(media(dispersoesCliente));
+    acumulado.qtdEstouros += qtdEstourosCliente;
+    acumulado.qtdTotalApontamentos += dispersoesCliente.length;
+    acumulado.qtdClientes += 1;
+  });
+
+  return Array.from(porCidade.entries()).map(([cidade, acumulado]) => ({
+    cidade,
+    valorMedioSegundos: media(acumulado.somaEstouro),
+    qtdEstouros: acumulado.qtdEstouros,
+    qtdSemEstouro: acumulado.qtdTotalApontamentos - acumulado.qtdEstouros,
+    qtdClientes: acumulado.qtdClientes
+  }));
+}
+
+// Ordena as cidades pela métrica escolhida (sempre da maior pra menor) e corta em 10.
+const CAMPO_POR_MODO = { tempo: 'valorMedioSegundos', quantidade: 'qtdEstouros' };
+
+function topDezCidades(cidades, modo) {
+  const campo = CAMPO_POR_MODO[modo];
+  return [...cidades].sort((a, b) => b[campo] - a[campo]).slice(0, 10);
+}
+
+function montarGraficosCidades(resultadosPorRevenda) {
+  const modo = document.getElementById('selectModoCidades').value; // 'tempo' ou 'quantidade'
+  const ehTempo = modo === 'tempo';
+
+  const grid = document.getElementById('gridGraficosCidades');
+  grid.innerHTML = REVENDAS_PAINEL.map(revenda => `
+    <div class="col-12 col-lg-6">
+      <div class="grafico-cidade-card">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+          <h6 class="text-primary-dark fw-bold mb-0">${revenda}</h6>
+          <button class="btn btn-sm btn-outline-secondary py-0 px-2" type="button" data-toggle-tabela="${revenda}">
+            <i class="bi bi-table"></i> <span class="small">Tabela</span>
+          </button>
+        </div>
+        <div class="grafico-cidade-legenda mb-2">
+          ${ehTempo
+            ? `<span class="chave"><span class="chave-cor" style="background:${COR_ESTOURO_POSITIVO};"></span>Atrasado</span>
+               <span class="chave"><span class="chave-cor" style="background:${COR_ESTOURO_NEGATIVO};"></span>Adiantado</span>`
+            : `<span class="chave"><span class="chave-cor" style="background:${COR_ESTOURO_POSITIVO};"></span>Com estouro</span>
+               <span class="chave"><span class="chave-cor" style="background:${COR_ESTOURO_NEGATIVO};"></span>Sem estouro</span>`}
+        </div>
+        <div id="svgWrap-${revenda}" style="position:relative;"></div>
+        <div id="tabelaWrap-${revenda}" class="d-none"></div>
+      </div>
+    </div>
+  `).join('');
+
+  REVENDAS_PAINEL.forEach(revenda => {
+    const top10 = topDezCidades(resultadosPorRevenda[revenda], modo);
+    renderizarGraficoBarrasCidade(`svgWrap-${revenda}`, top10, modo);
+    renderizarTabelaCidades(`tabelaWrap-${revenda}`, top10);
+  });
+
+  grid.querySelectorAll('[data-toggle-tabela]').forEach(botao => {
+    botao.addEventListener('click', () => {
+      const revenda = botao.getAttribute('data-toggle-tabela');
+      const svgWrap = document.getElementById(`svgWrap-${revenda}`);
+      const tabelaWrap = document.getElementById(`tabelaWrap-${revenda}`);
+      const mostrarTabela = svgWrap.classList.contains('d-none') === false;
+      svgWrap.classList.toggle('d-none', mostrarTabela);
+      tabelaWrap.classList.toggle('d-none', !mostrarTabela);
+      botao.innerHTML = mostrarTabela
+        ? '<i class="bi bi-bar-chart-fill"></i> <span class="small">Gráfico</span>'
+        : '<i class="bi bi-table"></i> <span class="small">Tabela</span>';
+    });
+  });
+}
+
+// Caminho SVG de uma barra horizontal com a ponta externa arredondada e a ponta
+// da baseline quadrada (spec do gráfico: "4px rounded data-end, square at baseline").
+function pathBarraHorizontal(xBase, xPonta, y, altura, raio) {
+  const indoDireita = xPonta >= xBase;
+  const r = Math.max(0, Math.min(raio, altura / 2, Math.abs(xPonta - xBase)));
+  return indoDireita
+    ? `M ${xBase} ${y} H ${xPonta - r} Q ${xPonta} ${y} ${xPonta} ${y + r} V ${y + altura - r} Q ${xPonta} ${y + altura} ${xPonta - r} ${y + altura} H ${xBase} Z`
+    : `M ${xBase} ${y} H ${xPonta + r} Q ${xPonta} ${y} ${xPonta} ${y + r} V ${y + altura - r} Q ${xPonta} ${y + altura} ${xPonta + r} ${y + altura} H ${xBase} Z`;
+}
+
+function truncarTexto(texto, maxChars) {
+  return texto.length > maxChars ? texto.slice(0, maxChars - 1) + '…' : texto;
+}
+
+// Nomes de cidade vêm da importação de CSV (dado externo) — nunca confiar
+// direto em innerHTML com eles, escapa antes de colocar em atributo/texto.
+function escapeHtml(texto) {
+  return String(texto ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function renderizarGraficoBarrasCidade(idContainer, dados, modo) {
+  const container = document.getElementById(idContainer);
+  if (!dados || !dados.length) {
+    container.innerHTML = '<p class="text-secondary small mb-0 mt-2">Sem cidades com apontamentos válidos suficientes pra essa revenda.</p>';
+    return;
+  }
+
+  const ehTempo = modo === 'tempo';
+  const largura = 520;
+  const larguraLabel = 116;
+  const padTopo = 6, padBaixo = 6;
+
+  let barrasSvg, altura, linhaZero = '';
+
+  if (ehTempo) {
+    // Divergente: uma barra por cidade, pode ir pra esquerda (adiantado) ou
+    // direita (atrasado) a partir de uma baseline em zero.
+    const alturaBarra = 18, alturaLinha = 28;
+    const larguraValor = 96;
+    const larguraPlot = largura - larguraLabel - larguraValor;
+    altura = padTopo + dados.length * alturaLinha + padBaixo;
+
+    const valores = dados.map(d => d.valorMedioSegundos);
+    const dominioMin = Math.min(0, ...valores);
+    const dominioMax = Math.max(0, ...valores);
+    const escala = larguraPlot / ((dominioMax - dominioMin) || 1);
+    const xZero = larguraLabel + (0 - dominioMin) * escala;
+    linhaZero = `<line x1="${xZero}" y1="0" x2="${xZero}" y2="${altura}" stroke="${COR_ZERO_LINHA}" stroke-width="1"></line>`;
+
+    barrasSvg = dados.map((d, i) => {
+      const valor = d.valorMedioSegundos;
+      const y = padTopo + i * alturaLinha + (alturaLinha - alturaBarra) / 2;
+      const xPonta = larguraLabel + (valor - dominioMin) * escala;
+      const cor = valor >= 0 ? COR_ESTOURO_POSITIVO : COR_ESTOURO_NEGATIVO;
+      const path = pathBarraHorizontal(xZero, xPonta, y, alturaBarra, 4);
+      const valorFmt = (valor >= 0 ? '+' : '') + segundosParaHora(valor);
+      const labelFora = valor >= 0 ? xPonta + 6 : xPonta - 6;
+      const anchor = valor >= 0 ? 'start' : 'end';
+      // Quantidade de apontamentos com estouro entra como um tspan secundário,
+      // mais claro, logo depois do tempo (que é o valor principal aqui).
+      const qtdTspan = `<tspan dx="4" font-size="9" font-weight="500" fill="#8a8a86">(${d.qtdEstouros}x)</tspan>`;
+
+      return `
+        <g class="grafico-barra-hit" tabindex="0" role="img"
+           aria-label="${escapeHtml(d.cidade)}: ${valorFmt}, ${d.qtdEstouros} apontamento(s) com estouro, ${d.qtdClientes} cliente(s)"
+           data-cidade="${escapeHtml(d.cidade)}" data-valor="${valorFmt}" data-estouros="${d.qtdEstouros}" data-qtd="${d.qtdClientes}">
+          <rect x="0" y="${padTopo + i * alturaLinha}" width="${largura}" height="${alturaLinha}" fill="transparent"></rect>
+          <text x="${larguraLabel - 8}" y="${y + alturaBarra / 2 + 4}" text-anchor="end" font-size="11" fill="#52514e">${escapeHtml(truncarTexto(d.cidade, 16))}</text>
+          <path class="barra" d="${path}" fill="${cor}"></path>
+          <text x="${labelFora}" y="${y + alturaBarra / 2 + 4}" text-anchor="${anchor}" font-size="10.5" fill="#0b0b0b" font-weight="600">${valorFmt}${qtdTspan}</text>
+        </g>`;
+    }).join('');
+  } else {
+    // Comparação: duas barras por cidade, com estouro (vermelha) em cima e
+    // sem estouro (azul) embaixo, na mesma escala — pra comparar de olho.
+    const alturaBarra = 9, gapBarras = 3;
+    const alturaLinha = alturaBarra * 2 + gapBarras + 10;
+    const larguraValor = 40;
+    const larguraPlot = largura - larguraLabel - larguraValor;
+    altura = padTopo + dados.length * alturaLinha + padBaixo;
+
+    const maxValor = Math.max(1, ...dados.flatMap(d => [d.qtdEstouros, d.qtdSemEstouro]));
+    const escala = larguraPlot / maxValor;
+
+    barrasSvg = dados.map((d, i) => {
+      const yBase = padTopo + i * alturaLinha;
+      const yEstouro = yBase + (alturaLinha - alturaBarra * 2 - gapBarras) / 2;
+      const ySemEstouro = yEstouro + alturaBarra + gapBarras;
+      const larguraEstouro = d.qtdEstouros * escala;
+      const larguraSemEstouro = d.qtdSemEstouro * escala;
+      const pathEstouro = pathBarraHorizontal(larguraLabel, larguraLabel + larguraEstouro, yEstouro, alturaBarra, 3);
+      const pathSemEstouro = pathBarraHorizontal(larguraLabel, larguraLabel + larguraSemEstouro, ySemEstouro, alturaBarra, 3);
+
+      return `
+        <g class="grafico-barra-hit" tabindex="0" role="img"
+           aria-label="${escapeHtml(d.cidade)}: ${d.qtdEstouros} com estouro, ${d.qtdSemEstouro} sem estouro, ${d.qtdClientes} cliente(s)"
+           data-cidade="${escapeHtml(d.cidade)}" data-estouros="${d.qtdEstouros}" data-sem-estouro="${d.qtdSemEstouro}" data-qtd="${d.qtdClientes}">
+          <rect x="0" y="${yBase}" width="${largura}" height="${alturaLinha}" fill="transparent"></rect>
+          <text x="${larguraLabel - 8}" y="${yBase + alturaLinha / 2 + 4}" text-anchor="end" font-size="11" fill="#52514e">${escapeHtml(truncarTexto(d.cidade, 16))}</text>
+          <path class="barra" d="${pathEstouro}" fill="${COR_ESTOURO_POSITIVO}"></path>
+          <text x="${larguraLabel + larguraEstouro + 5}" y="${yEstouro + alturaBarra / 2 + 3.5}" font-size="10" fill="#0b0b0b" font-weight="600">${d.qtdEstouros}</text>
+          <path class="barra" d="${pathSemEstouro}" fill="${COR_ESTOURO_NEGATIVO}"></path>
+          <text x="${larguraLabel + larguraSemEstouro + 5}" y="${ySemEstouro + alturaBarra / 2 + 3.5}" font-size="10" fill="#0b0b0b" font-weight="600">${d.qtdSemEstouro}</text>
+        </g>`;
+    }).join('');
+  }
+
+  container.innerHTML = `
+    <svg viewBox="0 0 ${largura} ${altura}" width="100%" height="${altura}" role="group" aria-label="Top 10 cidades" style="overflow:visible;">
+      ${linhaZero}
+      ${barrasSvg}
+    </svg>
+    <div class="grafico-tooltip" id="tooltip-${idContainer}"></div>
+  `;
+
+  const tooltip = document.getElementById(`tooltip-${idContainer}`);
+  container.querySelectorAll('.grafico-barra-hit').forEach(grupo => {
+    const mostrar = evento => {
+      // Nome da cidade é dado externo (vindo do CSV importado) — monta o
+      // tooltip com nós de texto em vez de innerHTML, pra não interpretar
+      // nada que porventura venha no nome como HTML.
+      tooltip.textContent = '';
+      tooltip.appendChild(document.createTextNode(grupo.dataset.cidade));
+      tooltip.appendChild(document.createElement('br'));
+      const valorEl = document.createElement('span');
+      valorEl.className = 'valor';
+      if (ehTempo) {
+        valorEl.textContent = grupo.dataset.valor;
+        tooltip.appendChild(valorEl);
+        tooltip.appendChild(document.createTextNode(` · ${grupo.dataset.estouros} apontamento(s) c/ estouro · ${grupo.dataset.qtd} cliente(s)`));
+      } else {
+        valorEl.textContent = `${grupo.dataset.estouros} com estouro`;
+        tooltip.appendChild(valorEl);
+        tooltip.appendChild(document.createTextNode(` · ${grupo.dataset.semEstouro} sem estouro · ${grupo.dataset.qtd} cliente(s)`));
+      }
+      const retContainer = container.getBoundingClientRect();
+      const x = (evento.clientX !== undefined ? evento.clientX : retContainer.left) - retContainer.left;
+      tooltip.style.left = `${x + 12}px`;
+      tooltip.style.top = `${grupo.getBoundingClientRect().top - retContainer.top}px`;
+      tooltip.classList.add('mostrar');
+    };
+    const esconder = () => tooltip.classList.remove('mostrar');
+    grupo.addEventListener('pointermove', mostrar);
+    grupo.addEventListener('pointerenter', mostrar);
+    grupo.addEventListener('pointerleave', esconder);
+    grupo.addEventListener('focus', mostrar);
+    grupo.addEventListener('blur', esconder);
+  });
+}
+
+// Tabela — gêmea de acessibilidade do gráfico (mesma informação, sem depender de hover).
+function renderizarTabelaCidades(idContainer, dados) {
+  const container = document.getElementById(idContainer);
+  if (!dados || !dados.length) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = `
+    <table class="table table-sm table-bordered mb-0" style="font-size:0.78rem;">
+      <thead><tr><th>#</th><th>Cidade</th><th>Estouro (Média)</th><th>Qtd. c/ Estouro</th><th>Qtd. Sem Estouro</th><th>Clientes</th></tr></thead>
+      <tbody>
+        ${dados.map((d, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(d.cidade)}</td>
+            <td>${(d.valorMedioSegundos >= 0 ? '+' : '') + segundosParaHora(d.valorMedioSegundos)}</td>
+            <td>${d.qtdEstouros}</td>
+            <td>${d.qtdSemEstouro}</td>
+            <td>${d.qtdClientes}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// ============================================================
+// 3.2 DETALHE POR DIA DA SEMANA — piores clientes de UMA cidade
+// Mesma regra de estouro do ranking (últimas 10 tours, Concluído +
+// Dentro_do_raio), mas em vez de agregar por cidade, pega os N clientes
+// com maior estouro médio dessa cidade e mostra, por dia da semana,
+// quantidade de atendimentos, tempo médio e peso médio.
+// ============================================================
+const DIAS_SEMANA = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+const DIAS_SEMANA_UTEIS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB']; // sem domingo — não há operação nesse dia
+
+function diaDaSemana(dataISO) {
+  if (!dataISO) return null;
+  const d = new Date(`${dataISO}T00:00:00`);
+  if (isNaN(d)) return null;
+  return DIAS_SEMANA[d.getDay()];
+}
+
+// Interpola entre 2 cores RGB (t de 0 a 1) — usado no heatmap das tabelas.
+function interpolarCor(c1, c2, t) {
+  return [0, 1, 2].map(i => Math.round(c1[i] + (c2[i] - c1[i]) * t));
+}
+
+const HEATMAP_VERDE = [15, 157, 88];
+const HEATMAP_AMARELO = [245, 200, 60];
+const HEATMAP_VERMELHO = [192, 54, 44];
+
+function corHeatmap(valor, min, max) {
+  if (valor === null || valor === undefined || isNaN(valor) || min === max) return '';
+  const t = (valor - min) / (max - min);
+  const rgb = t <= 0.5
+    ? interpolarCor(HEATMAP_VERDE, HEATMAP_AMARELO, t / 0.5)
+    : interpolarCor(HEATMAP_AMARELO, HEATMAP_VERMELHO, (t - 0.5) / 0.5);
+  return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.22)`;
+}
+
+document.getElementById('btnGerarDetalheDiaSemana').addEventListener('click', gerarDetalheDiaSemana);
+
+async function gerarDetalheDiaSemana() {
+  const revenda = document.getElementById('inputRevendaDetalhe').value;
+  const cidadeDigitada = document.getElementById('inputCidadeDetalhe').value.trim();
+  const cidadeFiltro = cidadeDigitada.toLowerCase();
+  const minApontamentos = Math.max(1, Number(document.getElementById('inputMinApontamentosDetalhe').value) || 1);
+  const topN = Math.max(1, Number(document.getElementById('inputTopNDetalhe').value) || 10);
+
+  if (!revenda) { mostrarToast('⚠️ Selecione a Revenda.', 'warning'); return; }
+  if (!cidadeDigitada) { mostrarToast('⚠️ Selecione a Cidade.', 'warning'); return; }
+
+  const statusEl = document.getElementById('statusDetalheDiaSemana');
+  const btn = document.getElementById('btnGerarDetalheDiaSemana');
+  btn.disabled = true;
+  statusEl.textContent = 'Buscando apontamentos no banco...';
+
+  try {
+    const [atendimentos, mapaClientes] = await Promise.all([
+      buscarTodosAtendimentos(revenda),
+      buscarClientesPorRevenda(revenda)
+    ]);
+
+    statusEl.textContent = 'Calculando os piores clientes da cidade...';
+    await new Promise(r => setTimeout(r, 10));
+
+    const porCliente = new Map();
+    atendimentos.forEach(a => {
+      const cliente = mapaClientes.get(String(a.cod_cliente));
+      const cidade = cliente ? (cliente.cidade || '') : '';
+      if (!cidade.toLowerCase().includes(cidadeFiltro)) return;
+      const chave = String(a.cod_cliente);
+      if (!porCliente.has(chave)) porCliente.set(chave, []);
+      porCliente.get(chave).push(a);
+    });
+
+    const clientesCalculados = [];
+    porCliente.forEach((registros, codCliente) => {
+      const ultimasDez = registros.slice(0, QTD_TOURS_POR_CLIENTE); // já ordenado por data desc
+      const validas = ultimasDez.filter(r => r.status === 'Concluído' && ehVerdadeiro(r.dentro_do_raio));
+
+      const segundosReal = validas.map(r => horaParaSegundos(r.tempo_atendimento)).filter(v => v !== null);
+      const segundosPlan = validas.map(r => horaParaSegundos(r.tempo_estimado_atendimento)).filter(v => v !== null);
+      const qtdValida = Math.min(segundosReal.length, segundosPlan.length);
+      if (qtdValida < minApontamentos) return;
+
+      const cliente = mapaClientes.get(codCliente);
+      clientesCalculados.push({
+        codCliente,
+        nomeCliente: cliente ? (cliente.nome_cliente || '') : '',
+        estouroSegundos: media(segundosReal) - media(segundosPlan),
+        registrosValidos: validas
+      });
+    });
+
+    clientesCalculados.sort((a, b) => b.estouroSegundos - a.estouroSegundos);
+    const piores = clientesCalculados.slice(0, topN);
+
+    renderizarDetalheDiaSemana(piores, revenda, cidadeDigitada);
+    statusEl.textContent = `${revenda} · ${cidadeDigitada} — exibindo ${piores.length} de ${clientesCalculados.length} cliente(s) com apontamentos válidos suficientes, do maior pro menor estouro médio.`;
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToast('❌ Erro ao gerar o detalhamento: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function calcularMetricasPorDia(registros) {
+  const porDia = {};
+  DIAS_SEMANA_UTEIS.forEach(d => { porDia[d] = { qtd: 0, qtdEstouro: 0, temposSeg: [], pesos: [] }; });
+  registros.forEach(r => {
+    const dia = diaDaSemana(r.data);
+    if (!dia || !porDia[dia]) return; // ignora domingo ou data inválida
+    porDia[dia].qtd++;
+    const seg = horaParaSegundos(r.tempo_atendimento);
+    if (seg !== null) porDia[dia].temposSeg.push(seg);
+    if (r.peso_total_kg !== null && r.peso_total_kg !== undefined && !isNaN(r.peso_total_kg)) porDia[dia].pesos.push(Number(r.peso_total_kg));
+
+    const segPlan = horaParaSegundos(r.tempo_estimado_atendimento);
+    if (seg !== null && segPlan !== null && seg > segPlan) porDia[dia].qtdEstouro++;
+  });
+  return porDia;
+}
+
+function renderizarDetalheDiaSemana(piores, revenda, cidadeExibicao) {
+  const container = document.getElementById('resultadoDetalheDiaSemana');
+  if (!piores.length) {
+    container.innerHTML = '<p class="text-secondary small mb-0 mt-2">Nenhum cliente com apontamentos válidos suficientes pra essa cidade.</p>';
+    return;
+  }
+
+  const dadosPorCliente = piores.map(c => ({ ...c, porDia: calcularMetricasPorDia(c.registrosValidos) }));
+
+  const qtds = [], temposMedios = [], pesosMedios = [];
+  dadosPorCliente.forEach(c => DIAS_SEMANA_UTEIS.forEach(d => {
+    const info = c.porDia[d];
+    if (info.qtd > 0) qtds.push(info.qtd);
+    if (info.temposSeg.length) temposMedios.push(media(info.temposSeg));
+    if (info.pesos.length) pesosMedios.push(media(info.pesos));
+  }));
+  const minQtd = Math.min(...qtds), maxQtd = Math.max(...qtds);
+  const minTempo = Math.min(...temposMedios), maxTempo = Math.max(...temposMedios);
+  const minPeso = Math.min(...pesosMedios), maxPeso = Math.max(...pesosMedios);
+
+  function celula(info, metrica) {
+    if (metrica === 'qtd' && info.qtd > 0) {
+      return { valor: info.qtd, valorSecundario: info.qtdEstouro, bg: corHeatmap(info.qtd, minQtd, maxQtd) };
+    }
+    if (metrica === 'tempo' && info.temposSeg.length) {
+      const m = media(info.temposSeg);
+      return { valor: segundosParaHora(m), bg: corHeatmap(m, minTempo, maxTempo) };
+    }
+    if (metrica === 'peso' && info.pesos.length) {
+      const m = media(info.pesos);
+      return { valor: formatarNumero(m), bg: corHeatmap(m, minPeso, maxPeso) };
+    }
+    return { valor: '', bg: '' };
+  }
+
+  function tabela(titulo, metrica) {
+    return `
+      <div class="col-12 col-xl-4">
+        <h6 class="text-primary-dark fw-bold mb-2">${titulo}</h6>
+        <div class="tabela-dia-semana-wrap border rounded-3">
+          <table class="table table-bordered table-sm mb-0 align-middle text-center tabela-dia-semana">
+            <thead><tr><th class="text-start col-cliente">Cod_cliente / Nome</th>${DIAS_SEMANA_UTEIS.map(d => `<th>${d}</th>`).join('')}</tr></thead>
+            <tbody>
+              ${dadosPorCliente.map(c => `
+                <tr>
+                  <td class="text-start col-cliente">${escapeHtml(c.codCliente)}<br><span class="text-muted-ink">${escapeHtml(c.nomeCliente || '-')}</span></td>
+                  ${DIAS_SEMANA_UTEIS.map(d => {
+                    const { valor, valorSecundario, bg } = celula(c.porDia[d], metrica);
+                    if (metrica === 'qtd' && valor !== '') {
+                      return `<td class="celula-diagonal" style="background-color:${bg};">
+                        <span class="valor-principal">${valor}</span>
+                        <span class="valor-secundario">${valorSecundario}</span>
+                      </td>`;
+                    }
+                    return `<td style="background:${bg};">${valor}</td>`;
+                  }).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  container.innerHTML = `
+    <p class="small text-muted-ink mb-3">
+      <i class="bi bi-info-circle me-1"></i>Na tabela "Qtd. de Atendimentos por Dia", cada quadrado cortado mostra
+      o total de atendimentos (canto superior esquerdo) e quantos estouraram (canto inferior direito).
+    </p>
+    <div class="row g-3 align-items-start">
+      ${tabela('Qtd. de Atendimentos por Dia', 'qtd')}
+      ${tabela('Tempo Médio de Atendimento por Dia', 'tempo')}
+      ${tabela('Peso Médio (kg) por Dia', 'peso')}
+    </div>
+  `;
+}
+
+// ============================================================
+// 4. DOWNLOAD DO EXCEL
+// ============================================================
+document.getElementById('btnBaixarExcelRanking').addEventListener('click', () => {
+  if (!rankingAtual.length) return;
+  const linhas = rankingAtual.map((l, i) => ({
+    '#': i + 1,
+    'Revenda': l.revenda,
+    'Cidade': l.cidade || '',
+    'Cod_cliente': l.codCliente,
+    'Nome Cliente': l.nomeCliente || '',
+    'Apontamentos Usados': l.apontamentosUsados,
+    'Média Real': segundosParaHora(l.mediaReal),
+    'Média Planejado': segundosParaHora(l.mediaPlan),
+    'Estouro (Média)': segundosParaHora(l.estouroSegundos),
+    'Mediana Real': segundosParaHora(l.medianaReal),
+    'Mediana Planejado': segundosParaHora(l.medianaPlan),
+    'Estouro (Mediana)': segundosParaHora(l.estouroMedianaSegundos),
+    'Volume Médio': formatarNumero(l.volumeMedio),
+    'Peso Médio (kg)': formatarNumero(l.pesoMedio),
+    'Qtd. Estouros': l.qtdEstouros
+  }));
+  const planilha = XLSX.utils.json_to_sheet(linhas);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, planilha, 'Ranking Estouro');
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `ranking_estouro_${dataHoje}.xlsx`);
+  mostrarToast('✅ Arquivo baixado com sucesso.', 'success');
+});
+
+// ============================================================
+// 5. TOAST DE FEEDBACK
+// ============================================================
+function mostrarToast(mensagem, tipo) {
+  const div = document.createElement('div');
+  div.className = `toast-custom alert alert-${tipo}`;
+  div.textContent = mensagem;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 4000);
+}
+
+// ============================================================
+// 6. MANTER RESULTADO AO TROCAR DE ABA (sessionStorage — some só se fechar o navegador)
+// ============================================================
+const CHAVE_ESTADO = 'estado_ranking_estouro';
+
+function salvarEstadoAtual(statusTexto) {
+  salvarEstadoPagina(CHAVE_ESTADO, {
+    inputs: {
+      revenda: document.getElementById('inputRevenda').value,
+      cidade: document.getElementById('inputCidade').value,
+      minApontamentos: document.getElementById('inputMinApontamentos').value,
+      topN: document.getElementById('inputTopN').value
+    },
+    rankingAtual,
+    statusTexto,
+    stats: {
+      clientesAnalisados: document.getElementById('statClientesAnalisados').textContent,
+      clientesRanking: document.getElementById('statClientesRanking').textContent,
+      apontamentosLidos: document.getElementById('statApontamentosLidos').textContent,
+      maiorEstouro: document.getElementById('statMaiorEstouro').textContent
+    }
+  });
+}
+
+(function restaurarEstadoAtual() {
+  const estado = carregarEstadoPagina(CHAVE_ESTADO);
+  if (!estado) return;
+
+  document.getElementById('inputRevenda').value = estado.inputs.revenda || '';
+  document.getElementById('inputCidade').value = estado.inputs.cidade || '';
+  document.getElementById('inputMinApontamentos').value = estado.inputs.minApontamentos || 3;
+  document.getElementById('inputTopN').value = estado.inputs.topN || 30;
+
+  rankingAtual = estado.rankingAtual || [];
+  if (!rankingAtual.length) return;
+
+  // Cache de uma versão anterior (sem Volume/Peso/Qtd. Estouros) — descarta
+  // e pede pra gerar de novo, em vez de mostrar a tabela com colunas em branco.
+  if (rankingAtual[0].qtdEstouros === undefined) {
+    rankingAtual = [];
+    return;
+  }
+
+  renderizarRanking();
+  document.getElementById('statClientesAnalisados').textContent = estado.stats.clientesAnalisados;
+  document.getElementById('statClientesRanking').textContent = estado.stats.clientesRanking;
+  document.getElementById('statApontamentosLidos').textContent = estado.stats.apontamentosLidos;
+  document.getElementById('statMaiorEstouro').textContent = estado.stats.maiorEstouro;
+  document.getElementById('statusBusca').textContent = estado.statusTexto || '';
+  document.getElementById('cardResultado').classList.remove('d-none');
+  document.getElementById('btnBaixarExcelRanking').disabled = false;
+})();
+
+const CHAVE_ESTADO_CIDADES = 'estado_ranking_estouro_cidades';
+
+function salvarEstadoGraficosCidades(resultadosPorRevenda, minApontamentos) {
+  salvarEstadoPagina(CHAVE_ESTADO_CIDADES, {
+    resultadosPorRevenda,
+    minApontamentos,
+    modo: document.getElementById('selectModoCidades').value
+  });
+}
+
+(function restaurarEstadoGraficosCidades() {
+  const estado = carregarEstadoPagina(CHAVE_ESTADO_CIDADES);
+  if (!estado || !estado.resultadosPorRevenda) return;
+
+  document.getElementById('inputMinApontamentosCidades').value = estado.minApontamentos || 3;
+  document.getElementById('selectModoCidades').value = estado.modo || 'tempo';
+  resultadosCidadesCache = estado.resultadosPorRevenda;
+  montarGraficosCidades(estado.resultadosPorRevenda);
+  document.getElementById('statusGraficosCidades').textContent = 'Gráficos restaurados da última busca.';
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,2523 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tratamento de Base .txt - 2art</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="estado-sessao.js"></script>
+<style>
+  :root {
+    --brand-50:  #eef4ff; --brand-100: #dce8ff; --brand-200: #b3ceff;
+    --brand-500: #245bc7; --brand-600: #1c4aa8; --brand-700: #163a85;
+    --ink-900: #101828; --ink-700: #344054; --ink-500: #667085; --ink-400: #98a2b3;
+    --surface-0: #ffffff; --surface-1: #e9edf4; --surface-2: #eef2f8;
+    --border-soft: #e3e8f0; --border-strong: #c9d3e0;
+    --success: #0f9d58; --success-bg: #e6f7ee; --danger: #c0362c; --danger-bg: #fbeae8;
+    --radius-lg: 1rem; --radius-md: 0.7rem; --radius-sm: 0.5rem;
+    --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+    --shadow-pop: 0 4px 10px rgba(16,24,40,.10), 0 12px 32px rgba(16,24,40,.10);
+    --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem;
+    --space-5: 1.5rem; --space-6: 2rem; --space-7: 2.5rem;
+  }
+  * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  html { -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--surface-1); color: var(--ink-700); padding-bottom: 4rem; overflow-x: hidden; }
+  h1, h2, h3, h4, h5, h6 { color: var(--ink-900); letter-spacing: -0.01em; }
+  .text-primary-dark { color: var(--brand-700) !important; }
+  .text-muted-ink { color: var(--ink-500) !important; }
+  small, .small { color: var(--ink-500); }
+
+  .card-shadow {
+    box-shadow: var(--shadow-card); border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg); background: var(--surface-0);
+  }
+  .section-head { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-4); }
+  .section-head > div { min-width: 0; }
+  .section-head .icon-chip {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    background: var(--brand-50); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; flex-shrink: 0;
+  }
+  .section-head h5 { font-weight: 700; font-size: 1.05rem; margin-bottom: .1rem; }
+  .section-head p { margin-bottom: 0; font-size: .84rem; color: var(--ink-500); max-width: 62ch; }
+  .step-badge {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--brand-500); color: white;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+  }
+  .upload-zone {
+    border: 2px dashed var(--brand-200);
+    border-radius: var(--radius-md);
+    background: var(--surface-1);
+    padding: 1.75rem;
+    text-align: center;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .upload-zone:hover { border-color: var(--brand-500); background: var(--brand-50); }
+  .upload-zone.dragover { border-color: var(--brand-500); background: var(--brand-50); }
+  #barraImportacao { transition: all 0.15s; }
+  #barraImportacao.dragover { outline: 2px dashed var(--brand-500); outline-offset: -2px; background: var(--brand-50); }
+
+  .btn { font-weight: 600; letter-spacing: -0.005em; }
+  .btn-primary-brand { background: var(--brand-500); border: 1px solid var(--brand-500); color: #fff; }
+  .btn-primary-brand:hover { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+  .btn-primary-brand:disabled { background: var(--brand-200); border-color: var(--brand-200); opacity: .7; }
+  .btn-primary-soft { background: var(--brand-50); border: 1px solid var(--brand-100); color: var(--brand-700); }
+  .btn-primary-soft:hover { background: var(--brand-100); border-color: var(--brand-200); color: var(--brand-700); }
+  .btn-primary-soft:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-excel { background: #1a7a4c; border: 1px solid #1a7a4c; color: white; }
+  .btn-excel:hover { background: #15603c; border-color: #15603c; color: white; }
+  .btn-excel:disabled { background: #a7c9b6; border-color: #a7c9b6; }
+  .btn-txt { background: var(--ink-700); border: 1px solid var(--ink-700); color: white; }
+  .btn-txt:hover { background: var(--ink-900); border-color: var(--ink-900); color: white; }
+  .btn-txt:disabled { background: var(--ink-400); border-color: var(--ink-400); }
+  .btn-outline-secondary { border-color: var(--border-strong); color: var(--ink-700); }
+  .btn-outline-danger { border-color: #e3aaa5; }
+
+  .form-label { font-size: .78rem; font-weight: 600; color: var(--ink-700); }
+  .form-control, .form-select { border-color: var(--border-strong); font-size: .88rem; }
+  .form-control:focus, .form-select:focus { border-color: var(--brand-500); box-shadow: 0 0 0 .2rem var(--brand-50); }
+
+  .table-preview-wrap { max-height: 480px; overflow: auto; border-radius: var(--radius-md); }
+  .table-preview-wrap table { font-size: 0.8rem; margin-bottom: 0; }
+  .table-preview-wrap thead th {
+    position: sticky; top: 0; background: var(--surface-2); color: var(--ink-700); z-index: 1;
+    text-align: center; vertical-align: middle; white-space: normal;
+    font-size: .74rem; text-transform: uppercase; letter-spacing: .03em; font-weight: 700;
+    border-color: var(--border-soft);
+  }
+  .table-preview-wrap tbody td { border-color: var(--border-soft); vertical-align: middle; }
+  .table-hover > tbody > tr:hover > * { background-color: var(--brand-50); }
+
+  .stat-box { background: var(--surface-1); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: .9rem 1.1rem; }
+  .stat-box .stat-label { font-size: .74rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .03em; }
+  .stat-box .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+  .stat-box.stat-danger .stat-value { color: var(--danger); }
+  /* Este arquivo tem dezenas de stat-box com o markup antigo (text-secondary
+     small / fs-4 fw-bold) — em vez de reescrever cada uma, aplica o mesmo
+     visual direto nessas classes já existentes, só dentro de .stat-box. */
+  .stat-box .text-secondary.small { font-size: .74rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .03em; }
+  .stat-box .fs-4, .stat-box .fs-5 { font-weight: 700 !important; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+  .stat-box .fs-4.text-danger, .stat-box .fs-5.text-danger { color: var(--danger) !important; }
+
+  .toast-custom {
+    position: fixed; top: 20px; right: 20px; z-index: 9999;
+    max-width: 350px; min-width: 250px; animation: slideIn 0.3s ease;
+    box-shadow: var(--shadow-pop);
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .progress-thin { height: 6px; }
+
+  .navbar-site { background: var(--surface-0); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); margin-top: 1rem; }
+  .navbar-site .navbar-brand { display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .brand-mark {
+    width: 32px; height: 32px; border-radius: .55rem; background: var(--brand-500); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .navbar-site .brand-text { line-height: 1.05; }
+  .navbar-site .brand-text .sub { display: block; font-size: .66rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .05em; }
+  .navbar-site .nav-link { color: var(--ink-700); font-weight: 600; font-size: .88rem; border-radius: var(--radius-sm); padding: .5rem .85rem; transition: background 0.15s, color .15s; }
+  .navbar-site .nav-link:hover { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .nav-link.active { background: var(--brand-500); color: #fff !important; }
+  .navbar-site .nav-item.dropdown.section-active > .nav-link { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-menu { border: 1px solid var(--border-soft); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); padding: .4rem; margin-top: .4rem; }
+  .navbar-site .dropdown-item { border-radius: var(--radius-sm); font-size: .86rem; font-weight: 500; color: var(--ink-700); padding: .5rem .65rem; display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .dropdown-item i { color: var(--brand-500); width: 1.1em; text-align: center; }
+  .navbar-site .dropdown-item:hover, .navbar-site .dropdown-item:focus { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-item.active { background: var(--brand-500); color: #fff; }
+  .navbar-site .dropdown-item.active i { color: #fff; }
+
+  .breadcrumb-trail { font-size: .78rem; color: var(--ink-500); margin-bottom: .35rem; }
+  .breadcrumb-trail i { font-size: .65rem; vertical-align: middle; margin: 0 .3rem; }
+  .page-header { margin-bottom: var(--space-4); }
+  .page-header h3 { font-weight: 700; font-size: 1.5rem; }
+
+  .info-card {
+    display: flex; gap: var(--space-3); align-items: flex-start;
+    background: var(--brand-50); border: 1px solid var(--brand-100);
+    border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+  }
+  .info-card .info-card-icon {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--surface-0); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+    box-shadow: 0 1px 2px rgba(16,24,40,.06);
+  }
+  .info-card p { color: var(--ink-700); font-size: .88rem; margin-bottom: .6rem; max-width: 78ch; }
+  .info-card p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-site px-3 py-2 mb-2">
+      <div class="container-fluid px-0">
+        <a class="navbar-brand" href="index.html">
+          <span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span>
+          <span class="brand-text"><span class="sub">Painel</span>OT</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir menu">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+          <ul class="navbar-nav ms-auto gap-1 align-items-lg-center">
+            <li class="nav-item">
+              <a class="nav-link" href="index.html"><i class="bi bi-journal-richtext me-1"></i>Diário de Tratativas</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="tratativageo.html"><i class="bi bi-geo-alt-fill me-1"></i>Geolocalizador</a>
+            </li>
+            <li class="nav-item dropdown section-active">
+              <a class="nav-link dropdown-toggle" href="#" id="menuImportacao" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-cloud-arrow-up-fill me-1"></i>Importação de Dados
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuImportacao">
+                <li><a class="dropdown-item" href="tratamento-dados.html"><i class="bi bi-truck"></i>Tratamento de Base</a></li>
+                <li><a class="dropdown-item active" aria-current="page" href="tratamento-2art.html"><i class="bi bi-files"></i>Base 2art</a></li>
+                <li><a class="dropdown-item" href="tratamento-clientes.html"><i class="bi bi-people-fill"></i>Base de Clientes</a></li>
+              </ul>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="menuAnalises" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-graph-up-arrow me-1"></i>Consultas &amp; Análises
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuAnalises">
+                <li><a class="dropdown-item" href="consulta-mapa.html"><i class="bi bi-signpost-2-fill"></i>Consulta por Mapa</a></li>
+                <li><a class="dropdown-item" href="vinculo-tabelas.html"><i class="bi bi-link-45deg"></i>Vínculo de Tabelas</a></li>
+                <li><a class="dropdown-item" href="ranking-estouro.html"><i class="bi bi-graph-up-arrow"></i>Ranking de Estouro</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <!-- BARRA COMPACTA DE IMPORTAÇÃO — funciona como sub-navegação, sempre visível -->
+  <div class="container">
+    <div class="card card-shadow px-3 py-2 mb-2" id="barraImportacao">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <select class="form-select form-select-sm" style="max-width: 150px;" id="selectRevenda">
+          <option value="" selected disabled>Revenda...</option>
+          <option value="MGA">MGA</option>
+          <option value="GPA">GPA</option>
+          <option value="PG">PG</option>
+          <option value="NP">NP</option>
+        </select>
+
+        <button class="btn btn-sm btn-outline-primary" id="btnEscolherArquivos" type="button" title="Aceita múltiplos .txt (;) com cabeçalho na 1ª linha">
+          <i class="bi bi-cloud-arrow-up me-1"></i> Escolher .txt
+        </button>
+        <input type="file" id="inputArquivos2art" accept=".txt" multiple hidden>
+        <span class="text-secondary small" id="listaArquivosTexto">Nenhum arquivo selecionado (ou arraste aqui)</span>
+
+        <button class="btn btn-sm btn-primary-brand ms-auto" id="btnProcessar" disabled>
+          <i class="bi bi-database-fill-gear me-1"></i> Processar
+        </button>
+        <span id="statusProcessamento" class="text-secondary small"></span>
+      </div>
+      <div class="progress progress-thin mt-2 d-none" id="barraProgresso">
+        <div class="progress-bar" role="progressbar" style="width: 100%"></div>
+      </div>
+    </div>
+  </div>
+
+<div class="container py-4" style="max-width: 1200px;">
+
+  <div class="page-header">
+    <div class="breadcrumb-trail">Importação de Dados <i class="bi bi-chevron-right"></i> Base 2art</div>
+    <h3 class="text-primary-dark mb-0"><i class="bi bi-files me-2"></i>Tratamento de Base .txt (2art)</h3>
+  </div>
+
+  <div class="info-card mb-4">
+    <span class="info-card-icon"><i class="bi bi-info-circle-fill"></i></span>
+    <div>
+      <p class="mb-0">Selecione a revenda, importe vários arquivos .txt de uma vez e baixe a base consolidada já com a coluna Revenda.</p>
+    </div>
+  </div>
+
+  <!-- PASSO 2: RESUMO -->
+  <div class="card card-shadow p-4 mb-4 d-none" id="cardResumo">
+    <div class="section-head">
+      <span class="icon-chip"><i class="bi bi-clipboard-data-fill"></i></span>
+      <div><h5 class="mb-0">Resumo do Processamento</h5></div>
+    </div>
+    <div class="row g-3">
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Arquivos processados</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statArquivos">0</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Registros processados</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statRegistros">0</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Revenda aplicada</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statRevenda">-</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Colunas na saída</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statColunas">0</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Mapas inválidos p/ Horário (4.39)</div>
+          <div class="fs-4 fw-bold text-danger" id="statInvalidosHr">0</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Mapas inválidos p/ Km (4.40)</div>
+          <div class="fs-4 fw-bold text-danger" id="statInvalidosKm">0</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">% TML dentro da meta</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statPctTML">0%</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Média TML</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statMediaTML">-</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">% TR dentro da meta</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statPctTR">0%</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Média TR</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statMediaTR">-</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">% TI dentro da meta</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statPctTI">0%</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Média TI</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statMediaTI">-</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">% JL dentro da meta</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statPctJL">0%</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Média JL</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statMediaJL">-</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Média Dispersão de Tempo</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statMediaDispersaoTempo">-</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Média Dispersão de Tempo%</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statMediaDispersaoTempoPct">-</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Média KM</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statMediaKm">-</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Média KM Prev</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statMediaKmPrev">-</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">% KM</div>
+          <div class="fs-4 fw-bold text-primary-dark" id="statPctKm">-</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">Mapas Expurgados</div>
+          <div class="fs-4 fw-bold text-danger" id="statMapasExpurgados">0</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box">
+          <div class="text-secondary small">% Mapas Expurgados</div>
+          <div class="fs-4 fw-bold text-danger" id="statPctMapasExpurgados">0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSO 3: PREVIEW + DOWNLOAD -->
+  <div class="card card-shadow p-4 d-none" id="cardPreview">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="section-head mb-0">
+        <span class="icon-chip"><i class="bi bi-table"></i></span>
+        <div><h5 class="mb-0">Prévia e Download</h5></div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-txt" id="btnBaixarTxt">
+          <i class="bi bi-filetype-txt me-1"></i> Baixar .txt
+        </button>
+        <button class="btn btn-excel" id="btnBaixarExcel">
+          <i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel
+        </button>
+      </div>
+    </div>
+    <div class="row g-2 mb-3">
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Revenda</label>
+        <select class="form-select form-select-sm" id="filtroRevenda2art">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Mês</label>
+        <select class="form-select form-select-sm" id="filtroMes2art">
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Data de</label>
+        <input type="date" class="form-control form-control-sm" id="filtroDataDe2art">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-secondary mb-1">Data até</label>
+        <input type="date" class="form-control form-control-sm" id="filtroDataAte2art">
+      </div>
+    </div>
+    <div class="mb-2">
+      <button class="btn btn-sm btn-primary-soft" id="btnLimparFiltros2art"><i class="bi bi-x-circle me-1"></i>Limpar filtros</button>
+    </div>
+
+    <p class="text-secondary small mb-2">Exibindo as primeiras <span id="qtdPreview">0</span> de <span id="qtdTotalPreview">0</span> linhas filtradas. Os arquivos baixados contêm as linhas filtradas (a base completa, se nenhum filtro estiver aplicado).</p>
+    <div class="table-preview-wrap border rounded-3">
+      <table class="table table-hover table-bordered mb-0 align-middle">
+        <thead>
+          <tr id="theadPreview"></tr>
+        </thead>
+        <tbody id="tbodyPreview"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PAINEL DE INDICADORES (abas Tempo / Km) -->
+  <div class="card card-shadow p-4 mt-4" id="cardPainelPeriodo">
+    <div class="section-head">
+      <span class="icon-chip"><i class="bi bi-calendar3"></i></span>
+      <div>
+        <h5 class="mb-0">Painel de Indicadores</h5>
+        <p>Busca direto no banco de dados. Médias e % consideram só mapas com MapaValidoHr = Sim e MapaValidoHr-saida = Sim (aba Tempo) ou MapaValidoKm = Sim (aba Km).</p>
+      </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-3" id="tabsPainelIndicadores" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tabTempoBtn" data-bs-toggle="tab" data-bs-target="#tabTempo" type="button" role="tab" aria-controls="tabTempo" aria-selected="true">
+          <i class="bi bi-clock-history me-1"></i>Tempo
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tabKmBtn" data-bs-toggle="tab" data-bs-target="#tabKm" type="button" role="tab" aria-controls="tabKm" aria-selected="false">
+          <i class="bi bi-signpost-split me-1"></i>Km
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="tabsPainelIndicadoresContent">
+      <!-- ===================== ABA TEMPO ===================== -->
+      <div class="tab-pane fade show active" id="tabTempo" role="tabpanel" aria-labelledby="tabTempoBtn">
+
+        <h6 class="text-primary-dark fw-semibold mb-2">Por Dia</h6>
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Revenda</label>
+            <select class="form-select form-select-sm" id="painelDiaRevenda">
+              <option value="" selected disabled>Selecione...</option>
+              <option value="MGA">MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Mês</label>
+            <input type="month" class="form-control form-control-sm" id="painelDiaMes">
+          </div>
+          <div class="col-6 col-md-3">
+            <button class="btn btn-sm btn-primary-soft w-100" id="btnGerarPainelDia"><i class="bi bi-search me-1"></i>Gerar</button>
+          </div>
+        </div>
+        <div id="containerPainelDia" class="mb-4"></div>
+
+        <h6 class="text-primary-dark fw-semibold mb-1">Dispersão de Tempo por Semana e por Mês</h6>
+        <p class="text-secondary small mb-2">Semana de calendário (Segunda a Domingo) — a Semana 1 do mês pode ter menos de 7 dias se o mês não começar numa segunda-feira.</p>
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Mês <small class="text-secondary fw-normal">(só filtra a tabela de Semana)</small></label>
+            <select class="form-select form-select-sm" id="painelSemanaMesMes">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Ano</label>
+            <select class="form-select form-select-sm" id="painelSemanaMesAno"></select>
+          </div>
+          <div class="col-6 col-md-3">
+            <button class="btn btn-sm btn-primary-soft w-100" id="btnGerarPainelSemanaMes"><i class="bi bi-arrow-clockwise me-1"></i>Atualizar</button>
+          </div>
+        </div>
+        <div class="table-responsive mb-4">
+          <table class="table table-sm table-bordered text-center align-middle mb-0" id="tabelaPainelSemana" style="font-size:0.78rem;"></table>
+        </div>
+        <div class="table-responsive mb-4">
+          <table class="table table-sm table-bordered text-center align-middle mb-0" id="tabelaPainelMes" style="font-size:0.78rem;"></table>
+        </div>
+
+        <h6 class="text-primary-dark fw-semibold mb-2">Top 10 Mapas — Maior Dispersão de Tempo</h6>
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Revenda</label>
+            <select class="form-select form-select-sm" id="estouroJLRevenda">
+              <option value="">Todas</option>
+              <option value="MGA">MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Mês</label>
+            <select class="form-select form-select-sm" id="estouroJLMes"></select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Ano</label>
+            <select class="form-select form-select-sm" id="estouroJLAno"></select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Data de</label>
+            <input type="date" class="form-control form-control-sm" id="estouroJLDataDe">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Data até</label>
+            <input type="date" class="form-control form-control-sm" id="estouroJLDataAte">
+          </div>
+          <div class="col-6 col-md-3">
+            <button class="btn btn-sm btn-primary-soft w-100" id="btnGerarEstouroJL"><i class="bi bi-arrow-clockwise me-1"></i>Atualizar</button>
+          </div>
+        </div>
+        <p class="text-secondary small mb-2" id="infoEstouroJL"></p>
+        <div class="table-preview-wrap border rounded-3">
+          <table class="table table-hover table-bordered mb-0 align-middle" style="font-size:0.78rem;">
+            <thead><tr id="theadEstouroJL"></tr></thead>
+            <tbody id="tbodyEstouroJL"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===================== ABA KM ===================== -->
+      <div class="tab-pane fade" id="tabKm" role="tabpanel" aria-labelledby="tabKmBtn">
+
+        <h6 class="text-primary-dark fw-semibold mb-2">Por Dia</h6>
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Revenda</label>
+            <select class="form-select form-select-sm" id="painelDiaRevendaKm">
+              <option value="" selected disabled>Selecione...</option>
+              <option value="MGA">MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Mês</label>
+            <input type="month" class="form-control form-control-sm" id="painelDiaMesKm">
+          </div>
+          <div class="col-6 col-md-3">
+            <button class="btn btn-sm btn-primary-soft w-100" id="btnGerarPainelDiaKm"><i class="bi bi-search me-1"></i>Gerar</button>
+          </div>
+        </div>
+        <div id="containerPainelDiaKm" class="mb-4"></div>
+
+        <h6 class="text-primary-dark fw-semibold mb-1">Dispersão de Km por Semana e por Mês</h6>
+        <p class="text-secondary small mb-2">Semana de calendário (Segunda a Domingo) — a Semana 1 do mês pode ter menos de 7 dias se o mês não começar numa segunda-feira.</p>
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Mês <small class="text-secondary fw-normal">(só filtra a tabela de Semana)</small></label>
+            <select class="form-select form-select-sm" id="painelSemanaMesMesKm">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Ano</label>
+            <select class="form-select form-select-sm" id="painelSemanaMesAnoKm"></select>
+          </div>
+          <div class="col-6 col-md-3">
+            <button class="btn btn-sm btn-primary-soft w-100" id="btnGerarPainelSemanaMesKm"><i class="bi bi-arrow-clockwise me-1"></i>Atualizar</button>
+          </div>
+        </div>
+        <div class="table-responsive mb-4">
+          <table class="table table-sm table-bordered text-center align-middle mb-0" id="tabelaPainelSemanaKm" style="font-size:0.78rem;"></table>
+        </div>
+        <div class="table-responsive mb-4">
+          <table class="table table-sm table-bordered text-center align-middle mb-0" id="tabelaPainelMesKm" style="font-size:0.78rem;"></table>
+        </div>
+
+        <h6 class="text-primary-dark fw-semibold mb-2">Top 10 Mapas — Maior Dispersão de Km</h6>
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Revenda</label>
+            <select class="form-select form-select-sm" id="estouroKmRevenda">
+              <option value="">Todas</option>
+              <option value="MGA">MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Mês</label>
+            <select class="form-select form-select-sm" id="estouroKmMes"></select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Ano</label>
+            <select class="form-select form-select-sm" id="estouroKmAno"></select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Data de</label>
+            <input type="date" class="form-control form-control-sm" id="estouroKmDataDe">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Data até</label>
+            <input type="date" class="form-control form-control-sm" id="estouroKmDataAte">
+          </div>
+          <div class="col-6 col-md-3">
+            <button class="btn btn-sm btn-primary-soft w-100" id="btnGerarEstouroKm"><i class="bi bi-arrow-clockwise me-1"></i>Atualizar</button>
+          </div>
+        </div>
+        <p class="text-secondary small mb-2" id="infoEstouroKm"></p>
+        <div class="table-preview-wrap border rounded-3">
+          <table class="table table-hover table-bordered mb-0 align-middle" style="font-size:0.78rem;">
+            <thead><tr id="theadEstouroKm"></tr></thead>
+            <tbody id="tbodyEstouroKm"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONSULTA À BASE SALVA NO BANCO (compacta, recolhida por padrão) -->
+  <div class="card card-shadow p-3 mt-4" id="cardConsultaBanco">
+    <button class="btn btn-sm btn-link text-decoration-none p-0 d-flex align-items-center gap-2 w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#collapseConsultaBanco" aria-expanded="false" aria-controls="collapseConsultaBanco">
+      <span class="icon-chip" style="width:28px;height:28px;font-size:.85rem;"><i class="bi bi-search"></i></span>
+      <span class="fw-semibold text-primary-dark small">Consultar Base Salva</span>
+      <i class="bi bi-chevron-down ms-auto small text-secondary"></i>
+    </button>
+
+    <div class="collapse mt-3" id="collapseConsultaBanco">
+      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+        <p class="text-secondary small mb-0">Busca direto no banco de dados (tabela <code>atendimentos_2art</code>) — não depende de ter processado um arquivo nesta sessão.</p>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-txt" id="btnBaixarTxtConsulta" disabled>
+            <i class="bi bi-filetype-txt me-1"></i> .txt
+          </button>
+          <button class="btn btn-sm btn-excel" id="btnBaixarExcelConsulta" disabled>
+            <i class="bi bi-file-earmark-excel me-1"></i> Excel
+          </button>
+        </div>
+      </div>
+
+      <div class="row g-2 mb-2 align-items-end">
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Revenda</label>
+          <select class="form-select form-select-sm" id="consultaRevenda">
+            <option value="">Todas</option>
+            <option value="MGA">MGA</option>
+            <option value="GPA">GPA</option>
+            <option value="PG">PG</option>
+            <option value="NP">NP</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Mês</label>
+          <input type="month" class="form-control form-control-sm" id="consultaMes">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Data de</label>
+          <input type="date" class="form-control form-control-sm" id="consultaDataDe">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Data até</label>
+          <input type="date" class="form-control form-control-sm" id="consultaDataAte">
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+        <button class="btn btn-sm btn-primary-soft" id="btnBuscarBanco"><i class="bi bi-search me-1"></i>Buscar</button>
+        <button class="btn btn-sm btn-outline-secondary" id="btnLimparConsulta"><i class="bi bi-x-circle me-1"></i>Limpar filtros</button>
+        <button class="btn btn-sm btn-outline-danger" id="btnExcluirConsulta" disabled>
+          <i class="bi bi-trash3 me-1"></i>Excluir estes registros
+        </button>
+        <span id="statusConsultaBanco" class="text-secondary small"></span>
+      </div>
+
+      <p class="text-secondary small mb-2" id="infoConsultaBanco"></p>
+      <div class="table-preview-wrap border rounded-3" style="max-height: 360px;">
+        <table class="table table-hover table-bordered mb-0 align-middle" style="font-size:0.8rem;">
+          <thead>
+            <tr id="theadConsulta"></tr>
+          </thead>
+          <tbody id="tbodyConsulta"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// -1. CONFIGURAÇÃO DO BANCO DE DADOS (Supabase — mesmo projeto do index.html / tratamento-dados.html)
+// ============================================================
+const SUPABASE_URL = 'https://scbdlyfavqlzstbulrup.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_M55itc2oMAlK3bEFj9Le5Q_CeBsVBUV';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================================
+// 0. ESTADO GLOBAL
+// ============================================================
+let arquivosSelecionados = [];
+let baseProcessada = [];   // array de objetos, uma linha por registro (já com "Revenda")
+let colunasFinais = [];    // ordem das colunas na prévia/exportação
+let filtroIndices2art = []; // índices de baseProcessada que passam nos filtros ativos (Revenda, Mês, Data)
+const LIMITE_PREVIEW = 200;
+
+// ============================================================
+// 1. UPLOAD DOS ARQUIVOS
+// ============================================================
+const barraImportacao = document.getElementById('barraImportacao');
+const btnEscolherArquivos = document.getElementById('btnEscolherArquivos');
+const inputArquivos2art = document.getElementById('inputArquivos2art');
+const listaArquivosTexto = document.getElementById('listaArquivosTexto');
+const selectRevenda = document.getElementById('selectRevenda');
+const btnProcessar = document.getElementById('btnProcessar');
+
+btnEscolherArquivos.addEventListener('click', () => inputArquivos2art.click());
+
+// A barra inteira aceita arrastar-e-soltar arquivos .txt.
+barraImportacao.addEventListener('dragover', e => { e.preventDefault(); barraImportacao.classList.add('dragover'); });
+barraImportacao.addEventListener('dragleave', () => barraImportacao.classList.remove('dragover'));
+barraImportacao.addEventListener('drop', e => {
+  e.preventDefault();
+  barraImportacao.classList.remove('dragover');
+  if (e.dataTransfer.files.length) selecionarArquivos(e.dataTransfer.files);
+});
+
+inputArquivos2art.addEventListener('change', e => {
+  if (e.target.files.length) selecionarArquivos(e.target.files);
+});
+
+function selecionarArquivos(fileList) {
+  arquivosSelecionados = Array.from(fileList).filter(f => f.name.toLowerCase().endsWith('.txt'));
+
+  if (arquivosSelecionados.length) {
+    listaArquivosTexto.textContent = arquivosSelecionados.length === 1
+      ? arquivosSelecionados[0].name
+      : `${arquivosSelecionados.length} arquivos selecionados`;
+  } else {
+    listaArquivosTexto.textContent = 'Nenhum arquivo .txt válido selecionado';
+  }
+  atualizarEstadoBotaoProcessar();
+}
+
+selectRevenda.addEventListener('change', atualizarEstadoBotaoProcessar);
+
+function atualizarEstadoBotaoProcessar() {
+  btnProcessar.disabled = !(selectRevenda.value && arquivosSelecionados.length);
+}
+
+// ============================================================
+// 2. REGRAS DE NEGÓCIO: colunas de saída, formatos e coluna calculada
+// ============================================================
+// Ordem final das colunas: Revenda primeiro, depois as colunas abaixo (nesta
+// ordem), e por fim "Nu Entregador" (calculada). Qualquer outra coluna do
+// arquivo de origem é ignorada.
+const COLUNAS_SAIDA = [
+  { origem: 'Data', destino: 'Data', tipo: 'data' },
+  { origem: 'Transp', destino: 'Transp', tipo: 'numero' },
+  { origem: 'Frota', destino: 'Frota', tipo: 'texto' },
+  { origem: 'Veiculo', destino: 'Veiculo', tipo: 'texto' },
+  { origem: 'Placa', destino: 'Placa', tipo: 'texto' },
+  { origem: 'Mapa', destino: 'Mapa', tipo: 'numero' },
+  { origem: 'Capac', destino: 'Capac', tipo: 'numero' },
+  { origem: 'Entregas', destino: 'Entregas', tipo: 'numero' },
+  { origem: 'CxCarreg', destino: 'CxCarreg', tipo: 'numero' },
+  { origem: 'Ocup.', destino: 'Ocup', tipo: 'numero' },
+  { origem: 'HrSai', destino: 'HrSai', tipo: 'hora' },
+  { origem: 'HrEntr', destino: 'HrEntr', tipo: 'hora' },
+  { origem: 'KmSai', destino: 'KmSai', tipo: 'numero' },
+  { origem: 'KmEntr', destino: 'KmEntr', tipo: 'numero' },
+  { origem: 'KmPrev', destino: 'KmPrev', tipo: 'numero' },
+  { origem: 'TempoPrev', destino: 'TempoPrev', tipo: 'hora' },
+  { origem: 'TmpoInterno', destino: 'TmpoInterno', tipo: 'hora' },
+  { origem: 'CapacidadeVeiculoKG', destino: 'CapacidadeVeiculoKG', tipo: 'numero' },
+  { origem: 'PesoCargaKG', destino: 'PesoCargaKG', tipo: 'numero' }
+];
+// Usadas só para calcular "Nu Entregador" — não entram na saída como colunas próprias.
+const COLUNAS_ENTREGADOR = ['CdMot', 'CdAju1', 'CdAju2'];
+const COLUNAS_FINAIS_FIXAS = [
+  'Chave', 'Revenda', 'Data', 'Transp', 'Frota', 'Veiculo', 'Placa', 'Mapa', 'Capac',
+  'Entregas', 'Nu Entregador', 'CxCarreg', 'Ocup',
+  // Bloco de horário (tudo junto, à esquerda)
+  'HrIncio', 'TML', 'Meta TML', 'Status TML', 'HrSai', 'HrEntr',
+  'TR', 'Meta TR', 'Status TR', 'Dispersão de Tempo%', 'Dispersão de Tempo', 'TempoPrev',
+  'TmpoInterno', 'Meta TI', 'Status TI', 'JL', 'StatusJL',
+  // Bloco de Km (tudo junto, à direita)
+  'KmSai', 'KM Real', 'KmEntr', 'Dispersão de Km', 'Dispersão de Km%', 'KmPrev',
+  'CapacidadeVeiculoKG', 'PesoCargaKG', 'Dispersão de Peso', 'Dispersão de Peso%',
+  'MapaValidoHr', 'MapaValidoHr-saida', 'MapaValidoKm'
+];
+
+// Colunas que devem ser exibidas/exportadas como número no padrão PT-BR (2 casas decimais).
+const COLUNAS_NUMERICAS = new Set([
+  ...COLUNAS_SAIDA.filter(c => c.tipo === 'numero').map(c => c.destino),
+  'KM Real', 'Dispersão de Km', 'Dispersão de Peso'
+]);
+
+// Dessas colunas numéricas, essas aqui são inteiras — sem casas decimais.
+const COLUNAS_NUMERICAS_INTEIRAS = new Set(['Mapa', 'Transp', 'KmSai', 'KmEntr', 'KM Real']);
+
+// Arredonda pra 2 casas decimais, eliminando ruído de ponto flutuante (ex: 1.7000000000000028 -> 1.7).
+function arredondar2(valor) {
+  if (valor === null || valor === undefined || isNaN(valor)) return null;
+  return Math.round(valor * 100) / 100;
+}
+
+// Formata um número no padrão PT-BR (ex: 1234.5 -> "1.234,50"). '' se null/vazio.
+// "casas" controla quantas casas decimais aparecem (2 por padrão, 0 pras colunas inteiras).
+function formatarNumeroBR(valor, casas = 2) {
+  if (valor === null || valor === undefined || isNaN(valor)) return '';
+  return valor.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+}
+
+// Formata uma célula pra exibição/txt: número BR pras colunas numéricas, valor cru pro resto.
+function formatarCelula(valor, coluna) {
+  if (COLUNAS_NUMERICAS_INTEIRAS.has(coluna)) {
+    // Inteiro puro, sem separador de milhar (Mapa/Transp são identificadores, não quantidades).
+    if (valor === null || valor === undefined || isNaN(valor)) return '';
+    return String(Math.round(valor));
+  }
+  if (COLUNAS_NUMERICAS.has(coluna)) {
+    return formatarNumeroBR(valor, 2);
+  }
+  return valor ?? '';
+}
+
+// ------------------------------------------------------------
+// Cálculos de horário: HrIncio (fixo 07:00), TML, TR, Dispersão de Tempo(%)
+// ------------------------------------------------------------
+const HR_INICIO_PADRAO = '07:00';
+
+// Converte "HH:MM" ou "HH:MM:SS" (aceita prefixo "-") em minutos com sinal. Retorna null se inválido/vazio.
+function horaParaMinutos(valor) {
+  const texto = String(valor ?? '').trim();
+  if (texto === '') return null;
+  const negativo = texto.startsWith('-');
+  const limpo = negativo ? texto.slice(1) : texto;
+  const partes = limpo.split(':').map(p => parseInt(p, 10));
+  if (!partes.length || partes.some(isNaN)) return null;
+  const totalMin = (partes[0] || 0) * 60 + (partes[1] || 0) + (partes[2] || 0) / 60;
+  return negativo ? -totalMin : totalMin;
+}
+
+// Converte minutos (com sinal) de volta para "HH:MM".
+function minutosParaHora(minutos) {
+  if (minutos === null || minutos === undefined || isNaN(minutos)) return '';
+  const sinal = minutos < 0 ? '-' : '';
+  const totalMin = Math.round(Math.abs(minutos));
+  const pad = n => String(n).padStart(2, '0');
+  return `${sinal}${pad(Math.floor(totalMin / 60))}:${pad(totalMin % 60)}`;
+}
+
+// horaA - horaB, já formatado como "HH:MM". '' se alguma das duas faltar.
+function formatarDiferencaHoras(horaA, horaB) {
+  const minA = horaParaMinutos(horaA);
+  const minB = horaParaMinutos(horaB);
+  if (minA === null || minB === null) return '';
+  return minutosParaHora(minA - minB);
+}
+
+// Soma várias horas ("HH:MM"/"HH:MM:SS"), já formatada como "HH:MM". '' se alguma faltar.
+function formatarSomaHoras(...horas) {
+  const minutos = horas.map(h => horaParaMinutos(h));
+  if (minutos.some(m => m === null)) return '';
+  return minutosParaHora(minutos.reduce((total, m) => total + m, 0));
+}
+
+// horaNumerador / horaDenominador, como fração (1 = 100%). null se denominador faltar ou for zero.
+function calcularFracaoHoras(horaNumerador, horaDenominador) {
+  const minNum = horaParaMinutos(horaNumerador);
+  const minDen = horaParaMinutos(horaDenominador);
+  if (minNum === null || minDen === null || minDen === 0) return null;
+  return minNum / minDen;
+}
+
+// Fórmula do Excel: (horaNumerador / horaDenominador) - 1. 0 = bateu exatamente a meta,
+// positivo = passou, negativo = ficou abaixo. null se não der pra calcular.
+function calcularDispersaoPercentualHoras(horaNumerador, horaDenominador) {
+  const fracao = calcularFracaoHoras(horaNumerador, horaDenominador);
+  return fracao === null ? null : fracao - 1;
+}
+
+// Dispersão percentual agregada de um GRUPO de linhas (semana/mês/dia/total etc).
+// Soma todos os numeradores e todos os denominadores primeiro, e só então divide —
+// em vez de tirar a média das dispersões % linha a linha. Isso importa porque
+// "média das razões" ≠ "razão das médias": viagens mais longas têm mais peso no
+// total real de horas trabalhadas/planejadas, e uma média simples das % ignora isso.
+function dispersaoPercentualAgregada(linhas, colunaNumerador, colunaDenominador) {
+  let somaNum = 0, somaDen = 0, temValido = false;
+  linhas.forEach(l => {
+    const minNum = horaParaMinutos(l[colunaNumerador]);
+    const minDen = horaParaMinutos(l[colunaDenominador]);
+    if (minNum !== null && minDen !== null) {
+      somaNum += minNum;
+      somaDen += minDen;
+      temValido = true;
+    }
+  });
+  if (!temValido || somaDen === 0) return null;
+  return somaNum / somaDen - 1;
+}
+
+// ------------------------------------------------------------
+// Metas e Status (TML, TR, TI): 1 quando a hora bate na meta, 0 quando não bate
+// (ou quando falta informação pra comparar).
+// ------------------------------------------------------------
+const META_TML_PADRAO = '00:30:00';
+const META_TR_PADRAO = '08:50:00';
+const META_TI_PADRAO = '00:30:00';
+const META_JL_PADRAO = '10:20:00';
+
+// Status TML = 1 quando (HrSai - HrIncio) <= Meta TML, senão 0.
+function calcularStatusTML(hrSai, hrIncio, meta) {
+  const minSai = horaParaMinutos(hrSai);
+  const minIncio = horaParaMinutos(hrIncio);
+  const minMeta = horaParaMinutos(meta);
+  if (minSai === null || minIncio === null || minMeta === null) return 0;
+  return (minSai - minIncio) <= minMeta ? 1 : 0;
+}
+
+// Status = 1 quando valor é menor ou igual à meta (ex: TR <= Meta TR), senão 0.
+function calcularStatusMenorIgual(valor, meta) {
+  const minValor = horaParaMinutos(valor);
+  const minMeta = horaParaMinutos(meta);
+  if (minValor === null || minMeta === null) return 0;
+  return minValor <= minMeta ? 1 : 0;
+}
+
+// Formata uma fração (1.03) como percentual BR ("103,00%"). '' se null.
+function formatarPercentual(fracao) {
+  if (fracao === null || fracao === undefined || isNaN(fracao)) return '';
+  return (fracao * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+}
+
+// Regra 4.39 — "Mapas Inválidos para Horário": qualquer condição abaixo torna o
+// mapa inválido para acompanhamento de horário. Não remove a linha, só sinaliza
+// (a linha continua na base pra quem for usar em outros parâmetros).
+function horaEhZero(valor) {
+  const texto = String(valor ?? '').trim();
+  if (texto === '') return false;
+  const partes = texto.split(':').map(p => parseInt(p, 10));
+  if (partes.some(isNaN)) return false;
+  return partes.every(p => p === 0);
+}
+
+function calcularMapaValidoHr(hrSai, hrEntr, tempoPrev) {
+  const hrSaiTexto = String(hrSai ?? '').trim();
+  const hrEntrTexto = String(hrEntr ?? '').trim();
+  const tempoPrevTexto = String(tempoPrev ?? '').trim();
+
+  const invalido =
+    horaEhZero(hrSaiTexto) ||
+    horaEhZero(hrEntrTexto) ||
+    (hrSaiTexto !== '' && hrSaiTexto === hrEntrTexto) ||
+    horaEhZero(tempoPrevTexto) ||
+    tempoPrevTexto === '';
+
+  return invalido ? 'Não' : 'Sim';
+}
+
+// Verifica se uma hora ("HH:MM"/"HH:MM:SS") cai dentro de [inicio, fim] (inclusive nas pontas).
+function horaEntreIntervalo(valor, inicio, fim) {
+  const min = horaParaMinutos(valor);
+  const minInicio = horaParaMinutos(inicio);
+  const minFim = horaParaMinutos(fim);
+  if (min === null || minInicio === null || minFim === null) return false;
+  return min >= minInicio && min <= minFim;
+}
+
+// MapaValidoHr-saida: "Sim" só quando HrSai está no turno de saída (06:30 a 12:00)
+// e HrEntr não cai na janela de madrugada (00:00:00 a 06:30), que não deve ser considerada.
+function calcularMapaValidoHrSaida(hrSai, hrEntr) {
+  const saidaNoTurno = horaEntreIntervalo(hrSai, '06:30', '12:00');
+  const entradaNaMadrugada = horaEntreIntervalo(hrEntr, '00:00:00', '06:30');
+  return (saidaNoTurno && !entradaNaMadrugada) ? 'Sim' : 'Não';
+}
+
+// Regra 4.40 — "Mapas Inválidos para Km": mesma lógica, mas para as colunas de Km.
+// Km ausente (não numérico) também é tratado como inválido, já que a regra é
+// justamente sobre "não conter a informação de Km necessária".
+function calcularMapaValidoKm(kmSai, kmEntr, kmPrev) {
+  if (kmSai === null || kmEntr === null || kmPrev === null) return 'Não';
+
+  const invalido =
+    kmPrev <= 1 ||
+    kmEntr === 0 ||
+    kmSai === 0 ||
+    kmEntr <= kmSai ||
+    (kmEntr - kmSai) > 600;
+
+  return invalido ? 'Não' : 'Sim';
+}
+
+// Considera um código de entregador válido quando não está vazio e não é só zeros ("00000").
+function entregadorValido(valor) {
+  const texto = String(valor ?? '').trim();
+  return texto !== '' && !/^0+$/.test(texto);
+}
+
+// Converte "01022021" (ddmmaaaa) em "01/02/2021". Se não bater nesse padrão, mantém o valor original.
+function formatarDataDDMMYYYY(valor) {
+  const digitos = String(valor ?? '').trim();
+  if (!/^\d{8}$/.test(digitos)) return digitos;
+  return `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4, 8)}`;
+}
+
+// Converte número em formato BR ("1.234,56") para Number. Retorna null se vazio/inválido.
+function converterNumeroBR(valor) {
+  const texto = String(valor ?? '').trim();
+  if (texto === '') return null;
+  const limpo = texto.replace(/\./g, '').replace(',', '.');
+  const numero = Number(limpo);
+  return isNaN(numero) ? null : numero;
+}
+
+function formatarValorPorTipo(bruto, tipo) {
+  if (tipo === 'numero') return converterNumeroBR(bruto);
+  if (tipo === 'data') return formatarDataDDMMYYYY(bruto);
+  return bruto; // 'hora' e 'texto' ficam como vieram (só trim, já feito na leitura)
+}
+
+// Deduplicação genérica por chave: "gerarChave(linha)" devolve a chave de
+// identidade do registro, ou null quando não dá pra checar com segurança (nesse
+// caso a linha NUNCA é considerada duplicata, só é removida duplicidade certa).
+function deduplicarLinhas(linhas, gerarChave) {
+  const vistas = new Set();
+  const unicas = [];
+  let duplicadas = 0;
+  linhas.forEach(linha => {
+    const chave = gerarChave(linha);
+    if (chave === null) { unicas.push(linha); return; }
+    if (vistas.has(chave)) { duplicadas++; return; }
+    vistas.add(chave);
+    unicas.push(linha);
+  });
+  return { unicas, duplicadas };
+}
+
+// ============================================================
+// 3. PROCESSAMENTO DOS ARQUIVOS
+// ============================================================
+btnProcessar.addEventListener('click', processarArquivos);
+
+async function processarArquivos() {
+  const revenda = selectRevenda.value;
+  if (!revenda || !arquivosSelecionados.length) return;
+
+  const nomesArquivos = arquivosSelecionados.map(f => f.name).join('\n - ');
+  const confirmado = confirm(
+    `Confirma que estes ${arquivosSelecionados.length} arquivo(s) são da revenda ${revenda}?\n\n` +
+    ` - ${nomesArquivos}\n\n` +
+    `Depois de processado, todas as linhas vão ser salvas no banco com Revenda = "${revenda}". ` +
+    `Se algum desses arquivos for de outra revenda, cancele e selecione a revenda certa antes de processar.`
+  );
+  if (!confirmado) return;
+
+  const statusEl = document.getElementById('statusProcessamento');
+  const barra = document.getElementById('barraProgresso');
+  barra.classList.remove('d-none');
+  statusEl.textContent = 'Lendo arquivos...';
+  btnProcessar.disabled = true;
+
+  try {
+    const todosRegistros = [];
+    const arquivosComErro = [];
+    let arquivosLidos = 0;
+
+    for (const arquivo of arquivosSelecionados) {
+      try {
+        const texto = await arquivo.text();
+        const linhas = texto.split(/\r\n|\r|\n/).filter(l => l.trim() !== '');
+        if (!linhas.length) continue;
+
+        // Mapeia nome da coluna (normalizado) -> índice, para ler por nome
+        // independente da ordem/posição em que ela aparece no arquivo.
+        const cabecalho = linhas[0].split(';').map(c => c.trim());
+        const indicePorNome = {};
+        cabecalho.forEach((nome, idx) => { indicePorNome[nome.toLowerCase()] = idx; });
+        const pegarValor = (valoresLinha, nomeColuna) => {
+          const idx = indicePorNome[nomeColuna.toLowerCase()];
+          return idx !== undefined && valoresLinha[idx] !== undefined ? valoresLinha[idx].trim() : '';
+        };
+
+        for (let i = 1; i < linhas.length; i++) {
+          const valoresLinha = linhas[i].split(';');
+          const registro = { 'Revenda': revenda };
+          COLUNAS_SAIDA.forEach(col => {
+            registro[col.destino] = formatarValorPorTipo(pegarValor(valoresLinha, col.origem), col.tipo);
+          });
+          registro['Chave'] = (registro['Revenda'] && registro['Mapa'] !== null)
+            ? `${registro['Revenda']}-${Math.round(registro['Mapa'])}` : '';
+          registro['Nu Entregador'] = COLUNAS_ENTREGADOR
+            .filter(nome => entregadorValido(pegarValor(valoresLinha, nome))).length;
+          registro['MapaValidoHr'] = calcularMapaValidoHr(registro['HrSai'], registro['HrEntr'], registro['TempoPrev']);
+          registro['MapaValidoHr-saida'] = calcularMapaValidoHrSaida(registro['HrSai'], registro['HrEntr']);
+          registro['MapaValidoKm'] = calcularMapaValidoKm(registro['KmSai'], registro['KmEntr'], registro['KmPrev']);
+
+          registro['HrIncio'] = HR_INICIO_PADRAO;
+          registro['TML'] = formatarDiferencaHoras(registro['HrSai'], registro['HrIncio']);
+          registro['Meta TML'] = META_TML_PADRAO;
+          registro['Status TML'] = calcularStatusTML(registro['HrSai'], registro['HrIncio'], registro['Meta TML']);
+
+          registro['TR'] = formatarDiferencaHoras(registro['HrEntr'], registro['HrSai']);
+          registro['Meta TR'] = META_TR_PADRAO;
+          registro['Status TR'] = calcularStatusMenorIgual(registro['TR'], registro['Meta TR']);
+
+          registro['Dispersão de Tempo'] = formatarDiferencaHoras(registro['TR'], registro['TempoPrev']);
+          registro['Dispersão de Tempo%'] = formatarPercentual(calcularDispersaoPercentualHoras(registro['TR'], registro['TempoPrev']));
+
+          registro['Meta TI'] = META_TI_PADRAO;
+          registro['Status TI'] = calcularStatusMenorIgual(registro['TmpoInterno'], registro['Meta TI']);
+
+          registro['JL'] = formatarSomaHoras(registro['TML'], registro['TR'], registro['TmpoInterno']);
+          registro['StatusJL'] = calcularStatusMenorIgual(registro['JL'], META_JL_PADRAO);
+
+          registro['KM Real'] = (registro['KmEntr'] !== null && registro['KmSai'] !== null)
+            ? arredondar2(registro['KmEntr'] - registro['KmSai']) : null;
+          registro['Dispersão de Km'] = (registro['KM Real'] !== null && registro['KmPrev'] !== null)
+            ? arredondar2(registro['KM Real'] - registro['KmPrev']) : null;
+          // % Dispersão de Km = (Km-Real-Rodado - KmPrev) / KmPrev — null (não Infinity) se KmPrev for 0/ausente.
+          registro['Dispersão de Km%'] = formatarPercentual(
+            (registro['Dispersão de Km'] !== null && registro['KmPrev'])
+              ? registro['Dispersão de Km'] / registro['KmPrev'] : null
+          );
+
+          registro['Dispersão de Peso'] = (registro['CapacidadeVeiculoKG'] !== null && registro['PesoCargaKG'] !== null)
+            ? arredondar2(registro['CapacidadeVeiculoKG'] - registro['PesoCargaKG']) : null;
+          // % da capacidade do veículo (CapacidadeVeiculoKG) que foi utilizada pela carga (PesoCargaKG)
+          registro['Dispersão de Peso%'] = formatarPercentual(
+            (registro['PesoCargaKG'] !== null && registro['CapacidadeVeiculoKG'])
+              ? registro['PesoCargaKG'] / registro['CapacidadeVeiculoKG'] : null
+          );
+
+          todosRegistros.push(registro);
+        }
+        arquivosLidos++;
+      } catch (erroArquivo) {
+        console.error(`Falha ao ler ${arquivo.name}:`, erroArquivo);
+        arquivosComErro.push(arquivo.name);
+      }
+    }
+
+    // Remove linhas 100% duplicadas (mesma Chave = Revenda-Mapa + mesma Data) antes
+    // de qualquer soma/agregação — exports desse tipo podem trazer linha repetida
+    // de fábrica (problema que nasce no Power Query, não aqui). Não deduplica só
+    // pela Chave sozinha porque o mesmo Mapa pode legitimamente repetir em datas
+    // diferentes; usa Chave+Data, que é o mesmo par usado no "onConflict" do upsert.
+    const { unicas: todosRegistrosUnicos, duplicadas: linhasDuplicadas } = deduplicarLinhas(
+      todosRegistros, r => (r['Chave'] && r['Data']) ? `${r['Chave']}|${r['Data']}` : null
+    );
+    if (linhasDuplicadas > 0) {
+      mostrarToast(`⚠️ ${linhasDuplicadas} linha(s) duplicada(s) (mesma Chave + Data) detectada(s) e removida(s) antes do processamento.`, 'warning');
+    }
+
+    baseProcessada = todosRegistrosUnicos;
+    colunasFinais = COLUNAS_FINAIS_FIXAS;
+
+    atualizarResumo(arquivosLidos, baseProcessada.length, revenda, colunasFinais.length);
+    popularFiltroRevenda2art();
+    popularFiltroMes2art();
+    limparFiltros2art();
+
+    document.getElementById('cardResumo').classList.remove('d-none');
+    document.getElementById('cardPreview').classList.remove('d-none');
+
+    if (!baseProcessada.length) {
+      statusEl.textContent = 'Nenhum registro encontrado nos arquivos selecionados.';
+      mostrarToast('⚠️ Nenhum registro encontrado.', 'warning');
+    } else if (arquivosComErro.length) {
+      statusEl.textContent = `Concluído: ${baseProcessada.length} registros de ${arquivosLidos} arquivo(s).`;
+      mostrarToast(`⚠️ Falha ao ler: ${arquivosComErro.join(', ')}`, 'warning');
+    } else {
+      statusEl.textContent = `Concluído: ${baseProcessada.length} registros de ${arquivosLidos} arquivo(s).`;
+      mostrarToast('✅ Arquivos processados com sucesso.', 'success');
+    }
+
+    if (baseProcessada.length) {
+      statusEl.textContent += ' Salvando no banco de dados...';
+      try {
+        const { salvas, puladas } = await salvarBaseTratada2art(baseProcessada);
+        statusEl.textContent = `Concluído: ${baseProcessada.length} registros tratados e salvos no banco de dados.`;
+        mostrarToast(`✅ ${salvas} linhas salvas no banco de dados.`, 'success');
+        if (puladas > 0) {
+          mostrarToast(`⚠️ ${puladas} linha(s) NÃO foram salvas no banco por falta de Mapa ou Data válidos (confira a coluna Mapa na prévia).`, 'warning');
+        }
+        gerarPainelSemanaMes(); // atualiza o painel de Semana/Mês com os dados recém-salvos
+        gerarPainelDia(); // atualiza o painel Por Dia também
+      } catch (erroBanco) {
+        console.error(erroBanco);
+        statusEl.textContent = `Concluído: ${baseProcessada.length} registros tratados (falha ao salvar no banco).`;
+        mostrarToast('⚠️ Base tratada, mas falhou ao salvar no banco: ' + erroBanco.message, 'warning');
+      }
+    }
+
+    salvarEstadoProcessamento(arquivosLidos, revenda, statusEl.textContent);
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToast('❌ Erro ao processar os arquivos: ' + erro.message, 'danger');
+  } finally {
+    barra.classList.add('d-none');
+    atualizarEstadoBotaoProcessar();
+  }
+}
+
+// ============================================================
+// 3. RESUMO E PRÉVIA NA TELA
+// ============================================================
+function atualizarResumo(qtdArquivos, qtdRegistros, revenda, qtdColunas) {
+  document.getElementById('statArquivos').textContent = qtdArquivos.toLocaleString('pt-BR');
+  document.getElementById('statRegistros').textContent = qtdRegistros.toLocaleString('pt-BR');
+  document.getElementById('statRevenda').textContent = revenda;
+  document.getElementById('statColunas').textContent = qtdColunas.toLocaleString('pt-BR');
+
+  const linhasFrotaValida = baseProcessada.filter(r => frotaValida(r['Frota']));
+
+  const qtdInvalidosHr = linhasFrotaValida.filter(r => r['MapaValidoHr'] === 'Não').length;
+  const qtdInvalidosKm = linhasFrotaValida.filter(r => r['MapaValidoKm'] === 'Não').length;
+  document.getElementById('statInvalidosHr').textContent = qtdInvalidosHr.toLocaleString('pt-BR');
+  document.getElementById('statInvalidosKm').textContent = qtdInvalidosKm.toLocaleString('pt-BR');
+
+  document.getElementById('statPctTML').textContent = calcularPercentualStatus('Status TML');
+  document.getElementById('statPctTR').textContent = calcularPercentualStatus('Status TR');
+  document.getElementById('statPctTI').textContent = calcularPercentualStatus('Status TI');
+  document.getElementById('statPctJL').textContent = calcularPercentualStatus('StatusJL');
+
+  document.getElementById('statMediaTML').textContent = calcularMediaHoras('TML');
+  document.getElementById('statMediaTR').textContent = calcularMediaHoras('TR');
+  document.getElementById('statMediaTI').textContent = calcularMediaHoras('TmpoInterno');
+  document.getElementById('statMediaJL').textContent = calcularMediaHoras('JL');
+  document.getElementById('statMediaDispersaoTempo').textContent = calcularMediaHoras('Dispersão de Tempo');
+  document.getElementById('statMediaDispersaoTempoPct').textContent = calcularMediaFracaoHoras('TR', 'TempoPrev');
+
+  const validosKm = linhasFrotaValida.filter(r => r['MapaValidoKm'] === 'Sim');
+  const mediaKm = calcularMediaNumero('KM Real', validosKm);
+  const mediaKmPrev = calcularMediaNumero('KmPrev', validosKm);
+  const pctKm = (mediaKm !== null && mediaKmPrev) ? (mediaKm / mediaKmPrev - 1) : null;
+  document.getElementById('statMediaKm').textContent = mediaKm !== null ? formatarNumeroBR(mediaKm, 2) : '-';
+  document.getElementById('statMediaKmPrev').textContent = mediaKmPrev !== null ? formatarNumeroBR(mediaKmPrev, 2) : '-';
+  document.getElementById('statPctKm').textContent = pctKm !== null ? formatarPercentual(pctKm) : '-';
+
+  const qtdExpurgados = linhasFrotaValida.filter(r => r['MapaValidoHr'] === 'Não' || r['MapaValidoKm'] === 'Não').length;
+  document.getElementById('statMapasExpurgados').textContent = qtdExpurgados.toLocaleString('pt-BR');
+  document.getElementById('statPctMapasExpurgados').textContent = linhasFrotaValida.length
+    ? (qtdExpurgados / linhasFrotaValida.length * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%'
+    : '0%';
+}
+
+// Média simples de uma coluna numérica (ex: 'KM Real'), sobre um subconjunto de linhas. null se vazio.
+function calcularMediaNumero(coluna, linhas) {
+  const valores = linhas.map(r => r[coluna]).filter(v => v !== null && v !== undefined && !isNaN(v));
+  if (!valores.length) return null;
+  return valores.reduce((total, v) => total + v, 0) / valores.length;
+}
+
+// Soma de uma coluna numérica (ex: 'KM Real'), sobre um subconjunto de linhas. null se vazio.
+function somaNumero(linhas, coluna) {
+  const valores = linhas.map(r => r[coluna]).filter(v => v !== null && v !== undefined && !isNaN(v));
+  if (!valores.length) return null;
+  return valores.reduce((total, v) => total + v, 0);
+}
+
+// Igual a dispersaoPercentualAgregada, mas pra colunas numéricas (Km), não horas:
+// soma numerador e denominador de todas as linhas antes de dividir (evita distorcer o
+// resultado quando os mapas têm quilometragens bem diferentes).
+function dispersaoPercentualNumericaAgregada(linhas, colunaNumerador, colunaDenominador) {
+  let somaNum = 0, somaDen = 0, temValido = false;
+  linhas.forEach(l => {
+    const num = l[colunaNumerador];
+    const den = l[colunaDenominador];
+    if (num !== null && num !== undefined && den !== null && den !== undefined && !isNaN(num) && !isNaN(den)) {
+      somaNum += num;
+      somaDen += den;
+      temValido = true;
+    }
+  });
+  if (!temValido || somaDen === 0) return null;
+  return somaNum / somaDen - 1;
+}
+
+// Dispersão percentual agregada (soma numerador/soma denominador - 1), ex: SOMA(TR)/SOMA(TempoPrev) - 1. '-' se não houver dados.
+function calcularMediaFracaoHoras(colunaNumerador, colunaDenominador) {
+  const validos = linhasValidasParaHorario();
+  const pct = dispersaoPercentualAgregada(validos, colunaNumerador, colunaDenominador);
+  return pct === null ? '-' : formatarPercentual(pct);
+}
+
+// Linhas consideradas em todos os cálculos de horário: só mapas com MapaValidoHr = "Sim"
+// E MapaValidoHr-saida = "Sim" (mapas sem informação de tempo confiável, ou fora do
+// turno de saída válido, não entram nessa conta).
+// Só entram nos cálculos linhas com Frota = "Padrao" ou "Fixo" (ignora acento/maiúscula).
+function removerAcentos(texto) {
+  return texto
+    .replace(/[áàâã]/g, 'a')
+    .replace(/[éèê]/g, 'e')
+    .replace(/[íìî]/g, 'i')
+    .replace(/[óòôõ]/g, 'o')
+    .replace(/[úùû]/g, 'u')
+    .replace(/ç/g, 'c');
+}
+function frotaValida(frota) {
+  const texto = removerAcentos(String(frota ?? '').trim().toLowerCase());
+  return texto === 'padrao' || texto === 'fixo';
+}
+
+function linhasValidasParaHorario() {
+  return baseProcessada.filter(r => r['MapaValidoHr'] === 'Sim' && r['MapaValidoHr-saida'] === 'Sim' && frotaValida(r['Frota']));
+}
+
+// % de linhas com Status X = 1, entre as linhas válidas pra horário.
+function calcularPercentualStatus(colunaStatus) {
+  const validos = linhasValidasParaHorario();
+  if (!validos.length) return '0%';
+  const qtdOk = validos.filter(r => r[colunaStatus] === 1).length;
+  return (qtdOk / validos.length * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+}
+
+// Média de uma coluna de hora (ex: "Dispersão de Tempo"), entre as linhas válidas pra horário.
+function calcularMediaHoras(colunaHora) {
+  const validos = linhasValidasParaHorario();
+  const minutos = validos.map(r => horaParaMinutos(r[colunaHora])).filter(m => m !== null);
+  if (!minutos.length) return '-';
+  const media = minutos.reduce((total, m) => total + m, 0) / minutos.length;
+  return minutosParaHora(media);
+}
+
+function atualizarPreview() {
+  const thead = document.getElementById('theadPreview');
+  const tbody = document.getElementById('tbodyPreview');
+
+  thead.innerHTML = colunasFinais.map(c => `<th>${c}</th>`).join('');
+
+  const linhasFiltradas = filtroIndices2art.map(i => baseProcessada[i]);
+  const linhasParaExibir = linhasFiltradas.slice(0, LIMITE_PREVIEW);
+  tbody.innerHTML = linhasParaExibir.map(registro => `
+    <tr>${colunasFinais.map(c => `<td>${formatarCelula(registro[c], c)}</td>`).join('')}</tr>
+  `).join('');
+
+  document.getElementById('qtdPreview').textContent = linhasParaExibir.length.toLocaleString('pt-BR');
+  document.getElementById('qtdTotalPreview').textContent = linhasFiltradas.length.toLocaleString('pt-BR');
+}
+
+// ============================================================
+// 3.0 FILTROS DA PRÉVIA (Revenda, Mês, Data)
+// ============================================================
+
+// "Data" na base tratada é texto "dd/mm/aaaa" — converte pra Date. null se não bater no padrão.
+function parseDataBR(dataBR) {
+  const match = String(dataBR ?? '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+}
+
+function popularFiltroRevenda2art() {
+  const select = document.getElementById('filtroRevenda2art');
+  const revendas = Array.from(new Set(baseProcessada.map(r => r['Revenda']).filter(Boolean))).sort();
+  select.innerHTML = '<option value="">Todas</option>' + revendas.map(r => `<option value="${r}">${r}</option>`).join('');
+}
+
+function popularFiltroMes2art() {
+  const select = document.getElementById('filtroMes2art');
+  const meses = new Set();
+  baseProcessada.forEach(r => {
+    const d = parseDataBR(r['Data']);
+    if (d) meses.add(`${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`);
+  });
+  const mesesOrdenados = Array.from(meses).sort((a, b) => {
+    const [ma, ya] = a.split('/').map(Number);
+    const [mb, yb] = b.split('/').map(Number);
+    return (ya * 100 + ma) - (yb * 100 + mb);
+  });
+  select.innerHTML = '<option value="">Todos</option>' + mesesOrdenados.map(m => `<option value="${m}">${m}</option>`).join('');
+}
+
+function aplicarFiltros2art() {
+  const revendaSel = document.getElementById('filtroRevenda2art').value;
+  const mesSel = document.getElementById('filtroMes2art').value;
+  const dataDeStr = document.getElementById('filtroDataDe2art').value;
+  const dataAteStr = document.getElementById('filtroDataAte2art').value;
+
+  const dataDe = dataDeStr ? new Date(dataDeStr + 'T00:00:00') : null;
+  const dataAte = dataAteStr ? new Date(dataAteStr + 'T23:59:59') : null;
+
+  filtroIndices2art = [];
+  baseProcessada.forEach((registro, i) => {
+    if (revendaSel && registro['Revenda'] !== revendaSel) return;
+
+    const dataLinha = parseDataBR(registro['Data']);
+    if (mesSel) {
+      if (!dataLinha) return;
+      const mesLinha = `${String(dataLinha.getMonth() + 1).padStart(2, '0')}/${dataLinha.getFullYear()}`;
+      if (mesLinha !== mesSel) return;
+    }
+    if (dataDe && (!dataLinha || dataLinha < dataDe)) return;
+    if (dataAte && (!dataLinha || dataLinha > dataAte)) return;
+
+    filtroIndices2art.push(i);
+  });
+
+  atualizarPreview();
+}
+
+function limparFiltros2art() {
+  document.getElementById('filtroRevenda2art').value = '';
+  document.getElementById('filtroMes2art').value = '';
+  document.getElementById('filtroDataDe2art').value = '';
+  document.getElementById('filtroDataAte2art').value = '';
+  aplicarFiltros2art();
+}
+
+document.getElementById('filtroRevenda2art').addEventListener('change', aplicarFiltros2art);
+document.getElementById('filtroMes2art').addEventListener('change', aplicarFiltros2art);
+document.getElementById('filtroDataDe2art').addEventListener('change', aplicarFiltros2art);
+document.getElementById('filtroDataAte2art').addEventListener('change', aplicarFiltros2art);
+document.getElementById('btnLimparFiltros2art').addEventListener('click', limparFiltros2art);
+
+// ============================================================
+// 3.1 GRAVAÇÃO NO BANCO DE DADOS (Supabase, tabela "atendimentos_2art")
+// ============================================================
+const TAMANHO_LOTE_BANCO = 500;
+
+// "Data" na base tratada é texto "dd/mm/aaaa" (formatarDataDDMMYYYY) — converte pra "aaaa-mm-dd" (coluna date).
+function converterDataParaISO(dataBR) {
+  const match = String(dataBR ?? '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : null;
+}
+
+// Converte uma linha da base tratada (chaves = COLUNAS_FINAIS_FIXAS) pro formato
+// de colunas (snake_case) da tabela "atendimentos_2art".
+function converterParaLinhaBanco2art(registro) {
+  return {
+    chave: registro['Chave'] || null,
+    revenda: registro['Revenda'],
+    data: converterDataParaISO(registro['Data']),
+    transp: registro['Transp'],
+    frota: registro['Frota'],
+    veiculo: registro['Veiculo'],
+    placa: registro['Placa'],
+    mapa: registro['Mapa'],
+    capac: registro['Capac'],
+    entregas: registro['Entregas'],
+    nu_entregador: registro['Nu Entregador'],
+    cx_carreg: registro['CxCarreg'],
+    ocup: registro['Ocup'],
+    hr_inicio: registro['HrIncio'],
+    tml: registro['TML'],
+    meta_tml: registro['Meta TML'],
+    status_tml: registro['Status TML'],
+    hr_sai: registro['HrSai'],
+    hr_entr: registro['HrEntr'],
+    tr: registro['TR'],
+    meta_tr: registro['Meta TR'],
+    status_tr: registro['Status TR'],
+    dispersao_tempo_pct: registro['Dispersão de Tempo%'],
+    dispersao_tempo: registro['Dispersão de Tempo'],
+    tempo_prev: registro['TempoPrev'],
+    tmpo_interno: registro['TmpoInterno'],
+    meta_ti: registro['Meta TI'],
+    status_ti: registro['Status TI'],
+    jl: registro['JL'],
+    status_jl: registro['StatusJL'],
+    km_sai: registro['KmSai'],
+    km_real: registro['KM Real'],
+    km_entr: registro['KmEntr'],
+    dispersao_km: registro['Dispersão de Km'],
+    dispersao_km_pct: registro['Dispersão de Km%'],
+    km_prev: registro['KmPrev'],
+    capacidade_veiculo_kg: registro['CapacidadeVeiculoKG'],
+    peso_carga_kg: registro['PesoCargaKG'],
+    dispersao_peso: registro['Dispersão de Peso'],
+    dispersao_peso_pct: registro['Dispersão de Peso%'],
+    mapa_valido_hr: registro['MapaValidoHr'],
+    mapa_valido_hr_saida: registro['MapaValidoHr-saida'],
+    mapa_valido_km: registro['MapaValidoKm']
+  };
+}
+
+// Grava a base tratada no Supabase em lotes, fazendo upsert por (chave, data) pra
+// não duplicar quando o mesmo arquivo for processado de novo. Linhas sem Chave ou
+// Data válidas são ignoradas (não dá pra garantir unicidade delas).
+async function salvarBaseTratada2art(dados) {
+  const todasConvertidas = dados.map(converterParaLinhaBanco2art);
+  const linhasBanco = todasConvertidas.filter(l => l.chave && l.data);
+  const puladas = todasConvertidas.length - linhasBanco.length;
+
+  if (!linhasBanco.length) return { salvas: 0, puladas };
+
+  let salvas = 0;
+  for (let i = 0; i < linhasBanco.length; i += TAMANHO_LOTE_BANCO) {
+    const lote = linhasBanco.slice(i, i + TAMANHO_LOTE_BANCO);
+    const { error } = await supabaseClient
+      .from('atendimentos_2art')
+      .upsert(lote, { onConflict: 'chave,data' });
+    if (error) throw error;
+    salvas += lote.length;
+  }
+  return { salvas, puladas };
+}
+
+// ============================================================
+// 3.2 CONSULTA À BASE SALVA (busca direto no banco, com filtros de Revenda/Mês/Data)
+// ============================================================
+let resultadoConsultaBanco = [];
+let ultimoFiltroConsultaBanco = null; // guarda os filtros da última busca, pra exclusão usar exatamente o mesmo critério
+const LIMITE_CONSULTA_BANCO = 2000;
+
+// "aaaa-mm-dd" (coluna date do banco) -> "dd/mm/aaaa" (mesmo formato usado na base tratada em memória).
+function formatarDataISOParaBR(dataISO) {
+  const match = String(dataISO ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : '';
+}
+
+// Converte uma linha do banco (colunas snake_case) de volta pro formato usado na
+// tela (chaves = COLUNAS_FINAIS_FIXAS), pra reaproveitar formatarCelula/exportações.
+function converterLinhaBancoParaPadrao2art(l) {
+  return {
+    'Chave': l.chave,
+    'Revenda': l.revenda,
+    'Data': formatarDataISOParaBR(l.data),
+    'Transp': l.transp,
+    'Frota': l.frota,
+    'Veiculo': l.veiculo,
+    'Placa': l.placa,
+    'Mapa': l.mapa,
+    'Capac': l.capac,
+    'Entregas': l.entregas,
+    'Nu Entregador': l.nu_entregador,
+    'CxCarreg': l.cx_carreg,
+    'Ocup': l.ocup,
+    'HrIncio': l.hr_inicio,
+    'TML': l.tml,
+    'Meta TML': l.meta_tml,
+    'Status TML': l.status_tml,
+    'HrSai': l.hr_sai,
+    'HrEntr': l.hr_entr,
+    'TR': l.tr,
+    'Meta TR': l.meta_tr,
+    'Status TR': l.status_tr,
+    'Dispersão de Tempo%': l.dispersao_tempo_pct,
+    'Dispersão de Tempo': l.dispersao_tempo,
+    'TempoPrev': l.tempo_prev,
+    'TmpoInterno': l.tmpo_interno,
+    'Meta TI': l.meta_ti,
+    'Status TI': l.status_ti,
+    'JL': l.jl,
+    'StatusJL': l.status_jl,
+    'KmSai': l.km_sai,
+    'KM Real': l.km_real,
+    'KmEntr': l.km_entr,
+    'Dispersão de Km': l.dispersao_km,
+    'Dispersão de Km%': l.dispersao_km_pct,
+    'KmPrev': l.km_prev,
+    'CapacidadeVeiculoKG': l.capacidade_veiculo_kg,
+    'PesoCargaKG': l.peso_carga_kg,
+    'Dispersão de Peso': l.dispersao_peso,
+    'Dispersão de Peso%': l.dispersao_peso_pct,
+    'MapaValidoHr': l.mapa_valido_hr,
+    'MapaValidoHr-saida': l.mapa_valido_hr_saida,
+    'MapaValidoKm': l.mapa_valido_km
+  };
+}
+
+document.getElementById('btnBuscarBanco').addEventListener('click', buscarBanco2art);
+document.getElementById('btnLimparConsulta').addEventListener('click', () => {
+  document.getElementById('consultaRevenda').value = '';
+  document.getElementById('consultaMes').value = '';
+  document.getElementById('consultaDataDe').value = '';
+  document.getElementById('consultaDataAte').value = '';
+});
+
+async function buscarBanco2art() {
+  const revendaSel = document.getElementById('consultaRevenda').value;
+  const mesSel = document.getElementById('consultaMes').value; // "aaaa-mm"
+  let dataDeStr = document.getElementById('consultaDataDe').value;
+  let dataAteStr = document.getElementById('consultaDataAte').value;
+
+  // Se um Mês foi escolhido, usa o primeiro/último dia dele como intervalo padrão
+  // (a menos que Data de/até já tenham sido preenchidas manualmente).
+  if (mesSel) {
+    const [ano, mes] = mesSel.split('-').map(Number);
+    if (!dataDeStr) dataDeStr = `${mesSel}-01`;
+    if (!dataAteStr) {
+      const ultimoDia = new Date(ano, mes, 0).getDate();
+      dataAteStr = `${mesSel}-${String(ultimoDia).padStart(2, '0')}`;
+    }
+  }
+
+  const statusEl = document.getElementById('statusConsultaBanco');
+  const btnBuscar = document.getElementById('btnBuscarBanco');
+  statusEl.textContent = 'Buscando...';
+  btnBuscar.disabled = true;
+
+  try {
+    ultimoFiltroConsultaBanco = { revendaSel, dataDeStr, dataAteStr };
+
+    const data = await buscarTodasLinhas2art(query => {
+      if (revendaSel) query = query.eq('revenda', revendaSel);
+      if (dataDeStr) query = query.gte('data', dataDeStr);
+      if (dataAteStr) query = query.lte('data', dataAteStr);
+      return query;
+    }, LIMITE_CONSULTA_BANCO);
+
+    resultadoConsultaBanco = data.map(converterLinhaBancoParaPadrao2art)
+      .sort((a, b) => (parseDataBR(b['Data'])?.getTime() || 0) - (parseDataBR(a['Data'])?.getTime() || 0));
+    renderizarConsultaBanco();
+
+    const atingiuLimite = resultadoConsultaBanco.length === LIMITE_CONSULTA_BANCO;
+    statusEl.textContent = `${resultadoConsultaBanco.length.toLocaleString('pt-BR')} linha(s) encontradas${atingiuLimite ? ' (limite atingido — refine os filtros)' : ''}.`;
+
+    const temResultado = resultadoConsultaBanco.length > 0;
+    document.getElementById('btnBaixarTxtConsulta').disabled = !temResultado;
+    document.getElementById('btnBaixarExcelConsulta').disabled = !temResultado;
+    document.getElementById('btnExcluirConsulta').disabled = !temResultado;
+
+    salvarEstadoConsulta(statusEl.textContent);
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToast('❌ Erro ao consultar o banco: ' + erro.message, 'danger');
+  } finally {
+    btnBuscar.disabled = false;
+  }
+}
+
+function renderizarConsultaBanco() {
+  const thead = document.getElementById('theadConsulta');
+  const tbody = document.getElementById('tbodyConsulta');
+
+  thead.innerHTML = COLUNAS_FINAIS_FIXAS.map(c => `<th>${c}</th>`).join('');
+
+  const linhasParaExibir = resultadoConsultaBanco.slice(0, LIMITE_PREVIEW);
+  tbody.innerHTML = linhasParaExibir.map(registro => `
+    <tr>${COLUNAS_FINAIS_FIXAS.map(c => `<td>${formatarCelula(registro[c], c)}</td>`).join('')}</tr>
+  `).join('');
+
+  document.getElementById('infoConsultaBanco').textContent = resultadoConsultaBanco.length
+    ? `Exibindo as primeiras ${linhasParaExibir.length.toLocaleString('pt-BR')} de ${resultadoConsultaBanco.length.toLocaleString('pt-BR')} linhas encontradas.`
+    : 'Nenhuma linha encontrada pra esses filtros.';
+}
+
+document.getElementById('btnBaixarTxtConsulta').addEventListener('click', () => baixarTxtGenerico(resultadoConsultaBanco, 'consulta_2art'));
+document.getElementById('btnBaixarExcelConsulta').addEventListener('click', () => baixarExcelGenerico(resultadoConsultaBanco, 'consulta_2art'));
+
+// Apaga do banco exatamente as linhas que batem com o filtro atual da consulta.
+// Antes de apagar, conta de novo no banco (a tela só mostra até 2.000 linhas, mas o
+// filtro pode bater em mais do que isso) pra confirmação mostrar o número real.
+document.getElementById('btnExcluirConsulta').addEventListener('click', excluirRegistrosConsulta);
+
+async function excluirRegistrosConsulta() {
+  if (!ultimoFiltroConsultaBanco) return;
+  const { revendaSel, dataDeStr, dataAteStr } = ultimoFiltroConsultaBanco;
+
+  const btn = document.getElementById('btnExcluirConsulta');
+  btn.disabled = true;
+  try {
+    let queryContagem = supabaseClient.from('atendimentos_2art').select('*', { count: 'exact', head: true });
+    if (revendaSel) queryContagem = queryContagem.eq('revenda', revendaSel);
+    if (dataDeStr) queryContagem = queryContagem.gte('data', dataDeStr);
+    if (dataAteStr) queryContagem = queryContagem.lte('data', dataAteStr);
+    const { count, error: erroContagem } = await queryContagem;
+    if (erroContagem) throw erroContagem;
+
+    const descricaoFiltro = [
+      revendaSel ? `Revenda = ${revendaSel}` : 'todas as revendas',
+      dataDeStr ? `de ${dataDeStr}` : null,
+      dataAteStr ? `até ${dataAteStr}` : null
+    ].filter(Boolean).join(', ');
+    const semFiltroNenhum = !revendaSel && !dataDeStr && !dataAteStr;
+    const aviso = semFiltroNenhum ? '\n\n⚠️ NENHUM FILTRO aplicado — isso apaga a TABELA INTEIRA.' : '';
+
+    const confirmado = confirm(
+      `Isso vai APAGAR PERMANENTEMENTE ${count ?? '?'} registro(s) do banco de dados.\n\n` +
+      `Filtro: ${descricaoFiltro}${aviso}\n\n` +
+      `Essa ação não pode ser desfeita. Confirma?`
+    );
+    if (!confirmado) { btn.disabled = false; return; }
+
+    let queryDelete = supabaseClient.from('atendimentos_2art').delete();
+    if (revendaSel) queryDelete = queryDelete.eq('revenda', revendaSel);
+    if (dataDeStr) queryDelete = queryDelete.gte('data', dataDeStr);
+    if (dataAteStr) queryDelete = queryDelete.lte('data', dataAteStr);
+    const { error } = await queryDelete;
+    if (error) throw error;
+
+    mostrarToast(`✅ ${count ?? ''} registro(s) excluído(s) do banco.`, 'success');
+    resultadoConsultaBanco = [];
+    renderizarConsultaBanco();
+    document.getElementById('btnBaixarTxtConsulta').disabled = true;
+    document.getElementById('btnBaixarExcelConsulta').disabled = true;
+    limparEstadoPagina(CHAVE_ESTADO_CONSULTA_2ART);
+
+    // Atualiza os painéis agregados, que dependem do que está salvo no banco.
+    gerarPainelSemanaMes();
+    gerarPainelSemanaMesKm();
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast('❌ Erro ao excluir os registros: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = resultadoConsultaBanco.length === 0;
+  }
+}
+
+// ============================================================
+// 3.2.1 PAGINAÇÃO (o Supabase limita cada request a 1000 linhas por padrão,
+// mesmo pedindo .limit() maior — então buscamos em páginas de 1000 até acabar)
+// ============================================================
+const TAMANHO_PAGINA_BANCO = 1000;
+
+// "montarQuery" recebe o query builder já com .select('*') e deve devolver ele
+// com os filtros (eq/gte/lte/etc) aplicados, sem .range()/.limit()/.order().
+// "limiteMaximo" (opcional) para de buscar assim que atingir esse total.
+async function buscarTodasLinhas2art(montarQuery, limiteMaximo) {
+  let todasLinhas = [];
+  let pagina = 0;
+  while (true) {
+    let query = montarQuery(supabaseClient.from('atendimentos_2art').select('*'))
+      .order('id', { ascending: true })
+      .range(pagina * TAMANHO_PAGINA_BANCO, pagina * TAMANHO_PAGINA_BANCO + TAMANHO_PAGINA_BANCO - 1);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    todasLinhas = todasLinhas.concat(data || []);
+    if (!data || data.length < TAMANHO_PAGINA_BANCO) break;
+    if (limiteMaximo && todasLinhas.length >= limiteMaximo) break;
+    pagina++;
+  }
+  return limiteMaximo ? todasLinhas.slice(0, limiteMaximo) : todasLinhas;
+}
+
+// ============================================================
+// 3.3 PAINEL POR DIA / SEMANA / MÊS
+// ============================================================
+const REVENDA_CIDADE = { MGA: 'Maringá', GPA: 'Guarapuava', PG: 'Ponta Grossa', NP: 'Norte Pioneiro' };
+const NOMES_MESES_2ART = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const NOMES_DIAS_SEMANA_2ART = ['DOMINGO', 'SEGUNDA-FEIRA', 'TERÇA-FEIRA', 'QUARTA-FEIRA', 'QUINTA-FEIRA', 'SEXTA-FEIRA', 'SÁBADO'];
+
+// Semana de calendário (Segunda a Domingo), numerada dentro do mês. A Semana 1 é a
+// semana Seg-Dom que contém o dia 1 — ela pode começar no mês anterior, mas só os
+// dias que realmente caem neste mês entram na conta. Por isso a Semana 1 pode ter
+// menos de 7 dias (ex: se o mês começa numa sexta, só sexta/sábado/domingo entram).
+function semanaDoMesLinha(dataBR) {
+  const d = parseDataBR(dataBR);
+  if (!d) return null;
+  const primeiroDiaMes = new Date(d.getFullYear(), d.getMonth(), 1);
+  const diaSemanaPrimeiro = (primeiroDiaMes.getDay() + 6) % 7; // 0=segunda ... 6=domingo
+  const inicioSemana1 = new Date(d.getFullYear(), d.getMonth(), 1 - diaSemanaPrimeiro);
+  const diffDias = Math.round((d - inicioSemana1) / 86400000);
+  return Math.floor(diffDias / 7) + 1;
+}
+
+function mesNumeroLinha(dataBR) {
+  const d = parseDataBR(dataBR);
+  return d ? d.getMonth() + 1 : null;
+}
+
+// Média (em minutos) de uma coluna de hora, sobre um array de linhas já convertidas.
+function mediaHorasDeArray(linhas, coluna) {
+  const minutos = linhas.map(r => horaParaMinutos(r[coluna])).filter(m => m !== null);
+  if (!minutos.length) return null;
+  return minutos.reduce((total, m) => total + m, 0) / minutos.length;
+}
+
+// % de linhas com StatusX = 1, sobre um array de linhas já convertidas.
+function pctStatusDeArray(linhas, colunaStatus) {
+  if (!linhas.length) return null;
+  const ok = linhas.filter(r => r[colunaStatus] === 1).length;
+  return ok / linhas.length;
+}
+
+// Dispersão percentual agregada (SOMA(TR)/SOMA(TempoPrev) - 1) sobre um array de linhas.
+function mediaDispersaoPctDeArray(linhas) {
+  return dispersaoPercentualAgregada(linhas, 'TR', 'TempoPrev');
+}
+
+// Destaca em vermelho quando a dispersão passa de ±15% (limiar aproximado — ajustável).
+function classeCorDispersao(pct) {
+  if (pct === null) return '';
+  return Math.abs(pct) > 0.15 ? 'bg-danger-subtle text-danger fw-semibold' : 'bg-info-subtle';
+}
+
+// ---- Por Dia ----
+document.getElementById('btnGerarPainelDia').addEventListener('click', gerarPainelDia);
+document.getElementById('painelDiaRevenda').addEventListener('change', gerarPainelDia);
+// Pré-preenche com o mês atual, mas só busca/mostra depois que uma revenda for escolhida.
+document.getElementById('painelDiaMes').value = new Date().toISOString().slice(0, 7);
+document.getElementById('containerPainelDia').innerHTML = '<p class="text-secondary small">Selecione uma revenda para ver os dados.</p>';
+
+async function gerarPainelDia() {
+  const revendaSel = document.getElementById('painelDiaRevenda').value;
+  if (!revendaSel) {
+    document.getElementById('containerPainelDia').innerHTML = '<p class="text-secondary small">Selecione uma revenda para ver os dados.</p>';
+    return;
+  }
+
+  const mesSel = document.getElementById('painelDiaMes').value; // "aaaa-mm"
+  if (!mesSel) { mostrarToast('⚠️ Selecione o mês.', 'warning'); return; }
+
+  const [ano, mes] = mesSel.split('-').map(Number);
+  const primeiroDia = `${mesSel}-01`;
+  const ultimoDiaNum = new Date(ano, mes, 0).getDate();
+  const ultimoDia = `${mesSel}-${String(ultimoDiaNum).padStart(2, '0')}`;
+
+  const btn = document.getElementById('btnGerarPainelDia');
+  btn.disabled = true;
+  try {
+    const data = await buscarTodasLinhas2art(query => {
+      let q = query.gte('data', primeiroDia).lte('data', ultimoDia);
+      if (revendaSel) q = q.eq('revenda', revendaSel);
+      return q;
+    });
+
+    const linhas = data.map(converterLinhaBancoParaPadrao2art)
+      .filter(r => r['MapaValidoHr'] === 'Sim' && r['MapaValidoHr-saida'] === 'Sim' && frotaValida(r['Frota']));
+
+    const container = document.getElementById('containerPainelDia');
+    container.innerHTML = '';
+
+    const revendasParaMostrar = revendaSel ? [revendaSel] : Object.keys(REVENDA_CIDADE);
+    revendasParaMostrar.forEach(revenda => {
+      const linhasRevenda = linhas.filter(r => r['Revenda'] === revenda);
+
+      const porDia = {};
+      for (let dia = 1; dia <= ultimoDiaNum; dia++) porDia[dia] = [];
+      linhasRevenda.forEach(r => {
+        const d = parseDataBR(r['Data']);
+        if (d) porDia[d.getDate()].push(r);
+      });
+
+      const bloco = document.createElement('div');
+      bloco.className = 'mb-4';
+      bloco.innerHTML = `
+        <div class="fw-semibold text-primary-dark small mb-1">${REVENDA_CIDADE[revenda]} (${revenda})</div>
+        <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+          <table class="table table-sm table-bordered text-center align-middle mb-0" style="font-size:0.78rem;"></table>
+        </div>
+      `;
+      container.appendChild(bloco);
+      renderizarPainelDia(bloco.querySelector('table'), ano, mes, ultimoDiaNum, porDia);
+    });
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast('❌ Erro ao gerar o painel por dia: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderizarPainelDia(tabela, ano, mes, ultimoDiaNum, porDia) {
+  let html = `
+    <thead>
+      <tr>
+        <th rowspan="2">Data</th>
+        <th rowspan="2">Dia Semana</th>
+        <th colspan="3">TML</th>
+        <th colspan="3">TR</th>
+        <th colspan="3">TI</th>
+        <th colspan="3">JL</th>
+        <th colspan="2">D.T.</th>
+      </tr>
+      <tr>
+        <th>Meta</th><th>TML(HH:MM)</th><th>TML(%)</th>
+        <th>Meta</th><th>TR(HH:MM)</th><th>TR(%)</th>
+        <th>Meta</th><th>TI(HH:MM)</th><th>TI(%)</th>
+        <th>Meta</th><th>JL(HH:MM)</th><th>JL(%)</th>
+        <th>D.T(HH:MM)</th><th>D.T.%</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
+
+  for (let dia = 1; dia <= ultimoDiaNum; dia++) {
+    const linhasDia = porDia[dia];
+    const dataFmt = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`;
+    const nomeDia = NOMES_DIAS_SEMANA_2ART[new Date(ano, mes - 1, dia).getDay()];
+
+    const mediaTML = mediaHorasDeArray(linhasDia, 'TML');
+    const pctTML = pctStatusDeArray(linhasDia, 'Status TML');
+    const mediaTR = mediaHorasDeArray(linhasDia, 'TR');
+    const pctTR = pctStatusDeArray(linhasDia, 'Status TR');
+    const mediaTI = mediaHorasDeArray(linhasDia, 'TmpoInterno');
+    const pctTI = pctStatusDeArray(linhasDia, 'Status TI');
+    const mediaJL = mediaHorasDeArray(linhasDia, 'JL');
+    const pctJL = pctStatusDeArray(linhasDia, 'StatusJL');
+    const mediaDT = mediaHorasDeArray(linhasDia, 'Dispersão de Tempo');
+    const pctDT = mediaDispersaoPctDeArray(linhasDia);
+
+    html += `<tr>
+      <td>${dataFmt}</td>
+      <td>${nomeDia}</td>
+      <td>${META_TML_PADRAO}</td><td>${mediaTML !== null ? minutosParaHora(mediaTML) : ''}</td><td>${pctTML !== null ? formatarPercentual(pctTML) : ''}</td>
+      <td>${META_TR_PADRAO}</td><td>${mediaTR !== null ? minutosParaHora(mediaTR) : ''}</td><td>${pctTR !== null ? formatarPercentual(pctTR) : ''}</td>
+      <td>${META_TI_PADRAO}</td><td>${mediaTI !== null ? minutosParaHora(mediaTI) : ''}</td><td>${pctTI !== null ? formatarPercentual(pctTI) : ''}</td>
+      <td>${META_JL_PADRAO}</td><td>${mediaJL !== null ? minutosParaHora(mediaJL) : ''}</td><td>${pctJL !== null ? formatarPercentual(pctJL) : ''}</td>
+      <td>${mediaDT !== null ? minutosParaHora(mediaDT) : ''}</td><td class="${classeCorDispersao(pctDT)}">${pctDT !== null ? formatarPercentual(pctDT) : ''}</td>
+    </tr>`;
+  }
+
+  html += '</tbody>';
+  tabela.innerHTML = html;
+}
+
+// ---- Por Dia (Km) ----
+document.getElementById('btnGerarPainelDiaKm').addEventListener('click', gerarPainelDiaKm);
+document.getElementById('painelDiaRevendaKm').addEventListener('change', gerarPainelDiaKm);
+document.getElementById('painelDiaMesKm').value = new Date().toISOString().slice(0, 7);
+document.getElementById('containerPainelDiaKm').innerHTML = '<p class="text-secondary small">Selecione uma revenda para ver os dados.</p>';
+
+async function gerarPainelDiaKm() {
+  const revendaSel = document.getElementById('painelDiaRevendaKm').value;
+  if (!revendaSel) {
+    document.getElementById('containerPainelDiaKm').innerHTML = '<p class="text-secondary small">Selecione uma revenda para ver os dados.</p>';
+    return;
+  }
+
+  const mesSel = document.getElementById('painelDiaMesKm').value;
+  if (!mesSel) { mostrarToast('⚠️ Selecione o mês.', 'warning'); return; }
+
+  const [ano, mes] = mesSel.split('-').map(Number);
+  const primeiroDia = `${mesSel}-01`;
+  const ultimoDiaNum = new Date(ano, mes, 0).getDate();
+  const ultimoDia = `${mesSel}-${String(ultimoDiaNum).padStart(2, '0')}`;
+
+  const btn = document.getElementById('btnGerarPainelDiaKm');
+  btn.disabled = true;
+  try {
+    const data = await buscarTodasLinhas2art(query =>
+      query.gte('data', primeiroDia).lte('data', ultimoDia).eq('revenda', revendaSel)
+    );
+
+    const linhas = data.map(converterLinhaBancoParaPadrao2art)
+      .filter(r => r['MapaValidoKm'] === 'Sim' && frotaValida(r['Frota']));
+
+    const porDia = {};
+    for (let dia = 1; dia <= ultimoDiaNum; dia++) porDia[dia] = [];
+    linhas.forEach(r => {
+      const d = parseDataBR(r['Data']);
+      if (d) porDia[d.getDate()].push(r);
+    });
+
+    const container = document.getElementById('containerPainelDiaKm');
+    container.innerHTML = '';
+    const bloco = document.createElement('div');
+    bloco.innerHTML = `
+      <div class="fw-semibold text-primary-dark small mb-1">${REVENDA_CIDADE[revendaSel]} (${revendaSel})</div>
+      <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+        <table class="table table-sm table-bordered text-center align-middle mb-0" style="font-size:0.78rem;"></table>
+      </div>
+    `;
+    container.appendChild(bloco);
+    renderizarPainelDiaKm(bloco.querySelector('table'), ano, mes, ultimoDiaNum, porDia);
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast('❌ Erro ao gerar o painel por dia (Km): ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderizarPainelDiaKm(tabela, ano, mes, ultimoDiaNum, porDia) {
+  let html = `
+    <thead>
+      <tr>
+        <th rowspan="2">Data</th>
+        <th rowspan="2">Dia Semana</th>
+        <th rowspan="2">KmSai (méd)</th><th rowspan="2">KmEntr (méd)</th>
+        <th rowspan="2">KM Real (méd)</th><th rowspan="2">KmPrev (méd)</th>
+        <th colspan="2">Dispersão de Km</th>
+      </tr>
+      <tr>
+        <th>Média</th><th>%</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
+
+  for (let dia = 1; dia <= ultimoDiaNum; dia++) {
+    const linhasDia = porDia[dia];
+    const dataFmt = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`;
+    const nomeDia = NOMES_DIAS_SEMANA_2ART[new Date(ano, mes - 1, dia).getDay()];
+
+    const mediaKmSai = calcularMediaNumero('KmSai', linhasDia);
+    const mediaKmEntr = calcularMediaNumero('KmEntr', linhasDia);
+    const mediaKmReal = calcularMediaNumero('KM Real', linhasDia);
+    const mediaKmPrev = calcularMediaNumero('KmPrev', linhasDia);
+    const mediaDispKm = calcularMediaNumero('Dispersão de Km', linhasDia);
+    const pctDispKm = dispersaoPercentualNumericaAgregada(linhasDia, 'KM Real', 'KmPrev');
+
+    html += `<tr>
+      <td>${dataFmt}</td>
+      <td>${nomeDia}</td>
+      <td>${mediaKmSai !== null ? formatarNumeroBR(mediaKmSai) : ''}</td>
+      <td>${mediaKmEntr !== null ? formatarNumeroBR(mediaKmEntr) : ''}</td>
+      <td>${mediaKmReal !== null ? formatarNumeroBR(mediaKmReal) : ''}</td>
+      <td>${mediaKmPrev !== null ? formatarNumeroBR(mediaKmPrev) : ''}</td>
+      <td>${mediaDispKm !== null ? formatarNumeroBR(mediaDispKm) : ''}</td>
+      <td class="${classeCorDispersao(pctDispKm)}">${pctDispKm !== null ? formatarPercentual(pctDispKm) : ''}</td>
+    </tr>`;
+  }
+
+  html += '</tbody>';
+  tabela.innerHTML = html;
+}
+
+// ---- Por Semana / Por Mês (Dispersão de Tempo) ----
+// Revenda: "Todas" mostra as 4 lado a lado, ou escolhe uma só. Ano: filtra as duas
+// tabelas pro mesmo ano, pra não misturar "Janeiro" de anos diferentes no total.
+function popularAnoPainelSemanaMes() {
+  const select = document.getElementById('painelSemanaMesAno');
+  const anoAtual = new Date().getFullYear();
+  const anos = [];
+  for (let a = anoAtual - 2; a <= anoAtual + 1; a++) anos.push(a);
+  select.innerHTML = anos.map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('');
+}
+popularAnoPainelSemanaMes();
+
+function popularMesPainelSemanaMes() {
+  const select = document.getElementById('painelSemanaMesMes');
+  const mesAtual = new Date().getMonth() + 1;
+  select.innerHTML = '<option value="">Todos</option>' +
+    NOMES_MESES_2ART.map((nome, i) => `<option value="${i + 1}" ${i + 1 === mesAtual ? 'selected' : ''}>${nome}</option>`).join('');
+}
+popularMesPainelSemanaMes();
+
+document.getElementById('btnGerarPainelSemanaMes').addEventListener('click', gerarPainelSemanaMes);
+document.getElementById('painelSemanaMesMes').addEventListener('change', gerarPainelSemanaMes);
+document.getElementById('painelSemanaMesAno').addEventListener('change', gerarPainelSemanaMes);
+// Carrega sozinho ao abrir a página, sem precisar clicar em nada.
+gerarPainelSemanaMes();
+
+async function gerarPainelSemanaMes() {
+  const mesSel = document.getElementById('painelSemanaMesMes').value; // '' ou '1'..'12'
+  const ano = Number(document.getElementById('painelSemanaMesAno').value);
+
+  const btn = document.getElementById('btnGerarPainelSemanaMes');
+  btn.disabled = true;
+  try {
+    const data = await buscarTodasLinhas2art(query =>
+      query.gte('data', `${ano}-01-01`).lte('data', `${ano}-12-31`)
+    );
+
+    const linhasAno = data.map(converterLinhaBancoParaPadrao2art)
+      .filter(r => r['MapaValidoHr'] === 'Sim' && r['MapaValidoHr-saida'] === 'Sim' && frotaValida(r['Frota']));
+
+    // A tabela de Semana respeita o filtro de Mês (senão "Semana 1" juntaria os dias
+    // 1-7 de todos os meses do ano); a tabela de Mês sempre mostra o ano inteiro.
+    const linhasSemana = mesSel ? linhasAno.filter(r => mesNumeroLinha(r['Data']) === Number(mesSel)) : linhasAno;
+
+    const revendas = Object.keys(REVENDA_CIDADE);
+    // Até 6 buckets: uma semana de calendário pode "sobrar" pro mês seguinte
+    // dependendo de em que dia da semana o mês termina.
+    const gruposSemana = [1, 2, 3, 4, 5, 6].map(n => ({ chave: n, rotulo: `Semana ${n}` }));
+    const gruposMes = NOMES_MESES_2ART.map((nome, i) => ({ chave: i + 1, rotulo: nome }));
+
+    renderizarPainelPeriodo('tabelaPainelSemana', 'Semana', linhasSemana, revendas, gruposSemana, semanaDoMesLinha);
+    renderizarPainelPeriodo('tabelaPainelMes', 'Mês', linhasAno, revendas, gruposMes, mesNumeroLinha);
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast('❌ Erro ao gerar o painel por semana/mês: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// "colunas" é uma lista de { rotulo, calcular(linhasGrupo), formatar(valor), corDispersao? }.
+// Se omitido, usa o comportamento original (Média + % de Dispersão de Tempo).
+function renderizarPainelPeriodo(idTabela, rotuloLinha, linhas, revendas, grupos, funcaoGrupo, colunas) {
+  const cfg = colunas || [
+    { rotulo: 'D.T(HH:MM)', calcular: lg => mediaHorasDeArray(lg, 'Dispersão de Tempo'), formatar: minutosParaHora },
+    { rotulo: '%', calcular: lg => mediaDispersaoPctDeArray(lg), formatar: formatarPercentual, corDispersao: true }
+  ];
+
+  let thead = `<thead><tr><th rowspan="2">${rotuloLinha}</th>`;
+  revendas.forEach(r => { thead += `<th colspan="${cfg.length}">${REVENDA_CIDADE[r]}</th>`; });
+  thead += `</tr><tr>`;
+  revendas.forEach(() => { cfg.forEach(c => { thead += `<th>${c.rotulo}</th>`; }); });
+  thead += `</tr></thead>`;
+
+  const acumuladorTotal = {};
+  revendas.forEach(r => acumuladorTotal[r] = []);
+
+  function linhaHtml(rotulo, linhasPorRevenda, classeLinha) {
+    let html = `<tr class="${classeLinha || ''}"><td class="fw-semibold text-start">${rotulo}</td>`;
+    revendas.forEach(r => {
+      const linhasGrupo = linhasPorRevenda[r];
+      cfg.forEach(c => {
+        const valor = c.calcular(linhasGrupo);
+        const classe = c.corDispersao ? classeCorDispersao(valor) : '';
+        html += `<td class="${classe}">${valor !== null ? c.formatar(valor) : ''}</td>`;
+      });
+    });
+    return html + '</tr>';
+  }
+
+  let corpo = '<tbody>';
+  grupos.forEach(grupo => {
+    const linhasPorRevenda = {};
+    revendas.forEach(r => {
+      const linhasGrupo = linhas.filter(l => l['Revenda'] === r && funcaoGrupo(l['Data']) === grupo.chave);
+      acumuladorTotal[r].push(...linhasGrupo);
+      linhasPorRevenda[r] = linhasGrupo;
+    });
+    corpo += linhaHtml(grupo.rotulo, linhasPorRevenda);
+  });
+  corpo += linhaHtml('Total', acumuladorTotal, 'table-light fw-semibold');
+  corpo += '</tbody>';
+
+  document.getElementById(idTabela).innerHTML = thead + corpo;
+}
+
+// ---- Por Semana / Por Mês (Dispersão de Km) ----
+function popularAnoPainelSemanaMesKm() {
+  const select = document.getElementById('painelSemanaMesAnoKm');
+  const anoAtual = new Date().getFullYear();
+  const anos = [];
+  for (let a = anoAtual - 2; a <= anoAtual + 1; a++) anos.push(a);
+  select.innerHTML = anos.map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('');
+}
+popularAnoPainelSemanaMesKm();
+
+function popularMesPainelSemanaMesKm() {
+  const select = document.getElementById('painelSemanaMesMesKm');
+  const mesAtual = new Date().getMonth() + 1;
+  select.innerHTML = '<option value="">Todos</option>' +
+    NOMES_MESES_2ART.map((nome, i) => `<option value="${i + 1}" ${i + 1 === mesAtual ? 'selected' : ''}>${nome}</option>`).join('');
+}
+popularMesPainelSemanaMesKm();
+
+document.getElementById('btnGerarPainelSemanaMesKm').addEventListener('click', gerarPainelSemanaMesKm);
+document.getElementById('painelSemanaMesMesKm').addEventListener('change', gerarPainelSemanaMesKm);
+document.getElementById('painelSemanaMesAnoKm').addEventListener('change', gerarPainelSemanaMesKm);
+gerarPainelSemanaMesKm();
+
+async function gerarPainelSemanaMesKm() {
+  const mesSel = document.getElementById('painelSemanaMesMesKm').value;
+  const ano = Number(document.getElementById('painelSemanaMesAnoKm').value);
+
+  const btn = document.getElementById('btnGerarPainelSemanaMesKm');
+  btn.disabled = true;
+  try {
+    const data = await buscarTodasLinhas2art(query =>
+      query.gte('data', `${ano}-01-01`).lte('data', `${ano}-12-31`)
+    );
+
+    const linhasAno = data.map(converterLinhaBancoParaPadrao2art)
+      .filter(r => r['MapaValidoKm'] === 'Sim' && frotaValida(r['Frota']));
+
+    const linhasSemana = mesSel ? linhasAno.filter(r => mesNumeroLinha(r['Data']) === Number(mesSel)) : linhasAno;
+
+    const revendas = Object.keys(REVENDA_CIDADE);
+    const gruposSemana = [1, 2, 3, 4, 5, 6].map(n => ({ chave: n, rotulo: `Semana ${n}` }));
+    const gruposMes = NOMES_MESES_2ART.map((nome, i) => ({ chave: i + 1, rotulo: nome }));
+
+    const colunasKm = [
+      { rotulo: 'Km (méd)', calcular: lg => calcularMediaNumero('Dispersão de Km', lg), formatar: formatarNumeroBR },
+      { rotulo: '%', calcular: lg => dispersaoPercentualNumericaAgregada(lg, 'KM Real', 'KmPrev'), formatar: formatarPercentual, corDispersao: true },
+      { rotulo: 'KM Real (soma)', calcular: lg => somaNumero(lg, 'KM Real'), formatar: formatarNumeroBR },
+      { rotulo: 'KmPrev (soma)', calcular: lg => somaNumero(lg, 'KmPrev'), formatar: formatarNumeroBR }
+    ];
+
+    renderizarPainelPeriodo('tabelaPainelSemanaKm', 'Semana', linhasSemana, revendas, gruposSemana, semanaDoMesLinha, colunasKm);
+    renderizarPainelPeriodo('tabelaPainelMesKm', 'Mês', linhasAno, revendas, gruposMes, mesNumeroLinha, colunasKm);
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast('❌ Erro ao gerar o painel por semana/mês (Km): ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
+// 3.4 MAPAS COM ESTOURO DE JORNADA LÍQUIDA (JL acima da meta)
+// ============================================================
+const COLUNAS_ESTOURO_JL = [
+  'Revenda', 'Data', 'Transp', 'Frota', 'Veiculo', 'Placa', 'Mapa', 'Capac',
+  'Entregas', 'Nu Entregador', 'CxCarreg', 'Ocup',
+  'HrIncio', 'HrSai', 'TML', 'HrEntr', 'TempoPrev', 'TR', 'TmpoInterno', 'JL',
+  'Dispersão de Tempo%', 'Dispersão de Tempo',
+  'CapacidadeVeiculoKG', 'PesoCargaKG', 'Dispersão de Peso', 'Dispersão de Peso%'
+];
+const ROTULO_COLUNA_ESTOURO = { 'TmpoInterno': 'TI' }; // exibe "TmpoInterno" como "TI" no cabeçalho
+const LIMITE_ESTOURO_JL = 10;
+
+function popularFiltrosEstouroJL() {
+  const selectMes = document.getElementById('estouroJLMes');
+  selectMes.innerHTML = '<option value="">Todos</option>' +
+    NOMES_MESES_2ART.map((nome, i) => `<option value="${i + 1}">${nome}</option>`).join('');
+
+  const selectAno = document.getElementById('estouroJLAno');
+  const anoAtual = new Date().getFullYear();
+  const anos = [];
+  for (let a = anoAtual - 2; a <= anoAtual + 1; a++) anos.push(a);
+  selectAno.innerHTML = anos.map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('');
+}
+popularFiltrosEstouroJL();
+
+document.getElementById('btnGerarEstouroJL').addEventListener('click', gerarEstouroJL);
+document.getElementById('estouroJLRevenda').addEventListener('change', gerarEstouroJL);
+document.getElementById('estouroJLMes').addEventListener('change', gerarEstouroJL);
+document.getElementById('estouroJLAno').addEventListener('change', gerarEstouroJL);
+document.getElementById('estouroJLDataDe').addEventListener('change', gerarEstouroJL);
+document.getElementById('estouroJLDataAte').addEventListener('change', gerarEstouroJL);
+// Carrega sozinho ao abrir a página.
+gerarEstouroJL();
+
+async function gerarEstouroJL() {
+  const revendaSel = document.getElementById('estouroJLRevenda').value;
+  const mesSel = document.getElementById('estouroJLMes').value;
+  const ano = Number(document.getElementById('estouroJLAno').value);
+  const dataDeManual = document.getElementById('estouroJLDataDe').value;
+  const dataAteManual = document.getElementById('estouroJLDataAte').value;
+
+  const btn = document.getElementById('btnGerarEstouroJL');
+  btn.disabled = true;
+  try {
+    let dataDe = `${ano}-01-01`;
+    let dataAte = `${ano}-12-31`;
+    if (mesSel) {
+      const mesNum = Number(mesSel);
+      const ultimoDiaNum = new Date(ano, mesNum, 0).getDate();
+      dataDe = `${ano}-${String(mesNum).padStart(2, '0')}-01`;
+      dataAte = `${ano}-${String(mesNum).padStart(2, '0')}-${String(ultimoDiaNum).padStart(2, '0')}`;
+    }
+    // Data de/até preenchidas manualmente têm prioridade sobre Mês/Ano.
+    if (dataDeManual) dataDe = dataDeManual;
+    if (dataAteManual) dataAte = dataAteManual;
+
+    const data = await buscarTodasLinhas2art(query => {
+      let q = query.gte('data', dataDe).lte('data', dataAte);
+      if (revendaSel) q = q.eq('revenda', revendaSel);
+      return q;
+    });
+
+    // Só entram mapas com Hr válido (MapaValidoHr/-saida = Sim) e com Dispersão de
+    // Tempo calculada de verdade, ordenados do maior pro menor, top 10.
+    const linhas = data.map(converterLinhaBancoParaPadrao2art)
+      .filter(r => r['MapaValidoHr'] === 'Sim' && r['MapaValidoHr-saida'] === 'Sim' && r['Dispersão de Tempo'] && frotaValida(r['Frota']))
+      .sort((a, b) => (horaParaMinutos(b['Dispersão de Tempo']) ?? 0) - (horaParaMinutos(a['Dispersão de Tempo']) ?? 0))
+      .slice(0, LIMITE_ESTOURO_JL);
+
+    renderizarEstouroJL(linhas);
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast('❌ Erro ao buscar os mapas: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderizarEstouroJL(linhas) {
+  const thead = document.getElementById('theadEstouroJL');
+  const tbody = document.getElementById('tbodyEstouroJL');
+
+  thead.innerHTML = COLUNAS_ESTOURO_JL.map(c => `<th>${ROTULO_COLUNA_ESTOURO[c] || c}</th>`).join('');
+  tbody.innerHTML = linhas.map(registro => `
+    <tr>${COLUNAS_ESTOURO_JL.map(c => `<td>${formatarCelula(registro[c], c)}</td>`).join('')}</tr>
+  `).join('');
+
+  document.getElementById('infoEstouroJL').textContent = linhas.length
+    ? `Top ${linhas.length} mapa(s) com maior Dispersão de Tempo, do maior pro menor.`
+    : 'Nenhum mapa encontrado pra esses filtros.';
+}
+
+// ============================================================
+// 3.5 TOP 10 MAPAS — MAIOR DISPERSÃO DE KM
+// ============================================================
+const COLUNAS_TOP_KM = [
+  'Revenda', 'Data', 'Transp', 'Frota', 'Veiculo', 'Placa', 'Mapa', 'Capac',
+  'Entregas', 'Nu Entregador', 'CxCarreg', 'Ocup',
+  'KmSai', 'KM Real', 'KmEntr', 'Dispersão de Km', 'KmPrev',
+  'CapacidadeVeiculoKG', 'PesoCargaKG', 'Dispersão de Peso', 'Dispersão de Peso%'
+];
+const LIMITE_TOP_KM = 10;
+
+function popularFiltrosEstouroKm() {
+  const selectMes = document.getElementById('estouroKmMes');
+  selectMes.innerHTML = '<option value="">Todos</option>' +
+    NOMES_MESES_2ART.map((nome, i) => `<option value="${i + 1}">${nome}</option>`).join('');
+
+  const selectAno = document.getElementById('estouroKmAno');
+  const anoAtual = new Date().getFullYear();
+  const anos = [];
+  for (let a = anoAtual - 2; a <= anoAtual + 1; a++) anos.push(a);
+  selectAno.innerHTML = anos.map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('');
+}
+popularFiltrosEstouroKm();
+
+document.getElementById('btnGerarEstouroKm').addEventListener('click', gerarEstouroKm);
+document.getElementById('estouroKmRevenda').addEventListener('change', gerarEstouroKm);
+document.getElementById('estouroKmMes').addEventListener('change', gerarEstouroKm);
+document.getElementById('estouroKmAno').addEventListener('change', gerarEstouroKm);
+document.getElementById('estouroKmDataDe').addEventListener('change', gerarEstouroKm);
+document.getElementById('estouroKmDataAte').addEventListener('change', gerarEstouroKm);
+gerarEstouroKm();
+
+async function gerarEstouroKm() {
+  const revendaSel = document.getElementById('estouroKmRevenda').value;
+  const mesSel = document.getElementById('estouroKmMes').value;
+  const ano = Number(document.getElementById('estouroKmAno').value);
+  const dataDeManual = document.getElementById('estouroKmDataDe').value;
+  const dataAteManual = document.getElementById('estouroKmDataAte').value;
+
+  const btn = document.getElementById('btnGerarEstouroKm');
+  btn.disabled = true;
+  try {
+    let dataDe = `${ano}-01-01`;
+    let dataAte = `${ano}-12-31`;
+    if (mesSel) {
+      const mesNum = Number(mesSel);
+      const ultimoDiaNum = new Date(ano, mesNum, 0).getDate();
+      dataDe = `${ano}-${String(mesNum).padStart(2, '0')}-01`;
+      dataAte = `${ano}-${String(mesNum).padStart(2, '0')}-${String(ultimoDiaNum).padStart(2, '0')}`;
+    }
+    if (dataDeManual) dataDe = dataDeManual;
+    if (dataAteManual) dataAte = dataAteManual;
+
+    const data = await buscarTodasLinhas2art(query => {
+      let q = query.gte('data', dataDe).lte('data', dataAte);
+      if (revendaSel) q = q.eq('revenda', revendaSel);
+      return q;
+    });
+
+    // Só entram mapas com Km válido (MapaValidoKm = Sim) e com Dispersão de Km
+    // calculada de verdade, ordenados do maior pro menor, top 10.
+    const linhas = data.map(converterLinhaBancoParaPadrao2art)
+      .filter(r => r['MapaValidoKm'] === 'Sim' && r['Dispersão de Km'] !== null && frotaValida(r['Frota']))
+      .sort((a, b) => (b['Dispersão de Km'] ?? 0) - (a['Dispersão de Km'] ?? 0))
+      .slice(0, LIMITE_TOP_KM);
+
+    renderizarEstouroKm(linhas);
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast('❌ Erro ao buscar os mapas: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderizarEstouroKm(linhas) {
+  const thead = document.getElementById('theadEstouroKm');
+  const tbody = document.getElementById('tbodyEstouroKm');
+
+  thead.innerHTML = COLUNAS_TOP_KM.map(c => `<th>${c}</th>`).join('');
+  tbody.innerHTML = linhas.map(registro => `
+    <tr>${COLUNAS_TOP_KM.map(c => `<td>${formatarCelula(registro[c], c)}</td>`).join('')}</tr>
+  `).join('');
+
+  document.getElementById('infoEstouroKm').textContent = linhas.length
+    ? `Top ${linhas.length} mapa(s) com maior Dispersão de Km, do maior pro menor.`
+    : 'Nenhum mapa encontrado pra esses filtros.';
+}
+
+// ============================================================
+// 4. DOWNLOAD (.txt consolidado e .xlsx)
+// ============================================================
+document.getElementById('btnBaixarTxt').addEventListener('click', () => {
+  baixarTxtGenerico(filtroIndices2art.map(i => baseProcessada[i]), '2art_tratado');
+});
+document.getElementById('btnBaixarExcel').addEventListener('click', () => {
+  baixarExcelGenerico(filtroIndices2art.map(i => baseProcessada[i]), '2art_tratado');
+});
+
+function baixarTxtGenerico(dados, prefixoArquivo) {
+  if (!dados.length) return;
+
+  const linhas = [COLUNAS_FINAIS_FIXAS.join(';')];
+  dados.forEach(registro => {
+    linhas.push(COLUNAS_FINAIS_FIXAS.map(c => formatarCelula(registro[c], c)).join(';'));
+  });
+  const conteudo = linhas.join('\r\n');
+
+  const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `${prefixoArquivo}_${dataHoje}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  mostrarToast('✅ Arquivo .txt baixado com sucesso.', 'success');
+}
+
+function baixarExcelGenerico(dados, prefixoArquivo) {
+  if (!dados.length) return;
+
+  const planilha = XLSX.utils.json_to_sheet(dados, { header: COLUNAS_FINAIS_FIXAS });
+  aplicarFormatosNumericosExcel(planilha, dados.length);
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, planilha, 'Tratado');
+
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `${prefixoArquivo}_${dataHoje}.xlsx`);
+  mostrarToast('✅ Arquivo Excel baixado com sucesso.', 'success');
+}
+
+// Mantém as colunas numéricas como número de verdade na célula (permite soma/fórmula
+// no Excel), mas exibidas no formato PT-BR de milhar/decimal (#.##0,00).
+function aplicarFormatosNumericosExcel(planilha, totalLinhas) {
+  COLUNAS_NUMERICAS.forEach(nomeColuna => {
+    const indiceColuna = COLUNAS_FINAIS_FIXAS.indexOf(nomeColuna);
+    if (indiceColuna === -1) return;
+    const formato = COLUNAS_NUMERICAS_INTEIRAS.has(nomeColuna) ? '0' : '#,##0.00';
+    const letraColuna = XLSX.utils.encode_col(indiceColuna);
+    for (let linha = 2; linha <= totalLinhas + 1; linha++) {
+      const celula = planilha[`${letraColuna}${linha}`];
+      if (celula && typeof celula.v === 'number') {
+        celula.z = formato;
+      }
+    }
+  });
+}
+
+// ============================================================
+// 5. TOAST DE FEEDBACK
+// ============================================================
+function mostrarToast(mensagem, tipo) {
+  const div = document.createElement('div');
+  div.className = `toast-custom alert alert-${tipo}`;
+  div.textContent = mensagem;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 4000);
+}
+
+// ============================================================
+// 6. MANTER RESULTADO AO TROCAR DE ABA (sessionStorage — some só se fechar o navegador)
+// Cobre a prévia principal (arquivo processado) e a Consulta à Base Salva. Os
+// painéis de indicadores (Por Dia/Semana/Mês/Estouro) continuam recarregando
+// ao voltar pra aba, já que dependem de filtros próprios e consultam o banco rápido.
+// ============================================================
+const CHAVE_ESTADO_PROCESSAMENTO_2ART = 'estado_2art_processamento';
+const CHAVE_ESTADO_CONSULTA_2ART = 'estado_2art_consulta';
+
+function salvarEstadoProcessamento(qtdArquivos, revenda, statusTexto) {
+  salvarEstadoPagina(CHAVE_ESTADO_PROCESSAMENTO_2ART, {
+    baseProcessada,
+    colunasFinais,
+    resumoArgs: { qtdArquivos, qtdRegistros: baseProcessada.length, revenda, qtdColunas: colunasFinais.length },
+    statusTexto,
+    filtros: {
+      revenda: document.getElementById('filtroRevenda2art').value,
+      mes: document.getElementById('filtroMes2art').value,
+      dataDe: document.getElementById('filtroDataDe2art').value,
+      dataAte: document.getElementById('filtroDataAte2art').value
+    }
+  });
+}
+
+function salvarEstadoConsulta(statusTexto) {
+  salvarEstadoPagina(CHAVE_ESTADO_CONSULTA_2ART, {
+    filtros: {
+      revenda: document.getElementById('consultaRevenda').value,
+      mes: document.getElementById('consultaMes').value,
+      dataDe: document.getElementById('consultaDataDe').value,
+      dataAte: document.getElementById('consultaDataAte').value
+    },
+    resultadoConsultaBanco,
+    ultimoFiltroConsultaBanco,
+    statusTexto
+  });
+}
+
+(function restaurarEstado2art() {
+  const estadoProc = carregarEstadoPagina(CHAVE_ESTADO_PROCESSAMENTO_2ART);
+  if (estadoProc && estadoProc.baseProcessada && estadoProc.baseProcessada.length) {
+    baseProcessada = estadoProc.baseProcessada;
+    colunasFinais = estadoProc.colunasFinais;
+    const r = estadoProc.resumoArgs;
+    atualizarResumo(r.qtdArquivos, r.qtdRegistros, r.revenda, r.qtdColunas);
+    popularFiltroRevenda2art();
+    popularFiltroMes2art();
+    document.getElementById('filtroRevenda2art').value = estadoProc.filtros.revenda || '';
+    document.getElementById('filtroMes2art').value = estadoProc.filtros.mes || '';
+    document.getElementById('filtroDataDe2art').value = estadoProc.filtros.dataDe || '';
+    document.getElementById('filtroDataAte2art').value = estadoProc.filtros.dataAte || '';
+    aplicarFiltros2art();
+    document.getElementById('cardResumo').classList.remove('d-none');
+    document.getElementById('cardPreview').classList.remove('d-none');
+    document.getElementById('statusProcessamento').textContent = estadoProc.statusTexto || '';
+  }
+
+  const estadoConsulta = carregarEstadoPagina(CHAVE_ESTADO_CONSULTA_2ART);
+  if (estadoConsulta && estadoConsulta.resultadoConsultaBanco && estadoConsulta.resultadoConsultaBanco.length) {
+    document.getElementById('consultaRevenda').value = estadoConsulta.filtros.revenda || '';
+    document.getElementById('consultaMes').value = estadoConsulta.filtros.mes || '';
+    document.getElementById('consultaDataDe').value = estadoConsulta.filtros.dataDe || '';
+    document.getElementById('consultaDataAte').value = estadoConsulta.filtros.dataAte || '';
+
+    resultadoConsultaBanco = estadoConsulta.resultadoConsultaBanco;
+    ultimoFiltroConsultaBanco = estadoConsulta.ultimoFiltroConsultaBanco;
+    renderizarConsultaBanco();
+    document.getElementById('statusConsultaBanco').textContent = estadoConsulta.statusTexto || '';
+    document.getElementById('btnBaixarTxtConsulta').disabled = false;
+    document.getElementById('btnBaixarExcelConsulta').disabled = false;
+    document.getElementById('btnExcluirConsulta').disabled = false;
+  }
+})();
+</script>
+</body>
+</html>

@@ -10,179 +10,285 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="estado-sessao.js"></script>
 <style>
-  * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-  body { background: #f0f7ff; padding-bottom: 3rem; }
-  .card-shadow {
-    box-shadow: 0 12px 28px rgba(0, 80, 200, 0.08), 0 4px 12px rgba(0, 40, 100, 0.04);
-    border: none;
-    border-radius: 1.25rem;
-    background: rgba(255,255,255,0.75);
-    backdrop-filter: blur(2px);
+  :root {
+    --brand-50:  #eef4ff; --brand-100: #dce8ff; --brand-200: #b3ceff;
+    --brand-500: #245bc7; --brand-600: #1c4aa8; --brand-700: #163a85;
+    --ink-900: #101828; --ink-700: #344054; --ink-500: #667085; --ink-400: #98a2b3;
+    --surface-0: #ffffff; --surface-1: #e9edf4; --surface-2: #eef2f8;
+    --border-soft: #e3e8f0; --border-strong: #c9d3e0;
+    --success: #0f9d58; --success-bg: #e6f7ee; --danger: #c0362c; --danger-bg: #fbeae8;
+    --radius-lg: 1rem; --radius-md: 0.7rem; --radius-sm: 0.5rem;
+    --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+    --shadow-pop: 0 4px 10px rgba(16,24,40,.10), 0 12px 32px rgba(16,24,40,.10);
+    --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem;
+    --space-5: 1.5rem; --space-6: 2rem; --space-7: 2.5rem;
   }
+  * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  html { -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--surface-1); color: var(--ink-700); padding-bottom: 4rem; overflow-x: hidden; }
+  h1, h2, h3, h4, h5, h6 { color: var(--ink-900); letter-spacing: -0.01em; }
+  .text-primary-dark { color: var(--brand-700) !important; }
+  .text-muted-ink { color: var(--ink-500) !important; }
+  small, .small { color: var(--ink-500); }
+
+  .card-shadow {
+    box-shadow: var(--shadow-card); border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg); background: var(--surface-0);
+  }
+  .section-head { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-4); }
+  .section-head > div { min-width: 0; }
+  .section-head .icon-chip {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    background: var(--brand-50); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; flex-shrink: 0;
+  }
+  .section-head h5 { font-weight: 700; font-size: 1.05rem; margin-bottom: .1rem; }
+  .section-head p { margin-bottom: 0; font-size: .84rem; color: var(--ink-500); max-width: 62ch; }
   .step-badge {
     width: 28px; height: 28px; border-radius: 50%;
-    background: #2b7af0; color: white;
+    background: var(--brand-500); color: white;
     display: inline-flex; align-items: center; justify-content: center;
     font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
   }
   .upload-zone {
-    border: 2px dashed #b8d4ff;
-    border-radius: 1rem;
-    background: #f9fcff;
+    border: 2px dashed var(--brand-200);
+    border-radius: var(--radius-md);
+    background: var(--surface-1);
     padding: 1.75rem;
     text-align: center;
     transition: all 0.15s;
     cursor: pointer;
   }
-  .upload-zone:hover { border-color: #3f7fef; background: #f0f7ff; }
-  .upload-zone.dragover { border-color: #3f7fef; background: #e6f0ff; }
-  .btn-primary-soft {
-    background: #d4e3ff; border: 1px solid #b0cbff; color: #0a3e7c;
-  }
-  .btn-primary-soft:hover { background: #b8d0ff; border-color: #8ab0ff; color: #0a3e7c; }
+  .upload-zone:hover { border-color: var(--brand-500); background: var(--brand-50); }
+  .upload-zone.dragover { border-color: var(--brand-500); background: var(--brand-50); }
+  #barraImportacao { transition: all 0.15s; }
+  #barraImportacao.dragover { outline: 2px dashed var(--brand-500); outline-offset: -2px; background: var(--brand-50); }
+
+  .btn { font-weight: 600; letter-spacing: -0.005em; }
+  .btn-primary-brand { background: var(--brand-500); border: 1px solid var(--brand-500); color: #fff; }
+  .btn-primary-brand:hover { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+  .btn-primary-brand:disabled { background: var(--brand-200); border-color: var(--brand-200); opacity: .7; }
+  .btn-primary-soft { background: var(--brand-50); border: 1px solid var(--brand-100); color: var(--brand-700); }
+  .btn-primary-soft:hover { background: var(--brand-100); border-color: var(--brand-200); color: var(--brand-700); }
   .btn-primary-soft:disabled { opacity: .5; cursor: not-allowed; }
-  .btn-excel { background: #1e7b4b; border: none; color: white; }
-  .btn-excel:hover { background: #13653b; color: white; }
-  .btn-excel:disabled { background: #9bbfab; }
-  .text-primary-dark { color: #0a3e7c; }
-  .badge-revenda { background: #e6f0ff; color: #0a3e7c; border: 1px solid #b8d4ff; }
-  .table-preview-wrap { max-height: 480px; overflow: auto; }
-  .table-preview-wrap table { font-size: 0.8rem; }
+  .btn-excel { background: #1a7a4c; border: 1px solid #1a7a4c; color: white; }
+  .btn-excel:hover { background: #15603c; border-color: #15603c; color: white; }
+  .btn-excel:disabled { background: #a7c9b6; border-color: #a7c9b6; }
+  .btn-outline-secondary { border-color: var(--border-strong); color: var(--ink-700); }
+  .btn-outline-danger { border-color: #e3aaa5; }
+
+  .form-label { font-size: .78rem; font-weight: 600; color: var(--ink-700); }
+  .form-control, .form-select { border-color: var(--border-strong); font-size: .88rem; }
+  .form-control:focus, .form-select:focus { border-color: var(--brand-500); box-shadow: 0 0 0 .2rem var(--brand-50); }
+
+  .text-primary-dark { color: var(--brand-700); }
+  .badge-revenda { background: var(--brand-50); color: var(--brand-700); border: 1px solid var(--brand-100); }
+  .table-preview-wrap { max-height: 480px; overflow: auto; border-radius: var(--radius-md); }
+  .table-preview-wrap table { font-size: 0.8rem; margin-bottom: 0; }
   .table-preview-wrap thead th {
-    position: sticky; top: 0; background: #dceaff; z-index: 1;
+    position: sticky; top: 0; background: var(--surface-2); color: var(--ink-700); z-index: 1;
+    text-align: center; vertical-align: middle; white-space: normal;
+    font-size: .74rem; text-transform: uppercase; letter-spacing: .03em; font-weight: 700;
+    border-color: var(--border-soft);
   }
-  .stat-box {
-    background: #f9fcff; border: 1px solid #d6e6ff; border-radius: 0.9rem;
-    padding: 0.9rem 1.1rem;
-  }
+  .table-preview-wrap tbody td { border-color: var(--border-soft); vertical-align: middle; }
+  .table-hover > tbody > tr:hover > * { background-color: var(--brand-50); }
+
+  .stat-box { background: var(--surface-1); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: .9rem 1.1rem; }
+  .stat-box .stat-label { font-size: .74rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .03em; }
+  .stat-box .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+  .stat-box.stat-danger .stat-value { color: var(--danger); }
+
   .toast-custom {
     position: fixed; top: 20px; right: 20px; z-index: 9999;
     max-width: 350px; min-width: 250px; animation: slideIn 0.3s ease;
+    box-shadow: var(--shadow-pop);
   }
   @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
   .progress-thin { height: 6px; }
-  .navbar-site {
-    background: rgba(255,255,255,0.75);
-    backdrop-filter: blur(2px);
-    border-radius: 1rem;
-    box-shadow: 0 12px 28px rgba(0, 80, 200, 0.08), 0 4px 12px rgba(0, 40, 100, 0.04);
-    margin-top: 1rem;
+
+  .navbar-site { background: var(--surface-0); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); margin-top: 1rem; }
+  .navbar-site .navbar-brand { display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .brand-mark {
+    width: 32px; height: 32px; border-radius: .55rem; background: var(--brand-500); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
   }
-  .navbar-site .nav-link {
-    color: #0a3e7c;
-    font-weight: 500;
-    border-radius: 0.6rem;
-    padding: 0.5rem 1rem;
-    transition: background 0.15s;
+  .navbar-site .brand-text { line-height: 1.05; }
+  .navbar-site .brand-text .sub { display: block; font-size: .66rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .05em; }
+  .navbar-site .nav-link { color: var(--ink-700); font-weight: 600; font-size: .88rem; border-radius: var(--radius-sm); padding: .5rem .85rem; transition: background 0.15s, color .15s; }
+  .navbar-site .nav-link:hover { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .nav-link.active { background: var(--brand-500); color: #fff !important; }
+  .navbar-site .nav-item.dropdown.section-active > .nav-link { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-menu { border: 1px solid var(--border-soft); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); padding: .4rem; margin-top: .4rem; }
+  .navbar-site .dropdown-item { border-radius: var(--radius-sm); font-size: .86rem; font-weight: 500; color: var(--ink-700); padding: .5rem .65rem; display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .dropdown-item i { color: var(--brand-500); width: 1.1em; text-align: center; }
+  .navbar-site .dropdown-item:hover, .navbar-site .dropdown-item:focus { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-item.active { background: var(--brand-500); color: #fff; }
+  .navbar-site .dropdown-item.active i { color: #fff; }
+
+  .breadcrumb-trail { font-size: .78rem; color: var(--ink-500); margin-bottom: .35rem; }
+  .breadcrumb-trail i { font-size: .65rem; vertical-align: middle; margin: 0 .3rem; }
+  .page-header { margin-bottom: var(--space-4); }
+  .page-header h3 { font-weight: 700; font-size: 1.5rem; }
+
+  .info-card {
+    display: flex; gap: var(--space-3); align-items: flex-start;
+    background: var(--brand-50); border: 1px solid var(--brand-100);
+    border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
   }
-  .navbar-site .nav-link:hover { background: #eaf3ff; }
-  .navbar-site .nav-link.active {
-    background: #2b7af0;
-    color: #fff !important;
+  .info-card .info-card-icon {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--surface-0); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+    box-shadow: 0 1px 2px rgba(16,24,40,.06);
   }
+  .info-card p { color: var(--ink-700); font-size: .88rem; margin-bottom: .6rem; max-width: 78ch; }
+  .info-card p:last-child { margin-bottom: 0; }
+  .info-card .info-card-ref {
+    display: flex; gap: .5rem; align-items: flex-start;
+    background: var(--surface-0); border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+    padding: .55rem .75rem; font-size: .78rem; color: var(--ink-500); max-width: 78ch;
+  }
+  .info-card .info-card-ref i { color: var(--brand-500); margin-top: .15rem; flex-shrink: 0; }
+  .info-card .info-card-ref strong { color: var(--ink-700); }
 </style>
 </head>
 <body>
   <div class="container">
     <nav class="navbar navbar-expand-lg navbar-site px-3 py-2 mb-2">
       <div class="container-fluid px-0">
-        <a class="navbar-brand fw-semibold text-primary-dark" href="index.html">
-          <i class="bi bi-grid-1x2-fill me-2" style="color:#2b7af0;"></i>Painel OT
+        <a class="navbar-brand" href="index.html">
+          <span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span>
+          <span class="brand-text"><span class="sub">Painel</span>OT</span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir menu">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="menuPrincipal">
-          <ul class="navbar-nav ms-auto gap-1">
+          <ul class="navbar-nav ms-auto gap-1 align-items-lg-center">
             <li class="nav-item">
               <a class="nav-link" href="index.html"><i class="bi bi-journal-richtext me-1"></i>Diário de Tratativas</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="tratativageo.html"><i class="bi bi-geo-alt-fill me-1"></i>Geolocalizador</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link active" aria-current="page" href="tratamento-dados.html"><i class="bi bi-truck me-1"></i>Tratamento de Base</a>
+            <li class="nav-item dropdown section-active">
+              <a class="nav-link dropdown-toggle" href="#" id="menuImportacao" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-cloud-arrow-up-fill me-1"></i>Importação de Dados
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuImportacao">
+                <li><a class="dropdown-item active" aria-current="page" href="tratamento-dados.html"><i class="bi bi-truck"></i>Tratamento de Base</a></li>
+                <li><a class="dropdown-item" href="tratamento-2art.html"><i class="bi bi-files"></i>Base 2art</a></li>
+                <li><a class="dropdown-item" href="tratamento-clientes.html"><i class="bi bi-people-fill"></i>Base de Clientes</a></li>
+              </ul>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="menuAnalises" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-graph-up-arrow me-1"></i>Consultas &amp; Análises
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuAnalises">
+                <li><a class="dropdown-item" href="consulta-mapa.html"><i class="bi bi-signpost-2-fill"></i>Consulta por Mapa</a></li>
+                <li><a class="dropdown-item" href="vinculo-tabelas.html"><i class="bi bi-link-45deg"></i>Vínculo de Tabelas</a></li>
+                <li><a class="dropdown-item" href="ranking-estouro.html"><i class="bi bi-graph-up-arrow"></i>Ranking de Estouro</a></li>
+              </ul>
             </li>
           </ul>
         </div>
       </div>
     </nav>
   </div>
+
+  <!-- BARRA COMPACTA DE IMPORTAÇÃO — funciona como sub-navegação, sempre visível -->
+  <div class="container">
+    <div class="card card-shadow px-3 py-2 mb-2" id="barraImportacao">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <button class="btn btn-sm btn-outline-primary" id="btnEscolherArquivo" type="button" title="Aceita .xlsx ou .xls exportado do sistema (aba &quot;Export&quot;)">
+          <i class="bi bi-cloud-arrow-up me-1"></i> Escolher planilha
+        </button>
+        <input type="file" id="inputArquivo" accept=".xlsx,.xls" hidden>
+        <span class="text-secondary small" id="nomeArquivo">Nenhum arquivo selecionado (ou arraste aqui)</span>
+
+        <button class="btn btn-sm btn-primary-brand ms-auto" id="btnTrazerDados" disabled>
+          <i class="bi bi-database-fill-gear me-1"></i> Trazer todos os dados para tratar
+        </button>
+        <span id="statusProcessamento" class="small"></span>
+      </div>
+      <div class="progress progress-thin mt-2 d-none" id="barraProgresso">
+        <div class="progress-bar" role="progressbar" style="width: 100%"></div>
+      </div>
+    </div>
+  </div>
+
 <div class="container py-4" style="max-width: 1200px;">
 
-  <div class="mb-4">
-    <h3 class="text-primary-dark fw-bold mb-1"><i class="bi bi-truck me-2"></i>Tratamento de Base de Atendimentos</h3>
-    <p class="text-secondary mb-0">Importe a planilha exportada do sistema, clique em processar e baixe a base já tratada.</p>
+  <div class="page-header">
+    <div class="breadcrumb-trail">Importação de Dados <i class="bi bi-chevron-right"></i> Tratamento de Base</div>
+    <h3 class="text-primary-dark mb-0"><i class="bi bi-truck me-2"></i>Tratamento de Base de Atendimentos</h3>
   </div>
 
-  <!-- PASSO 1: IMPORTAR -->
-  <div class="card card-shadow p-4 mb-4">
-    <div class="d-flex align-items-center gap-2 mb-3">
-      <span class="step-badge">1</span>
-      <h5 class="text-primary-dark fw-bold mb-0">Importar Planilha</h5>
-    </div>
-    <p class="text-secondary small mb-3">Aceita arquivos .xlsx ou .xls exportados do sistema (aba "Export").</p>
-
-    <div class="upload-zone" id="uploadZone">
-      <i class="bi bi-cloud-arrow-up fs-1 text-primary" style="color:#3f7fef;"></i>
-      <p class="mb-1 mt-2 fw-semibold text-primary-dark">Arraste o arquivo aqui ou clique para selecionar</p>
-      <p class="text-secondary small mb-0" id="nomeArquivo">Nenhum arquivo selecionado</p>
-      <input type="file" id="inputArquivo" accept=".xlsx,.xls" hidden>
-    </div>
-
-    <div class="d-flex align-items-center gap-2 mt-3">
-      <button class="btn btn-primary-soft" id="btnTrazerDados" disabled>
-        <i class="bi bi-database-fill-gear me-1"></i> Trazer todos os dados para tratar
-      </button>
-      <span id="statusProcessamento" class="text-secondary small"></span>
-    </div>
-    <div class="progress progress-thin mt-2 d-none" id="barraProgresso">
-      <div class="progress-bar" role="progressbar" style="width: 100%"></div>
+  <div class="info-card mb-4">
+    <span class="info-card-icon"><i class="bi bi-info-circle-fill"></i></span>
+    <div>
+      <p class="mb-0">Importe a planilha exportada do sistema, clique em processar e baixe a base já tratada.</p>
     </div>
   </div>
 
-  <!-- PASSO 2: RESUMO -->
+  <!-- PASSO 1: RESUMO -->
   <div class="card card-shadow p-4 mb-4 d-none" id="cardResumo">
-    <div class="d-flex align-items-center gap-2 mb-3">
-      <span class="step-badge">2</span>
-      <h5 class="text-primary-dark fw-bold mb-0">Resumo do Processamento</h5>
+    <div class="section-head">
+      <span class="icon-chip"><i class="bi bi-clipboard-data-fill"></i></span>
+      <div><h5 class="mb-0">Resumo do Processamento</h5></div>
     </div>
     <div class="row g-3">
       <div class="col-6 col-md-3">
         <div class="stat-box">
-          <div class="text-secondary small">Linhas processadas</div>
-          <div class="fs-4 fw-bold text-primary-dark" id="statTotal">0</div>
+          <div class="stat-label">Linhas processadas</div>
+          <div class="stat-value" id="statTotal">0</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="stat-box">
-          <div class="text-secondary small">Revendas identificadas</div>
-          <div class="fs-4 fw-bold text-primary-dark" id="statRevendas">0</div>
+          <div class="stat-label">Revendas identificadas</div>
+          <div class="stat-value" id="statRevendas">0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-box stat-danger">
+          <div class="stat-label">Sem revenda mapeada</div>
+          <div class="stat-value" id="statSemRevenda">0</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="stat-box">
-          <div class="text-secondary small">Sem revenda mapeada</div>
-          <div class="fs-4 fw-bold text-danger" id="statSemRevenda">0</div>
+          <div class="stat-label">Status "Concluído"</div>
+          <div class="stat-value" id="statConcluido">0</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <div class="stat-box">
-          <div class="text-secondary small">Status "Concluído"</div>
-          <div class="fs-4 fw-bold text-primary-dark" id="statConcluido">0</div>
+        <div class="stat-box stat-danger">
+          <div class="stat-label">Linhas duplicadas removidas</div>
+          <div class="stat-value" id="statDuplicadas">0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-box stat-danger">
+          <div class="stat-label">Datas suspeitas <span class="fw-normal">(fora do intervalo)</span></div>
+          <div class="stat-value" id="statDatasSuspeitas">0</div>
         </div>
       </div>
     </div>
     <div class="mt-3" id="badgesRevenda"></div>
   </div>
 
-  <!-- PASSO 3: PREVIEW + DOWNLOAD -->
+  <!-- PASSO 2: PREVIEW + DOWNLOAD -->
   <div class="card card-shadow p-4 d-none" id="cardPreview">
     <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-      <div class="d-flex align-items-center gap-2">
-        <span class="step-badge">3</span>
-        <h5 class="text-primary-dark fw-bold mb-0">Prévia e Download</h5>
+      <div class="section-head mb-0">
+        <span class="icon-chip"><i class="bi bi-table"></i></span>
+        <div><h5 class="mb-0">Prévia e Download</h5></div>
       </div>
       <button class="btn btn-excel" id="btnBaixarExcel">
         <i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel Tratado
@@ -229,15 +335,17 @@
 
   <!-- ANÁLISE POR PDV (disponível sem precisar importar/processar arquivo) -->
   <div class="card card-shadow p-4 mt-4" id="cardAnalisePdv">
-    <div class="d-flex align-items-center gap-2 mb-3">
-      <span class="step-badge"><i class="bi bi-search"></i></span>
-      <h5 class="text-primary-dark fw-bold mb-0">Análise por PDV (Cod_cliente)</h5>
+    <div class="section-head">
+      <span class="icon-chip"><i class="bi bi-search"></i></span>
+      <div>
+        <h5 class="mb-0">Análise por PDV (Cod_cliente)</h5>
+        <p>
+          Busca direto no banco de dados — não precisa importar arquivo nesta página para usar.
+          Considera as 10 tours mais recentes do cliente (pela Data). As médias e medianas de tempo, peso e volume
+          usam apenas, dentre essas 10, as tours com Status "Concluído" e Dentro_do_raio verdadeiro.
+        </p>
+      </div>
     </div>
-    <p class="text-secondary small mb-3">
-      Busca direto no banco de dados — não precisa importar arquivo nesta página para usar.
-      Considera as 10 tours mais recentes do cliente (pela Data). As médias e medianas de tempo, peso e volume
-      usam apenas, dentre essas 10, as tours com Status "Concluído" e Dentro_do_raio verdadeiro.
-    </p>
 
     <div class="row g-2 mb-3 align-items-end">
       <div class="col-6 col-md-3">
@@ -252,20 +360,20 @@
         <datalist id="listaCodClientes"></datalist>
       </div>
       <div class="col-6 col-md-2">
-        <button class="btn btn-sm btn-primary-soft w-100" id="btnAnalisarPdv">Analisar</button>
+        <button class="btn btn-sm btn-primary-brand w-100" id="btnAnalisarPdv">Analisar</button>
       </div>
     </div>
 
     <div id="resultadoAnalisePdv" class="d-none">
       <div class="row g-2 mb-3">
         <div class="col-6 col-md-4">
-          <div class="stat-box"><div class="text-secondary small">Revenda</div><div class="fs-5 fw-bold text-primary-dark" id="pdvRevenda">-</div></div>
+          <div class="stat-box"><div class="stat-label">Revenda</div><div class="stat-value" id="pdvRevenda">-</div></div>
         </div>
         <div class="col-6 col-md-4">
-          <div class="stat-box"><div class="text-secondary small">Cod_cliente</div><div class="fs-5 fw-bold text-primary-dark" id="pdvCodCliente">-</div></div>
+          <div class="stat-box"><div class="stat-label">Cod_cliente</div><div class="stat-value" id="pdvCodCliente">-</div></div>
         </div>
         <div class="col-6 col-md-4">
-          <div class="stat-box"><div class="text-secondary small">Apontamentos usados no cálculo</div><div class="fs-5 fw-bold text-primary-dark" id="pdvQtdApontamentos">-</div></div>
+          <div class="stat-box"><div class="stat-label">Apontamentos usados</div><div class="stat-value" id="pdvQtdApontamentos">-</div></div>
         </div>
       </div>
 
@@ -295,20 +403,20 @@
 
       <div class="row g-3 mb-3">
         <div class="col-6 col-md-3">
-          <div class="stat-box"><div class="text-secondary small">Raio (das 10 tours)</div><div class="fs-4 fw-bold text-primary-dark" id="pdvRaio">-</div></div>
+          <div class="stat-box"><div class="stat-label">Raio (10 tours)</div><div class="stat-value" id="pdvRaio">-</div></div>
         </div>
         <div class="col-6 col-md-3">
-          <div class="stat-box"><div class="text-secondary small">Entrega Concluída (das 10 tours)</div><div class="fs-4 fw-bold text-primary-dark" id="pdvConcluido">-</div></div>
+          <div class="stat-box"><div class="stat-label">Entrega Concluída (10 tours)</div><div class="stat-value" id="pdvConcluido">-</div></div>
         </div>
         <div class="col-6 col-md-3">
-          <div class="stat-box"><div class="text-secondary small">Média Peso</div><div class="fs-4 fw-bold text-primary-dark" id="pdvMediaPeso">-</div></div>
+          <div class="stat-box"><div class="stat-label">Média Peso</div><div class="stat-value" id="pdvMediaPeso">-</div></div>
         </div>
         <div class="col-6 col-md-3">
-          <div class="stat-box"><div class="text-secondary small">Média Volume</div><div class="fs-4 fw-bold text-primary-dark" id="pdvMediaVolume">-</div></div>
+          <div class="stat-box"><div class="stat-label">Média Volume</div><div class="stat-value" id="pdvMediaVolume">-</div></div>
         </div>
       </div>
 
-      <p class="text-secondary small mb-2">10 tours mais recentes do PDV (a coluna "Usado no cálculo" marca as que entraram nas médias/medianas):</p>
+      <p class="small mb-2">10 tours mais recentes do PDV (a coluna "Usado no cálculo" marca as que entraram nas médias/medianas):</p>
       <div class="table-preview-wrap border rounded-3" style="max-height:300px;">
         <table class="table table-hover table-bordered table-sm mb-0 align-middle" style="font-size:0.8rem;">
           <thead>
@@ -322,6 +430,67 @@
     </div>
 
     <div id="pdvSemResultado" class="text-secondary small d-none">Nenhum apontamento encontrado para esse Cod_cliente.</div>
+  </div>
+
+  <!-- CONSULTA E EXCLUSÃO DA BASE SALVA (compacta, recolhida por padrão) -->
+  <div class="card card-shadow p-3 mt-4" id="cardConsultaBanco">
+    <button class="btn btn-sm btn-link text-decoration-none p-0 d-flex align-items-center gap-2 w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#collapseConsultaBanco" aria-expanded="false" aria-controls="collapseConsultaBanco">
+      <span class="icon-chip" style="width:28px;height:28px;font-size:.85rem;"><i class="bi bi-search"></i></span>
+      <span class="fw-semibold text-primary-dark small">Consultar / Excluir Base Salva</span>
+      <i class="bi bi-chevron-down ms-auto small text-secondary"></i>
+    </button>
+
+    <div class="collapse mt-3" id="collapseConsultaBanco">
+      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+        <p class="small mb-0">Busca direto no banco de dados (tabela <code>atendimentos</code>) — não depende de ter processado um arquivo nesta sessão.</p>
+        <button class="btn btn-sm btn-excel" id="btnBaixarExcelConsulta" disabled>
+          <i class="bi bi-file-earmark-excel me-1"></i> Excel
+        </button>
+      </div>
+
+      <div class="row g-2 mb-2 align-items-end">
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Revenda</label>
+          <select class="form-select form-select-sm" id="consultaRevenda">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Data de</label>
+          <input type="date" class="form-control form-control-sm" id="consultaDataDe">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Data até</label>
+          <input type="date" class="form-control form-control-sm" id="consultaDataAte">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Mapa <small class="text-secondary fw-normal">(exato)</small></label>
+          <input type="text" class="form-control form-control-sm" id="consultaMapa" placeholder="Ex: 12345">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-secondary mb-1">Cod_cliente <small class="text-secondary fw-normal">(exato)</small></label>
+          <input type="text" class="form-control form-control-sm" id="consultaCodCliente" placeholder="Ex: 6789">
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+        <button class="btn btn-sm btn-primary-soft" id="btnBuscarBanco"><i class="bi bi-search me-1"></i>Buscar</button>
+        <button class="btn btn-sm btn-outline-secondary" id="btnLimparConsulta"><i class="bi bi-x-circle me-1"></i>Limpar filtros</button>
+        <button class="btn btn-sm btn-outline-danger" id="btnExcluirConsulta" disabled>
+          <i class="bi bi-trash3 me-1"></i>Excluir estes registros
+        </button>
+        <span id="statusConsultaBanco" class="text-secondary small"></span>
+      </div>
+
+      <p class="text-secondary small mb-2" id="infoConsultaBanco"></p>
+      <div class="table-preview-wrap border rounded-3" style="max-height: 360px;">
+        <table class="table table-hover table-bordered mb-0 align-middle" style="font-size:0.8rem;">
+          <thead>
+            <tr id="theadConsulta"></tr>
+          </thead>
+          <tbody id="tbodyConsulta"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -352,7 +521,9 @@ const COLUNAS_FINAIS = {
   'Cód_Revenda': 'Revenda',
   'tour_date': 'Data',
   'tour_display_id_original': 'Mapa',
+  'Chave-Mapa': 'Chave-Mapa',
   'Cod_cliente': 'Cod_cliente',
+  'Chave-PDV': 'Chave-PDV',
   'Placa': 'Placa',
   'Chegou_em': 'Chegou_em',
   'Finalizada_em': 'Finalizada_em',
@@ -372,6 +543,13 @@ let baseTratada = [];   // array de objetos já com as colunas finais (valores "
 let basePreview = [];   // mesmos dados, formatados como texto para exibição em tela
 let filtroIndices = []; // índices de baseTratada/basePreview que passam nos filtros ativos (Revenda, Data, Mapa)
 
+// Se a planilha de origem usa o sistema de data 1904 do Excel (comum em exports
+// do Power BI, usado pra permitir horas negativas), os números seriais de data
+// precisam ser lidos com esse epoch — senão toda data sai ~1462 dias errada
+// (4 anos no futuro). Setado em processarArquivo() a partir de
+// workbook.Workbook.WBProps.date1904, antes de qualquer paraData() ser chamado.
+let workbookDate1904 = false;
+
 // ============================================================
 // 1. UTILITÁRIOS DE DATA / TEMPO
 // ============================================================
@@ -381,8 +559,8 @@ function paraData(valor) {
   if (valor === null || valor === undefined || valor === '') return null;
   if (valor instanceof Date && !isNaN(valor)) return valor;
   if (typeof valor === 'number') {
-    // número serial do Excel
-    const data = XLSX.SSF.parse_date_code(valor);
+    // número serial do Excel — respeita o epoch (1900 ou 1904) da planilha de origem
+    const data = XLSX.SSF.parse_date_code(valor, { date1904: workbookDate1904 });
     if (!data) return null;
     return new Date(data.y, data.m - 1, data.d, data.H || 0, data.M || 0, Math.floor(data.S || 0));
   }
@@ -448,18 +626,20 @@ function formatarMoeda(valor) {
 // ============================================================
 // 2. UPLOAD DO ARQUIVO
 // ============================================================
-const uploadZone = document.getElementById('uploadZone');
+const barraImportacao = document.getElementById('barraImportacao');
+const btnEscolherArquivo = document.getElementById('btnEscolherArquivo');
 const inputArquivo = document.getElementById('inputArquivo');
 const nomeArquivoEl = document.getElementById('nomeArquivo');
 const btnTrazerDados = document.getElementById('btnTrazerDados');
 
-uploadZone.addEventListener('click', () => inputArquivo.click());
+btnEscolherArquivo.addEventListener('click', () => inputArquivo.click());
 
-uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-uploadZone.addEventListener('drop', e => {
+// A barra inteira aceita arrastar-e-soltar o arquivo.
+barraImportacao.addEventListener('dragover', e => { e.preventDefault(); barraImportacao.classList.add('dragover'); });
+barraImportacao.addEventListener('dragleave', () => barraImportacao.classList.remove('dragover'));
+barraImportacao.addEventListener('drop', e => {
   e.preventDefault();
-  uploadZone.classList.remove('dragover');
+  barraImportacao.classList.remove('dragover');
   if (e.dataTransfer.files.length) selecionarArquivo(e.dataTransfer.files[0]);
 });
 
@@ -497,6 +677,10 @@ async function processarArquivo() {
     // usando a função paraData() abaixo.
     const workbook = XLSX.read(dadosBuffer, { type: 'array' });
 
+    // Detecta o epoch de data da planilha (1900 x 1904) ANTES de processar
+    // qualquer linha — paraData() usa essa flag pra converter os seriais certo.
+    workbookDate1904 = !!(workbook.Workbook && workbook.Workbook.WBProps && workbook.Workbook.WBProps.date1904);
+
     // Usa a aba "Export" se existir; caso contrário, a primeira aba do arquivo
     const nomeAba = workbook.SheetNames.includes('Export') ? 'Export' : workbook.SheetNames[0];
     const planilha = workbook.Sheets[nomeAba];
@@ -510,6 +694,13 @@ async function processarArquivo() {
     const resultado = tratarLinhas(linhasOrigem);
     baseTratada = resultado.tratado;
     basePreview = resultado.preview;
+
+    if (resultado.estatisticas.duplicadas > 0) {
+      mostrarToast(`⚠️ ${resultado.estatisticas.duplicadas} linha(s) duplicada(s) (mesmo Mapa + Cod_cliente + Data) detectada(s) e removida(s) antes do processamento.`, 'warning');
+    }
+    if (resultado.estatisticas.datasSuspeitas > 0) {
+      console.warn(`${resultado.estatisticas.datasSuspeitas} linha(s) com Data fora do intervalo esperado (antes de 2015 ou mais de 60 dias no futuro) — confira a coluna Data na prévia, destacada em vermelho.`);
+    }
 
     atualizarResumo(resultado.estatisticas);
     popularFiltroRevenda(resultado.estatisticas.revendas);
@@ -534,6 +725,8 @@ async function processarArquivo() {
       statusEl.textContent = `Concluído: ${baseTratada.length} linhas tratadas (falha ao salvar no banco).`;
       mostrarToast('⚠️ Base tratada, mas falhou ao salvar no banco: ' + erroBanco.message, 'warning');
     }
+
+    salvarEstadoProcessamento(resultado.estatisticas, statusEl.textContent);
   } catch (erro) {
     console.error(erro);
     statusEl.textContent = '';
@@ -544,12 +737,24 @@ async function processarArquivo() {
   }
 }
 
+// Data considerada suspeita (provável erro de leitura de epoch) fora desse intervalo.
+const DATA_MINIMA_RAZOAVEL = new Date(2015, 0, 1);
+const DIAS_FUTURO_TOLERADOS = 60;
+
+function dataForaDoEsperado(data) {
+  if (!data) return false;
+  const limiteFuturo = new Date();
+  limiteFuturo.setDate(limiteFuturo.getDate() + DIAS_FUTURO_TOLERADOS);
+  return data < DATA_MINIMA_RAZOAVEL || data > limiteFuturo;
+}
+
 function tratarLinhas(linhas) {
   const tratado = [];
   const preview = [];
   const revendasEncontradas = new Set();
   let semRevenda = 0;
   let concluido = 0;
+  let datasSuspeitas = 0;
 
   for (const linha of linhas) {
     // ---- Regra 1: mapear Cód_Revenda -> Revenda ----
@@ -583,12 +788,27 @@ function tratarLinhas(linhas) {
     const volumeNum = linha['Vol_total_entregue'] != null && linha['Vol_total_entregue'] !== ''
       ? Number(linha['Vol_total_entregue']) : null;
 
+    // Chaves compostas: Revenda-Mapa e Revenda-Cod_cliente (só existem quando a
+    // revenda foi identificada e o respectivo código está presente).
+    const chaveMapa = (revenda && mapaNum != null) ? `${revenda}-${mapaNum}` : null;
+    const chavePdv = (revenda && codClienteNum != null) ? `${revenda}-${codClienteNum}` : null;
+
+    // Data convertida uma vez só (reaproveitada no objeto cru e na checagem de intervalo).
+    const dataConvertida = paraData(linha['tour_date']);
+    const dataSuspeita = dataForaDoEsperado(dataConvertida);
+    if (dataSuspeita) {
+      datasSuspeitas++;
+      console.warn('Data fora do intervalo esperado (confira o epoch 1900/1904 da planilha):', linha['tour_date'], '->', dataConvertida);
+    }
+
     // Objeto "cru" (para exportar ao Excel, com datas como Date de verdade)
     const linhaFinal = {
       'Revenda': revenda,
-      'Data': paraData(linha['tour_date']),
+      'Data': dataConvertida,
       'Mapa': mapaNum,
+      'Chave-Mapa': chaveMapa,
       'Cod_cliente': codClienteNum,
+      'Chave-PDV': chavePdv,
       'Placa': linha['Placa'] ?? null,
       'Chegou_em': formatarHora(linha['Chegou_em']),
       'Finalizada_em': formatarHora(linha['Finalizada_em']),
@@ -606,10 +826,13 @@ function tratarLinhas(linhas) {
 
     // Objeto formatado (só texto, para exibir em tela)
     preview.push({
+      '_dataSuspeita': dataSuspeita,
       'Revenda': revenda || '—',
-      'Data': formatarData(linha['tour_date']),
+      'Data': formatarData(dataConvertida),
       'Mapa': mapaNum ?? '',
+      'Chave-Mapa': chaveMapa || '',
       'Cod_cliente': codClienteNum ?? '',
+      'Chave-PDV': chavePdv || '',
       'Placa': linha['Placa'] ?? '',
       'Chegou_em': formatarHora(linha['Chegou_em']),
       'Finalizada_em': formatarHora(linha['Finalizada_em']),
@@ -625,16 +848,47 @@ function tratarLinhas(linhas) {
     });
   }
 
+  // Remove linhas duplicadas (mesmo Mapa + Cod_cliente + Data) antes de devolver —
+  // exports tipo Tempo-PDV-Bees podem trazer a mesma linha repetida de fábrica.
+  // Não usa só uma coluna Chave (ela se repete legitimamente em visitas
+  // recorrentes) — a chave de dedup é o mesmo trio que identifica um registro
+  // de verdade no banco (é o "onConflict" do upsert em salvarBaseTratada).
+  const { unicas: tratadoUnico, indicesRemovidos, duplicadas } = deduplicarLinhas(
+    tratado, l => (l['Mapa'] != null && l['Cod_cliente'] != null && l['Data'])
+      ? `${l['Mapa']}|${l['Cod_cliente']}|${l['Data'].getTime()}`
+      : null // sem os 3 campos não dá pra confirmar duplicidade com segurança — nunca remove
+  );
+  const previewUnico = preview.filter((_, i) => !indicesRemovidos.has(i));
+
   return {
-    tratado,
-    preview,
+    tratado: tratadoUnico,
+    preview: previewUnico,
     estatisticas: {
-      total: tratado.length,
+      total: tratadoUnico.length,
       revendas: Array.from(revendasEncontradas).sort(),
       semRevenda,
-      concluido
+      concluido,
+      duplicadas,
+      datasSuspeitas
     }
   };
+}
+
+// Deduplicação genérica por chave: "gerarChave(linha)" devolve a chave de
+// identidade do registro, ou null quando não dá pra checar com segurança (nesse
+// caso a linha NUNCA é considerada duplicata, só é removida duplicidade certa).
+function deduplicarLinhas(linhas, gerarChave) {
+  const vistas = new Set();
+  const indicesRemovidos = new Set();
+  const unicas = [];
+  linhas.forEach((linha, i) => {
+    const chave = gerarChave(linha);
+    if (chave === null) { unicas.push(linha); return; }
+    if (vistas.has(chave)) { indicesRemovidos.add(i); return; }
+    vistas.add(chave);
+    unicas.push(linha);
+  });
+  return { unicas, indicesRemovidos, duplicadas: indicesRemovidos.size };
 }
 
 // ============================================================
@@ -645,6 +899,8 @@ function atualizarResumo(stats) {
   document.getElementById('statRevendas').textContent = stats.revendas.length;
   document.getElementById('statSemRevenda').textContent = stats.semRevenda.toLocaleString('pt-BR');
   document.getElementById('statConcluido').textContent = stats.concluido.toLocaleString('pt-BR');
+  document.getElementById('statDuplicadas').textContent = (stats.duplicadas || 0).toLocaleString('pt-BR');
+  document.getElementById('statDatasSuspeitas').textContent = (stats.datasSuspeitas || 0).toLocaleString('pt-BR');
 
   const badgesEl = document.getElementById('badgesRevenda');
   badgesEl.innerHTML = stats.revendas.map(r => `<span class="badge badge-revenda me-1">${r}</span>`).join('');
@@ -662,7 +918,7 @@ function atualizarPreview() {
   const linhasFiltradas = filtroIndices.map(i => basePreview[i]);
   const linhasParaExibir = linhasFiltradas.slice(0, LIMITE_PREVIEW);
   tbody.innerHTML = linhasParaExibir.map(linha => `
-    <tr>${colunas.map(c => `<td>${linha[c] ?? ''}</td>`).join('')}</tr>
+    <tr${linha['_dataSuspeita'] ? ' class="table-danger" title="Data fora do intervalo esperado (antes de 2015 ou muito no futuro) — confira o arquivo de origem"' : ''}>${colunas.map(c => `<td>${linha[c] ?? ''}</td>`).join('')}</tr>
   `).join('');
 
   document.getElementById('qtdPreview').textContent = linhasParaExibir.length.toLocaleString('pt-BR');
@@ -856,7 +1112,9 @@ function converterLinhaBancoParaLinhaPadrao(l) {
     'Revenda': l.revenda,
     'Data': l.data ? new Date(l.data + 'T00:00:00') : null,
     'Mapa': l.mapa,
+    'Chave-Mapa': l.chave_mapa,
     'Cod_cliente': l.cod_cliente,
+    'Chave-PDV': l.chave_pdv,
     'Placa': l.placa,
     'Chegou_em': l.chegou_em,
     'Finalizada_em': l.finalizada_em,
@@ -994,7 +1252,9 @@ function converterParaLinhaBanco(linha) {
     revenda: linha['Revenda'],
     data: formatarDataISO(linha['Data']),
     mapa: linha['Mapa'],
+    chave_mapa: linha['Chave-Mapa'],
     cod_cliente: linha['Cod_cliente'],
+    chave_pdv: linha['Chave-PDV'],
     placa: linha['Placa'],
     chegou_em: linha['Chegou_em'] || null,
     finalizada_em: linha['Finalizada_em'] || null,
@@ -1028,6 +1288,199 @@ async function salvarBaseTratada(dados) {
 }
 
 // ============================================================
+// 8. CONSULTA E EXCLUSÃO DA BASE SALVA (tabela "atendimentos")
+// ============================================================
+function popularFiltroRevendaConsulta(revendas) {
+  const select = document.getElementById('consultaRevenda');
+  select.innerHTML = '<option value="">Todas</option>' +
+    revendas.map(r => `<option value="${r}">${r}</option>`).join('');
+}
+popularFiltroRevendaConsulta(Array.from(new Set(Object.values(MAPA_REVENDA))));
+
+let resultadoConsultaBanco = [];
+let ultimoFiltroConsultaBanco = null; // guarda os filtros da última busca, pra exclusão usar exatamente o mesmo critério
+const LIMITE_CONSULTA_BANCO = 2000;
+const TAMANHO_PAGINA_BANCO = 1000;
+
+// Busca todas as linhas que batem no filtro, paginando de 1000 em 1000 (limite do Supabase por request).
+async function buscarTodasLinhasBanco(montarQuery, limiteMaximo) {
+  let todasLinhas = [];
+  let pagina = 0;
+  while (true) {
+    let query = montarQuery(supabaseClient.from('atendimentos').select('*'))
+      .order('id', { ascending: true })
+      .range(pagina * TAMANHO_PAGINA_BANCO, pagina * TAMANHO_PAGINA_BANCO + TAMANHO_PAGINA_BANCO - 1);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    todasLinhas = todasLinhas.concat(data || []);
+    if (!data || data.length < TAMANHO_PAGINA_BANCO) break;
+    if (limiteMaximo && todasLinhas.length >= limiteMaximo) break;
+    pagina++;
+  }
+  return limiteMaximo ? todasLinhas.slice(0, limiteMaximo) : todasLinhas;
+}
+
+function montarFiltrosConsulta(query, filtros) {
+  if (filtros.revendaSel) query = query.eq('revenda', filtros.revendaSel);
+  if (filtros.dataDeStr) query = query.gte('data', filtros.dataDeStr);
+  if (filtros.dataAteStr) query = query.lte('data', filtros.dataAteStr);
+  if (filtros.mapaNum !== null) query = query.eq('mapa', filtros.mapaNum);
+  if (filtros.codClienteNum !== null) query = query.eq('cod_cliente', filtros.codClienteNum);
+  return query;
+}
+
+function lerFiltrosConsulta() {
+  const revendaSel = document.getElementById('consultaRevenda').value;
+  const dataDeStr = document.getElementById('consultaDataDe').value;
+  const dataAteStr = document.getElementById('consultaDataAte').value;
+  const mapaStr = document.getElementById('consultaMapa').value.trim();
+  const codClienteStr = document.getElementById('consultaCodCliente').value.trim();
+  return {
+    revendaSel,
+    dataDeStr,
+    dataAteStr,
+    mapaNum: mapaStr ? Number(mapaStr) : null,
+    codClienteNum: codClienteStr ? Number(codClienteStr) : null
+  };
+}
+
+document.getElementById('btnBuscarBanco').addEventListener('click', buscarBanco);
+document.getElementById('btnLimparConsulta').addEventListener('click', () => {
+  document.getElementById('consultaRevenda').value = '';
+  document.getElementById('consultaDataDe').value = '';
+  document.getElementById('consultaDataAte').value = '';
+  document.getElementById('consultaMapa').value = '';
+  document.getElementById('consultaCodCliente').value = '';
+});
+
+async function buscarBanco() {
+  const filtros = lerFiltrosConsulta();
+  const statusEl = document.getElementById('statusConsultaBanco');
+  const btnBuscar = document.getElementById('btnBuscarBanco');
+  statusEl.textContent = 'Buscando...';
+  btnBuscar.disabled = true;
+
+  try {
+    ultimoFiltroConsultaBanco = filtros;
+
+    const data = await buscarTodasLinhasBanco(query => montarFiltrosConsulta(query, filtros), LIMITE_CONSULTA_BANCO);
+    resultadoConsultaBanco = data.map(converterLinhaBancoParaLinhaPadrao)
+      .sort((a, b) => (b['Data']?.getTime() || 0) - (a['Data']?.getTime() || 0));
+    renderizarConsultaBanco();
+
+    const atingiuLimite = resultadoConsultaBanco.length === LIMITE_CONSULTA_BANCO;
+    statusEl.textContent = `${resultadoConsultaBanco.length.toLocaleString('pt-BR')} linha(s) encontradas${atingiuLimite ? ' (limite atingido — refine os filtros)' : ''}.`;
+
+    const temResultado = resultadoConsultaBanco.length > 0;
+    document.getElementById('btnBaixarExcelConsulta').disabled = !temResultado;
+    document.getElementById('btnExcluirConsulta').disabled = !temResultado;
+
+    salvarEstadoConsulta(statusEl.textContent);
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToast('❌ Erro ao consultar o banco: ' + erro.message, 'danger');
+  } finally {
+    btnBuscar.disabled = false;
+  }
+}
+
+function celulaConsultaBanco(linha, coluna) {
+  switch (coluna) {
+    case 'Data': return formatarData(linha['Data']);
+    case 'Valor_total': return formatarMoeda(linha['Valor_total']);
+    case 'Peso_total_kg': return formatarNumero(linha['Peso_total_kg']);
+    case 'Volume': return formatarNumero(linha['Volume']);
+    case 'Dentro_do_raio': return ehVerdadeiro(linha['Dentro_do_raio']) ? 'Verdadeiro' : 'Falso';
+    default: return linha[coluna] ?? '';
+  }
+}
+
+function renderizarConsultaBanco() {
+  const thead = document.getElementById('theadConsulta');
+  const tbody = document.getElementById('tbodyConsulta');
+  const colunas = Object.values(COLUNAS_FINAIS);
+
+  thead.innerHTML = colunas.map(c => `<th>${c}</th>`).join('');
+
+  const linhasParaExibir = resultadoConsultaBanco.slice(0, LIMITE_PREVIEW);
+  tbody.innerHTML = linhasParaExibir.map(linha => `
+    <tr>${colunas.map(c => `<td>${celulaConsultaBanco(linha, c)}</td>`).join('')}</tr>
+  `).join('');
+
+  document.getElementById('infoConsultaBanco').textContent = resultadoConsultaBanco.length
+    ? `Exibindo as primeiras ${linhasParaExibir.length.toLocaleString('pt-BR')} de ${resultadoConsultaBanco.length.toLocaleString('pt-BR')} linhas encontradas.`
+    : 'Nenhuma linha encontrada pra esses filtros.';
+}
+
+document.getElementById('btnBaixarExcelConsulta').addEventListener('click', () => {
+  if (!resultadoConsultaBanco.length) return;
+  const planilha = XLSX.utils.json_to_sheet(resultadoConsultaBanco, { cellDates: true });
+  aplicarFormatosNumericos(planilha, resultadoConsultaBanco.length);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, planilha, 'Consulta');
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `consulta_atendimentos_${dataHoje}.xlsx`);
+  mostrarToast('✅ Arquivo baixado com sucesso.', 'success');
+});
+
+// Apaga do banco exatamente as linhas que batem com o filtro atual da consulta.
+// Antes de apagar, conta de novo no banco (a tela só mostra até LIMITE_CONSULTA_BANCO
+// linhas, mas o filtro pode bater em mais do que isso) pra confirmação mostrar o número real.
+document.getElementById('btnExcluirConsulta').addEventListener('click', excluirRegistrosConsulta);
+
+async function excluirRegistrosConsulta() {
+  if (!ultimoFiltroConsultaBanco) return;
+  const filtros = ultimoFiltroConsultaBanco;
+
+  const btn = document.getElementById('btnExcluirConsulta');
+  btn.disabled = true;
+  try {
+    let queryContagem = supabaseClient.from('atendimentos').select('*', { count: 'exact', head: true });
+    queryContagem = montarFiltrosConsulta(queryContagem, filtros);
+    const { count, error: erroContagem } = await queryContagem;
+    if (erroContagem) throw erroContagem;
+
+    const descricaoFiltro = [
+      filtros.revendaSel ? `Revenda = ${filtros.revendaSel}` : 'todas as revendas',
+      filtros.dataDeStr ? `de ${filtros.dataDeStr}` : null,
+      filtros.dataAteStr ? `até ${filtros.dataAteStr}` : null,
+      filtros.mapaNum !== null ? `Mapa = ${filtros.mapaNum}` : null,
+      filtros.codClienteNum !== null ? `Cod_cliente = ${filtros.codClienteNum}` : null
+    ].filter(Boolean).join(', ');
+    const semFiltroNenhum = !filtros.revendaSel && !filtros.dataDeStr && !filtros.dataAteStr
+      && filtros.mapaNum === null && filtros.codClienteNum === null;
+    const aviso = semFiltroNenhum ? '\n\n⚠️ NENHUM FILTRO aplicado — isso apaga a TABELA INTEIRA.' : '';
+
+    const confirmado = confirm(
+      `Isso vai APAGAR PERMANENTEMENTE ${count ?? '?'} registro(s) do banco de dados.\n\n` +
+      `Filtro: ${descricaoFiltro}${aviso}\n\n` +
+      `Essa ação não pode ser desfeita. Confirma?`
+    );
+    if (!confirmado) { btn.disabled = false; return; }
+
+    let queryDelete = supabaseClient.from('atendimentos').delete();
+    queryDelete = montarFiltrosConsulta(queryDelete, filtros);
+    const { error } = await queryDelete;
+    if (error) throw error;
+
+    mostrarToast(`✅ ${count ?? ''} registro(s) excluído(s) do banco.`, 'success');
+    resultadoConsultaBanco = [];
+    renderizarConsultaBanco();
+    document.getElementById('btnBaixarExcelConsulta').disabled = true;
+    popularListaCodClientesDoBanco();
+    limparEstadoPagina(CHAVE_ESTADO_CONSULTA_DADOS);
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast('❌ Erro ao excluir os registros: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = resultadoConsultaBanco.length === 0;
+  }
+}
+
+// ============================================================
 // 6. TOAST DE FEEDBACK
 // ============================================================
 function mostrarToast(mensagem, tipo) {
@@ -1037,6 +1490,79 @@ function mostrarToast(mensagem, tipo) {
   document.body.appendChild(div);
   setTimeout(() => div.remove(), 4000);
 }
+
+// ============================================================
+// 7. MANTER RESULTADO AO TROCAR DE ABA (sessionStorage — some só se fechar o navegador)
+// Cobre a prévia principal (arquivo processado) e a Consulta à Base Salva.
+// A Análise por PDV não guarda estado — é uma busca pontual rápida, refazer não pesa.
+// ============================================================
+const CHAVE_ESTADO_PROCESSAMENTO_DADOS = 'estado_dados_processamento';
+const CHAVE_ESTADO_CONSULTA_DADOS = 'estado_dados_consulta';
+
+// 'Data' vira Date de verdade em baseTratada/resultadoConsultaBanco; o JSON do
+// sessionStorage guarda isso como texto ISO, então reconstrói o Date ao restaurar.
+function reidratarDatas(linhas) {
+  linhas.forEach(l => { if (l['Data']) l['Data'] = new Date(l['Data']); });
+  return linhas;
+}
+
+function salvarEstadoProcessamento(estatisticas, statusTexto) {
+  salvarEstadoPagina(CHAVE_ESTADO_PROCESSAMENTO_DADOS, {
+    baseTratada, basePreview, estatisticas, statusTexto,
+    filtros: {
+      revenda: document.getElementById('filtroRevenda').value,
+      dataDe: document.getElementById('filtroDataDe').value,
+      dataAte: document.getElementById('filtroDataAte').value,
+      mapa: document.getElementById('filtroMapa').value,
+      codCliente: document.getElementById('filtroCodCliente').value
+    }
+  });
+}
+
+function salvarEstadoConsulta(statusTexto) {
+  salvarEstadoPagina(CHAVE_ESTADO_CONSULTA_DADOS, {
+    filtros: lerFiltrosConsulta(),
+    resultadoConsultaBanco,
+    ultimoFiltroConsultaBanco,
+    statusTexto
+  });
+}
+
+(function restaurarEstadoDados() {
+  const estadoProc = carregarEstadoPagina(CHAVE_ESTADO_PROCESSAMENTO_DADOS);
+  if (estadoProc && estadoProc.baseTratada && estadoProc.baseTratada.length) {
+    baseTratada = reidratarDatas(estadoProc.baseTratada);
+    basePreview = estadoProc.basePreview;
+    atualizarResumo(estadoProc.estatisticas);
+    popularFiltroRevenda(estadoProc.estatisticas.revendas);
+    document.getElementById('filtroRevenda').value = estadoProc.filtros.revenda || '';
+    document.getElementById('filtroDataDe').value = estadoProc.filtros.dataDe || '';
+    document.getElementById('filtroDataAte').value = estadoProc.filtros.dataAte || '';
+    document.getElementById('filtroMapa').value = estadoProc.filtros.mapa || '';
+    document.getElementById('filtroCodCliente').value = estadoProc.filtros.codCliente || '';
+    aplicarFiltros();
+    document.getElementById('cardResumo').classList.remove('d-none');
+    document.getElementById('cardPreview').classList.remove('d-none');
+    document.getElementById('cardAnalisePdv').classList.remove('d-none');
+    document.getElementById('statusProcessamento').textContent = estadoProc.statusTexto || '';
+  }
+
+  const estadoConsulta = carregarEstadoPagina(CHAVE_ESTADO_CONSULTA_DADOS);
+  if (estadoConsulta && estadoConsulta.resultadoConsultaBanco && estadoConsulta.resultadoConsultaBanco.length) {
+    document.getElementById('consultaRevenda').value = estadoConsulta.filtros.revendaSel || '';
+    document.getElementById('consultaDataDe').value = estadoConsulta.filtros.dataDeStr || '';
+    document.getElementById('consultaDataAte').value = estadoConsulta.filtros.dataAteStr || '';
+    document.getElementById('consultaMapa').value = estadoConsulta.filtros.mapaNum ?? '';
+    document.getElementById('consultaCodCliente').value = estadoConsulta.filtros.codClienteNum ?? '';
+
+    resultadoConsultaBanco = reidratarDatas(estadoConsulta.resultadoConsultaBanco);
+    ultimoFiltroConsultaBanco = estadoConsulta.ultimoFiltroConsultaBanco;
+    renderizarConsultaBanco();
+    document.getElementById('statusConsultaBanco').textContent = estadoConsulta.statusTexto || '';
+    document.getElementById('btnBaixarExcelConsulta').disabled = false;
+    document.getElementById('btnExcluirConsulta').disabled = false;
+  }
+})();
 </script>
 </body>
 </html>
