@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tratamento de Carregamento / Lacre - Painel OT</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="estado-sessao.js"></script>
+<style>
+  :root {
+    --brand-50:  #eef4ff; --brand-100: #dce8ff; --brand-200: #b3ceff;
+    --brand-500: #245bc7; --brand-600: #1c4aa8; --brand-700: #163a85;
+    --ink-900: #101828; --ink-700: #344054; --ink-500: #667085; --ink-400: #98a2b3;
+    --surface-0: #ffffff; --surface-1: #e9edf4; --surface-2: #eef2f8;
+    --border-soft: #e3e8f0; --border-strong: #c9d3e0;
+    --success: #0f9d58; --success-bg: #e6f7ee; --danger: #c0362c; --danger-bg: #fbeae8;
+    --radius-lg: 1rem; --radius-md: 0.7rem; --radius-sm: 0.5rem;
+    --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+    --shadow-pop: 0 4px 10px rgba(16,24,40,.10), 0 12px 32px rgba(16,24,40,.10);
+    --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem;
+    --space-5: 1.5rem; --space-6: 2rem; --space-7: 2.5rem;
+  }
+  * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  html { -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--surface-1); color: var(--ink-700); padding-bottom: 4rem; overflow-x: hidden; }
+  h1, h2, h3, h4, h5, h6 { color: var(--ink-900); letter-spacing: -0.01em; }
+  .text-primary-dark { color: var(--brand-700) !important; }
+  .text-muted-ink { color: var(--ink-500) !important; }
+  small, .small { color: var(--ink-500); }
+
+  .card-shadow {
+    box-shadow: var(--shadow-card); border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg); background: var(--surface-0);
+  }
+  .section-head { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-4); }
+  .section-head > div { min-width: 0; }
+  .section-head .icon-chip {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    background: var(--brand-50); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; flex-shrink: 0;
+  }
+  .section-head h5 { font-weight: 700; font-size: 1.05rem; margin-bottom: .1rem; }
+  .section-head p { margin-bottom: 0; font-size: .84rem; color: var(--ink-500); max-width: 62ch; }
+
+  .btn { font-weight: 600; letter-spacing: -0.005em; }
+  .btn-primary-brand { background: var(--brand-500); border: 1px solid var(--brand-500); color: #fff; }
+  .btn-primary-brand:hover { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+  .btn-primary-brand:disabled { background: var(--brand-200); border-color: var(--brand-200); opacity: .7; }
+  .btn-primary-soft { background: var(--brand-50); border: 1px solid var(--brand-100); color: var(--brand-700); }
+  .btn-primary-soft:hover { background: var(--brand-100); border-color: var(--brand-200); color: var(--brand-700); }
+  .btn-primary-soft:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-excel { background: #1a7a4c; border: 1px solid #1a7a4c; color: white; }
+  .btn-excel:hover { background: #15603c; border-color: #15603c; color: white; }
+  .btn-excel:disabled { background: #a7c9b6; border-color: #a7c9b6; }
+  .btn-outline-secondary { border-color: var(--border-strong); color: var(--ink-700); }
+
+  .form-label { font-size: .78rem; font-weight: 600; color: var(--ink-700); }
+  .form-control, .form-select { border-color: var(--border-strong); font-size: .88rem; }
+  .form-control:focus, .form-select:focus { border-color: var(--brand-500); box-shadow: 0 0 0 .2rem var(--brand-50); }
+
+  .upload-zone {
+    border: 2px dashed var(--brand-200); border-radius: var(--radius-md);
+    background: var(--surface-1); padding: 1.5rem; text-align: center; transition: all 0.15s;
+  }
+  .upload-zone:hover { border-color: var(--brand-500); background: var(--brand-50); }
+
+  .table-preview-wrap { max-height: 480px; overflow: auto; border-radius: var(--radius-md); }
+  .table-preview-wrap table { font-size: 0.8rem; margin-bottom: 0; }
+  .table-preview-wrap thead th {
+    position: sticky; top: 0; background: var(--surface-2); color: var(--ink-700); z-index: 1;
+    text-align: center; vertical-align: middle; white-space: normal;
+    font-size: .74rem; text-transform: uppercase; letter-spacing: .03em; font-weight: 700;
+    border-color: var(--border-soft);
+  }
+  .table-preview-wrap tbody td { border-color: var(--border-soft); vertical-align: middle; }
+  .table-hover > tbody > tr:hover > * { background-color: var(--brand-50); }
+
+  .stat-box { background: var(--surface-1); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: .9rem 1.1rem; }
+  .stat-box .stat-label { font-size: .74rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .03em; }
+  .stat-box .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+  .stat-box.stat-danger .stat-value { color: var(--danger); }
+  .stat-box.stat-warning .stat-value { color: #a4650a; }
+
+  .badge-estouro { background: var(--danger-bg); color: var(--danger); border: 1px solid #f2c6c2; font-weight: 700; }
+  .badge-alerta { background: #fff4e0; color: #a4650a; border: 1px solid #f2dcaa; font-weight: 700; }
+  .badge-ok { background: var(--success-bg); color: var(--success); border: 1px solid #bfe7cf; font-weight: 700; }
+  .badge-neutro { background: var(--surface-2); color: var(--ink-500); border: 1px solid var(--border-soft); font-weight: 700; }
+
+  .toast-custom {
+    position: fixed; top: 20px; right: 20px; z-index: 9999;
+    max-width: 350px; min-width: 250px; animation: slideIn 0.3s ease;
+    box-shadow: var(--shadow-pop);
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  .navbar-site { background: var(--surface-0); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); margin-top: 1rem; }
+  .navbar-site .navbar-brand { display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .brand-mark {
+    width: 32px; height: 32px; border-radius: .55rem; background: var(--brand-500); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .navbar-site .brand-text { line-height: 1.05; }
+  .navbar-site .brand-text .sub { display: block; font-size: .66rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .05em; }
+  .navbar-site .nav-link { color: var(--ink-700); font-weight: 600; font-size: .88rem; border-radius: var(--radius-sm); padding: .5rem .85rem; transition: background 0.15s, color .15s; }
+  .navbar-site .nav-link:hover { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .nav-link.active { background: var(--brand-500); color: #fff !important; }
+  .navbar-site .nav-item.dropdown.section-active > .nav-link { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-menu { border: 1px solid var(--border-soft); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); padding: .4rem; margin-top: .4rem; }
+  .navbar-site .dropdown-item { border-radius: var(--radius-sm); font-size: .86rem; font-weight: 500; color: var(--ink-700); padding: .5rem .65rem; display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .dropdown-item i { color: var(--brand-500); width: 1.1em; text-align: center; }
+  .navbar-site .dropdown-item:hover, .navbar-site .dropdown-item:focus { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-item.active { background: var(--brand-500); color: #fff; }
+  .navbar-site .dropdown-item.active i { color: #fff; }
+
+  .breadcrumb-trail { font-size: .78rem; color: var(--ink-500); margin-bottom: .35rem; }
+  .breadcrumb-trail i { font-size: .65rem; vertical-align: middle; margin: 0 .3rem; }
+  .page-header { margin-bottom: var(--space-4); }
+  .page-header h3 { font-weight: 700; font-size: 1.5rem; }
+
+  .info-card {
+    display: flex; gap: var(--space-3); align-items: flex-start;
+    background: var(--brand-50); border: 1px solid var(--brand-100);
+    border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+  }
+  .info-card .info-card-icon {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--surface-0); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+    box-shadow: 0 1px 2px rgba(16,24,40,.06);
+  }
+  .info-card p { color: var(--ink-700); font-size: .88rem; margin-bottom: .6rem; max-width: 78ch; }
+  .info-card p:last-child { margin-bottom: 0; }
+  .info-card .info-card-ref {
+    display: flex; gap: .5rem; align-items: flex-start;
+    background: var(--surface-0); border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+    padding: .55rem .75rem; font-size: .78rem; color: var(--ink-500); max-width: 78ch;
+  }
+  .info-card .info-card-ref i { color: var(--brand-500); margin-top: .15rem; flex-shrink: 0; }
+  .info-card .info-card-ref strong { color: var(--ink-700); }
+</style>
+</head>
+<body>
+  <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-site px-3 py-2 mb-2">
+      <div class="container-fluid px-0">
+        <a class="navbar-brand" href="index.html">
+          <span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span>
+          <span class="brand-text"><span class="sub">Painel</span>OT</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir menu">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+          <ul class="navbar-nav ms-auto gap-1 align-items-lg-center">
+            <li class="nav-item">
+              <a class="nav-link" href="index.html"><i class="bi bi-journal-richtext me-1"></i>Diário de Tratativas</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="tratativageo.html"><i class="bi bi-geo-alt-fill me-1"></i>Geolocalizador</a>
+            </li>
+            <li class="nav-item dropdown section-active">
+              <a class="nav-link dropdown-toggle" href="#" id="menuImportacao" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-cloud-arrow-up-fill me-1"></i>Importação de Dados
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuImportacao">
+                <li><a class="dropdown-item" href="tratamento-dados.html"><i class="bi bi-truck"></i>Tratamento de Base</a></li>
+                <li><a class="dropdown-item" href="tratamento-2art.html"><i class="bi bi-files"></i>Base 2art</a></li>
+                <li><a class="dropdown-item" href="tratamento-clientes.html"><i class="bi bi-people-fill"></i>Base de Clientes</a></li>
+                <li><a class="dropdown-item active" aria-current="page" href="tratamento-carregamento.html"><i class="bi bi-truck-flatbed"></i>Carregamento / Lacre</a></li>
+              </ul>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="menuAnalises" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-graph-up-arrow me-1"></i>Consultas &amp; Análises
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuAnalises">
+                <li><a class="dropdown-item" href="consulta-mapa.html"><i class="bi bi-signpost-2-fill"></i>Consulta por Mapa</a></li>
+                <li><a class="dropdown-item" href="vinculo-tabelas.html"><i class="bi bi-link-45deg"></i>Vínculo de Tabelas</a></li>
+                <li><a class="dropdown-item" href="ranking-estouro.html"><i class="bi bi-graph-up-arrow"></i>Ranking de Estouro</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+<div class="container py-4" style="max-width: 1400px;">
+
+  <div class="page-header">
+    <div class="breadcrumb-trail">Importação de Dados <i class="bi bi-chevron-right"></i> Carregamento / Lacre</div>
+    <h3 class="text-primary-dark mb-0"><i class="bi bi-truck-flatbed me-2"></i>Tratamento de Carregamento / Lacre</h3>
+  </div>
+
+  <div class="info-card mb-4">
+    <span class="info-card-icon"><i class="bi bi-info-circle-fill"></i></span>
+    <div>
+      <p>
+        Importa o .csv do carregamento (Promax/WMS) — cada linha é um evento de <strong>Fase</strong> de um
+        <strong>Mapa</strong> (Gerado → Emitido → Carga Montada → Carga Conferida → Carregado → Saída Cdd/Fab →
+        Entrada Cdd/Fab → PC_Física → PC_Financeira). A partir disso, identifica mapas com <strong>possível lacre</strong>
+        (não concluíram a entrega no mesmo dia) e valida se o <strong>Km</strong> registrado pelo conferente bate.
+      </p>
+      <div class="info-card-ref">
+        <i class="bi bi-file-earmark-text-fill"></i>
+        <span>
+          Esta análise <strong>não está no DPO oficial</strong> (AC-REG-LOG-00066) — conferi o documento e ele cobre
+          só indicadores de venda/rota, nada sobre o processo de carregamento no lacrador. Regra combinada com
+          você: só é <strong>medido</strong> o veículo cuja Saída caiu entre 07:00–12:00; dentro desse grupo, é
+          <strong>possível lacre</strong> quando a Data Entrada é um dia depois da Data Saída (o horário de entrada
+          não importa) — exceto quando o Destino é "PA", que é horário especial programado. Km do conferente é
+          validado contra o histórico do veículo e contra o Km previsto do mapa.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSO 1: UPLOAD -->
+  <div class="card card-shadow p-4 mb-4">
+    <div class="section-head">
+      <span class="icon-chip"><i class="bi bi-cloud-arrow-up-fill"></i></span>
+      <div>
+        <h5 class="mb-0">Importar Arquivo</h5>
+        <p>Arquivo .csv separado por <code>;</code>, com cabeçalho na 1ª linha (ex.: mes8.csv).</p>
+      </div>
+    </div>
+    <div class="row g-3 align-items-end">
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Revenda</label>
+        <select class="form-select form-select-sm" id="carregRevenda">
+          <option value="" selected disabled>Revenda...</option>
+          <option value="MGA">MGA</option>
+          <option value="GPA">GPA</option>
+          <option value="PG">PG</option>
+          <option value="NP">NP</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-6">
+        <label class="form-label mb-1">Arquivo .csv</label>
+        <input type="file" class="form-control form-control-sm" id="carregArquivo" accept=".csv">
+      </div>
+      <div class="col-6 col-md-3">
+        <button class="btn btn-sm btn-primary-brand w-100" id="btnProcessarCarreg"><i class="bi bi-gear-fill me-1"></i>Processar Arquivo</button>
+      </div>
+    </div>
+    <div class="mt-2"><span id="statusProcessamentoCarreg" class="small"></span></div>
+  </div>
+
+  <!-- RESUMO -->
+  <div class="card card-shadow p-4 mb-4 d-none" id="cardResumoCarreg">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="section-head mb-0">
+        <span class="icon-chip"><i class="bi bi-clipboard-data-fill"></i></span>
+        <div><h5 class="mb-0">Resumo do Processamento</h5></div>
+      </div>
+      <button class="btn btn-primary-brand" id="btnSalvarBancoCarreg" disabled>
+        <i class="bi bi-database-fill-gear me-1"></i> Salvar no Banco de Dados
+      </button>
+    </div>
+    <div class="row g-3">
+      <div class="col-6 col-md-2">
+        <div class="stat-box"><div class="stat-label">Linhas lidas</div><div class="stat-value" id="statLinhasCarreg">0</div></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="stat-box"><div class="stat-label">Mapas únicos</div><div class="stat-value" id="statMapasCarreg">0</div></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="stat-box"><div class="stat-label">Em Rota</div><div class="stat-value" id="statEmRotaCarreg">0</div></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="stat-box"><div class="stat-label">Concluídos no dia</div><div class="stat-value" id="statConcluidoCarreg">0</div></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="stat-box stat-danger"><div class="stat-label">Possível Lacre</div><div class="stat-value" id="statLacreCarreg">0</div></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="stat-box stat-warning"><div class="stat-label">Alerta de Km</div><div class="stat-value" id="statKmAlertaCarreg">0</div></div>
+      </div>
+    </div>
+    <div class="mt-2"><span id="statusSalvarBancoCarreg" class="small"></span></div>
+  </div>
+
+  <!-- ANÁLISE 1: LACRE -->
+  <div class="card card-shadow p-4 mb-4 d-none" id="cardLacre">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="section-head mb-0">
+        <span class="icon-chip"><i class="bi bi-shield-lock-fill"></i></span>
+        <div>
+          <h5 class="mb-0">Mapas com Possível Lacre</h5>
+          <p>Só mede veículos com Saída entre 07:00–12:00; dentro deles, possível lacre = Data Entrada um dia depois da Data Saída — e Destino diferente de "PA".</p>
+        </div>
+      </div>
+      <button class="btn btn-excel" id="btnExcelLacre"><i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel</button>
+    </div>
+    <div class="row g-2 mb-3 align-items-end">
+      <div class="col-12 col-md-4">
+        <label class="form-label mb-1">Buscar (Mapa/Placa/Motorista)</label>
+        <input type="text" class="form-control form-control-sm" id="filtroTextoLacre" placeholder="Ex: 022808">
+      </div>
+    </div>
+    <div class="table-preview-wrap border rounded-3">
+      <table class="table table-hover table-bordered mb-0 align-middle" style="font-size:.8rem;">
+        <thead><tr id="theadLacre"></tr></thead>
+        <tbody id="tbodyLacre"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ANÁLISE 2: KM -->
+  <div class="card card-shadow p-4 mb-4 d-none" id="cardKm">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="section-head mb-0">
+        <span class="icon-chip"><i class="bi bi-speedometer2"></i></span>
+        <div>
+          <h5 class="mb-0">Validação de Km (Conferente)</h5>
+          <p>
+            Km percorrido = Km na "PC_Física" − Km no "Carregado". Alerta quando o Km volta (erro óbvio), quando
+            o Km do mapa é menor que o último Km já registrado pro mesmo veículo, ou quando a dispersão contra o
+            Km previsto do mapa passa do limite abaixo.
+          </p>
+        </div>
+      </div>
+      <button class="btn btn-excel" id="btnExcelKm"><i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel</button>
+    </div>
+    <div class="row g-2 mb-3 align-items-end">
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Status</label>
+        <select class="form-select form-select-sm" id="filtroStatusKm">
+          <option value="">Todos</option>
+          <option value="Dispersão Alta">Dispersão Alta</option>
+          <option value="Km Retrocedeu (erro)">Km Retrocedeu (erro)</option>
+          <option value="Sequência do Veículo Quebrada">Sequência do Veículo Quebrada</option>
+          <option value="OK">OK</option>
+          <option value="Sem leitura de Km">Sem leitura de Km</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Limite de dispersão (%)</label>
+        <input type="number" class="form-control form-control-sm" id="limiarDispersaoKm" value="30" min="1" max="200">
+      </div>
+      <div class="col-6 col-md-3">
+        <button class="btn btn-sm btn-primary-soft w-100" id="btnRecalcularKm"><i class="bi bi-arrow-repeat me-1"></i>Recalcular</button>
+      </div>
+    </div>
+    <div class="table-preview-wrap border rounded-3">
+      <table class="table table-hover table-bordered mb-0 align-middle" style="font-size:.8rem;">
+        <thead><tr id="theadKm"></tr></thead>
+        <tbody id="tbodyKm"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CONSULTA DE LACRES SALVOS (banco de dados — todas as revendas/datas já processadas) -->
+  <div class="card card-shadow p-4 mb-4" id="cardConsultaLacre">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="section-head mb-0">
+        <span class="icon-chip"><i class="bi bi-database-fill"></i></span>
+        <div>
+          <h5 class="mb-0">Consultar Lacres Salvos</h5>
+          <p>Busca direto no banco de dados (tabela <code>carregamento_analise</code>) — não depende de ter processado um arquivo nesta sessão.</p>
+        </div>
+      </div>
+      <button class="btn btn-excel" id="btnExcelConsultaLacre" disabled><i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel</button>
+    </div>
+    <div class="row g-2 mb-3 align-items-end">
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Revenda</label>
+        <select class="form-select form-select-sm" id="consultaLacreRevenda">
+          <option value="">Todas</option>
+          <option value="MGA">MGA</option>
+          <option value="GPA">GPA</option>
+          <option value="PG">PG</option>
+          <option value="NP">NP</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label mb-1">Mês</label>
+        <input type="month" class="form-control form-control-sm" id="consultaLacreMes">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label mb-1">Data (Saída)</label>
+        <input type="date" class="form-control form-control-sm" id="consultaLacreData">
+      </div>
+      <div class="col-6 col-md-2">
+        <button class="btn btn-sm btn-primary-soft w-100" id="btnBuscarConsultaLacre"><i class="bi bi-search me-1"></i>Buscar</button>
+      </div>
+      <div class="col-6 col-md-2">
+        <button class="btn btn-sm btn-outline-secondary w-100" id="btnLimparConsultaLacre"><i class="bi bi-x-circle me-1"></i>Limpar</button>
+      </div>
+    </div>
+    <div class="mb-2"><span id="statusConsultaLacre" class="small"></span></div>
+    <div class="table-preview-wrap border rounded-3">
+      <table class="table table-hover table-bordered mb-0 align-middle" style="font-size:.8rem;">
+        <thead><tr id="theadConsultaLacre"></tr></thead>
+        <tbody id="tbodyConsultaLacre"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// -1. CONFIGURAÇÃO DO BANCO DE DADOS (Supabase — mesmo projeto das outras páginas)
+// ============================================================
+const SUPABASE_URL = 'https://scbdlyfavqlzstbulrup.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_M55itc2oMAlK3bEFj9Le5Q_CeBsVBUV';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================================
+// 0. CONSTANTES DE NEGÓCIO (combinadas com o usuário — ver info-card no topo)
+// ============================================================
+const FASE_SAIDA = 'Saida Cdd/Fab';
+const FASE_ENTRADA = 'Entrada Cdd/Fab';
+const FASE_CARREGADO = 'Carregado';
+const FASE_PC_FISICA = 'PC_Fisica';
+
+const JANELA_SAIDA_INICIO_MIN = 7 * 60;   // 07:00
+const JANELA_SAIDA_FIM_MIN = 12 * 60;     // 12:00
+const JANELA_ENTRADA_PROIBIDA_FIM_MIN = 6 * 60 + 30; // 06:30 — entrada antes disso é anômala
+
+// ============================================================
+// 1. UTILITÁRIOS DE PARSE
+// ============================================================
+function paraNumero(valor) {
+  const texto = String(valor ?? '').trim();
+  if (texto === '') return null;
+  const numero = Number(texto);
+  return isNaN(numero) ? null : numero;
+}
+
+function paraNumeroBR(valor) {
+  const texto = String(valor ?? '').trim();
+  if (texto === '') return null;
+  const numero = Number(texto.replace(/\./g, '').replace(',', '.'));
+  return isNaN(numero) ? null : numero;
+}
+
+// "01/08/2026" -> "2026-08-01", pra comparar/ordenar como texto ou virar Date.
+function paraDataISO(dataBR) {
+  const m = String(dataBR ?? '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
+// "2026-08-01" -> "01/08/2026" — o banco devolve as colunas "date" nesse
+// formato ISO; usado só na exibição (consulta ao banco), não no processamento.
+function isoParaDataBR(dataISO) {
+  const m = String(dataISO ?? '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return dataISO || '-';
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
+function horaParaMinutos(hora) {
+  const m = String(hora ?? '').trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
+function formatarMinutos(min) {
+  if (min === null || min === undefined || isNaN(min)) return '-';
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return `${h}h${String(m).padStart(2, '0')}`;
+}
+
+function formatarNumero(valor, casas) {
+  if (valor === null || valor === undefined || isNaN(valor)) return '-';
+  return valor.toLocaleString('pt-BR', { minimumFractionDigits: casas ?? 0, maximumFractionDigits: casas ?? 0 });
+}
+
+function formatarPercentual(valor) {
+  if (valor === null || valor === undefined || isNaN(valor)) return '-';
+  return `${(valor >= 0 ? '+' : '')}${(valor * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+}
+
+// Mapa e Motorista vêm do CSV com zero à esquerda ("022808", "00019") — pra
+// exibir como número de verdade (sem zero à esquerda), converte e volta pra
+// texto; se não for um número válido, mantém o valor original.
+function paraNumeroExibicao(valor) {
+  if (valor === null || valor === undefined || valor === '') return '-';
+  const numero = Number(valor);
+  return isNaN(numero) ? String(valor) : String(numero);
+}
+
+// Renderiza uma linha de tabela a partir de uma lista de colunas — colunas
+// com `numerico: true` ficam alinhadas à direita, como número de verdade.
+function renderizarLinhaTabela(colunas, linha) {
+  return `<tr>${colunas.map(c => `<td${c.numerico ? ' class="text-end"' : ''}>${linha[c.chave] ?? ''}</td>`).join('')}</tr>`;
+}
+
+function escapeHtmlCarreg(texto) {
+  return String(texto ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ============================================================
+// 2. LEITURA DO CSV (separador ";", cabeçalho por nome de coluna)
+// ============================================================
+const COLUNAS_SAIDA = [
+  { origem: 'Mapa', destino: 'Mapa', tipo: 'texto' },
+  { origem: 'Fase', destino: 'Fase', tipo: 'texto' },
+  { origem: 'Veiculo', destino: 'Veiculo', tipo: 'texto' },
+  { origem: 'Placa', destino: 'Placa', tipo: 'texto' },
+  { origem: 'Frota Cadastro', destino: 'Frota Cadastro', tipo: 'texto' },
+  { origem: 'Tipo Mapa', destino: 'Tipo Mapa', tipo: 'texto' },
+  { origem: 'Entrega', destino: 'Entrega', tipo: 'texto' },
+  { origem: 'Emissao', destino: 'Emissao', tipo: 'texto' },
+  { origem: 'DtOper', destino: 'DtOper', tipo: 'texto' },
+  { origem: 'HrOper', destino: 'HrOper', tipo: 'texto' },
+  { origem: 'Usuario', destino: 'Usuario', tipo: 'texto' },
+  { origem: 'Lacre-1', destino: 'Lacre-1', tipo: 'texto' },
+  { origem: 'Lacre-2', destino: 'Lacre-2', tipo: 'texto' },
+  { origem: 'Lacre-3', destino: 'Lacre-3', tipo: 'texto' },
+  { origem: 'Lacre-4', destino: 'Lacre-4', tipo: 'texto' },
+  { origem: 'Motorista', destino: 'Motorista', tipo: 'texto' },
+  { origem: 'DtIniCarreg', destino: 'DtIniCarreg', tipo: 'texto' },
+  { origem: 'HrIniCarreg', destino: 'HrIniCarreg', tipo: 'texto' },
+  { origem: 'DtFimCarreg', destino: 'DtFimCarreg', tipo: 'texto' },
+  { origem: 'HrFimCarreg', destino: 'HrFimCarreg', tipo: 'texto' },
+  { origem: 'KmPrev', destino: 'KmPrev', tipo: 'numero' },
+  { origem: 'KmAtual', destino: 'KmAtual', tipo: 'numero' },
+  { origem: 'Conferente', destino: 'Conferente', tipo: 'texto' },
+  { origem: 'Destino', destino: 'Destino', tipo: 'texto' },
+  { origem: 'Promax/RF', destino: 'Promax/RF', tipo: 'texto' },
+  { origem: 'Liberacao', destino: 'Liberacao', tipo: 'texto' },
+  { origem: 'Frota Mapa', destino: 'Frota Mapa', tipo: 'texto' },
+  { origem: 'Motivo Nao Carreg', destino: 'Motivo Nao Carreg', tipo: 'texto' },
+  { origem: 'Cx Carregadas', destino: 'Cx Carregadas', tipo: 'numeroBR' },
+  { origem: 'MinOper', destino: 'MinOper', tipo: 'numero' }
+];
+
+function formatarValorPorTipo(bruto, tipo) {
+  if (tipo === 'numero') return paraNumero(bruto);
+  if (tipo === 'numeroBR') return paraNumeroBR(bruto);
+  return bruto;
+}
+
+let baseAtual = [];
+let analiseMapasAtual = [];
+let revendaAtual = '';
+
+document.getElementById('btnProcessarCarreg').addEventListener('click', processarArquivoCarreg);
+
+async function processarArquivoCarreg() {
+  const revenda = document.getElementById('carregRevenda').value;
+  const inputArquivo = document.getElementById('carregArquivo');
+  const arquivo = inputArquivo.files[0];
+
+  if (!revenda) { mostrarToastCarreg('⚠️ Selecione a Revenda.', 'warning'); return; }
+  if (!arquivo) { mostrarToastCarreg('⚠️ Selecione o arquivo .csv.', 'warning'); return; }
+
+  const statusEl = document.getElementById('statusProcessamentoCarreg');
+  const btn = document.getElementById('btnProcessarCarreg');
+  btn.disabled = true;
+  statusEl.textContent = 'Lendo arquivo...';
+
+  try {
+    const texto = await arquivo.text();
+    const linhasTexto = texto.split(/\r\n|\r|\n/).filter(l => l.trim() !== '');
+    if (!linhasTexto.length) throw new Error('Arquivo vazio.');
+
+    const cabecalho = linhasTexto[0].split(';').map(c => c.trim());
+    const indicePorNome = {};
+    cabecalho.forEach((nome, idx) => { indicePorNome[nome.toLowerCase()] = idx; });
+    const pegarValor = (valoresLinha, nomeColuna) => {
+      const idx = indicePorNome[nomeColuna.toLowerCase()];
+      return idx !== undefined && valoresLinha[idx] !== undefined ? valoresLinha[idx].trim() : '';
+    };
+
+    const registros = [];
+    for (let i = 1; i < linhasTexto.length; i++) {
+      const valoresLinha = linhasTexto[i].split(';');
+      const registro = {};
+      COLUNAS_SAIDA.forEach(col => {
+        registro[col.destino] = formatarValorPorTipo(pegarValor(valoresLinha, col.origem), col.tipo);
+      });
+      registros.push(registro);
+    }
+
+    statusEl.textContent = 'Analisando mapas...';
+    await new Promise(r => setTimeout(r, 10));
+
+    baseAtual = registros;
+    revendaAtual = revenda;
+    analiseMapasAtual = analisarTodosOsMapas(registros, revenda, Number(document.getElementById('limiarDispersaoKm').value) / 100);
+
+    renderizarResumoCarreg();
+    renderizarTabelaLacre();
+    renderizarTabelaKm();
+
+    document.getElementById('cardResumoCarreg').classList.remove('d-none');
+    document.getElementById('cardLacre').classList.remove('d-none');
+    document.getElementById('cardKm').classList.remove('d-none');
+    document.getElementById('btnSalvarBancoCarreg').disabled = false;
+
+    statusEl.textContent = `${registros.length.toLocaleString('pt-BR')} linha(s) lidas, ${analiseMapasAtual.length.toLocaleString('pt-BR')} mapa(s) analisados.`;
+    mostrarToastCarreg('✅ Arquivo processado com sucesso.', 'success');
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToastCarreg('❌ Erro ao processar o arquivo: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
+// 3. ANÁLISE 1 — LACRE (entrada/saída fora do padrão)
+// ============================================================
+function encontrarFase(linhasMapa, fase) {
+  return linhasMapa.find(r => String(r['Fase'] ?? '').trim() === fase) || null;
+}
+
+function analisarLacre(linhasMapa) {
+  const linhaSaida = encontrarFase(linhasMapa, FASE_SAIDA);
+  if (!linhaSaida) {
+    return {
+      status: 'Não Carregado / Cancelado',
+      dataSaida: null, horaSaida: null, dataEntrada: null, horaEntrada: null,
+      diasDecorridos: null, duracaoMin: null, saidaForaJanela: false, entradaAnomala: false, destino: null
+    };
+  }
+
+  const destino = linhaSaida['Destino'];
+  // Destino "PA" identifica um caminhão programado pra sair em horário
+  // especial (não é falha de operação) — quando presente, um mapa que
+  // bateria as regras de lacre abaixo é reclassificado, não descartado.
+  const horarioEspecial = String(destino ?? '').trim().toUpperCase() === 'PA';
+
+  const dataSaidaISO = paraDataISO(linhaSaida['DtOper']);
+  const minSaida = horaParaMinutos(linhaSaida['HrOper']);
+  const saidaForaJanela = minSaida !== null && (minSaida < JANELA_SAIDA_INICIO_MIN || minSaida > JANELA_SAIDA_FIM_MIN);
+
+  const linhaEntrada = encontrarFase(linhasMapa, FASE_ENTRADA);
+
+  // Só é MEDIDO (entra na análise de lacre) o veículo cuja saída caiu dentro
+  // de 07:00-12:00. Fora dessa janela de saída, o mapa fica fora do escopo
+  // dessa medição — não conta nem como lacre, nem como concluído normal.
+  if (saidaForaJanela) {
+    return {
+      status: 'Fora do Escopo (Saída fora de 07:00–12:00)',
+      dataSaida: linhaSaida['DtOper'], horaSaida: linhaSaida['HrOper'],
+      dataEntrada: linhaEntrada ? linhaEntrada['DtOper'] : null,
+      horaEntrada: linhaEntrada ? linhaEntrada['HrOper'] : null,
+      diasDecorridos: null, duracaoMin: linhaEntrada ? paraNumero(linhaEntrada['MinOper']) : null,
+      saidaForaJanela, entradaAnomala: false, destino
+    };
+  }
+
+  if (!linhaEntrada) {
+    return {
+      status: 'Em Rota',
+      dataSaida: linhaSaida['DtOper'], horaSaida: linhaSaida['HrOper'],
+      dataEntrada: null, horaEntrada: null,
+      diasDecorridos: null, duracaoMin: null, saidaForaJanela, entradaAnomala: false, destino
+    };
+  }
+
+  const dataEntradaISO = paraDataISO(linhaEntrada['DtOper']);
+  const minEntrada = horaParaMinutos(linhaEntrada['HrOper']);
+  const entradaAnomala = minEntrada !== null && minEntrada < JANELA_ENTRADA_PROIBIDA_FIM_MIN;
+  // Regra única de lacre: Data Entrada é um dia DEPOIS da Data Saída — não
+  // importa a Hora Saída nem a Hora Entrada. saidaForaJanela/entradaAnomala
+  // continuam calculadas (aparecem na tela/Excel como contexto), mas não
+  // entram mais na decisão de status.
+  const diaEntradaDepois = dataSaidaISO !== null && dataEntradaISO !== null && dataEntradaISO > dataSaidaISO;
+  const diasDecorridos = (dataSaidaISO && dataEntradaISO)
+    ? Math.round((new Date(`${dataEntradaISO}T00:00:00`) - new Date(`${dataSaidaISO}T00:00:00`)) / 86400000)
+    : null;
+
+  // Só é "Possível Lacre" de verdade se o Destino não for "PA" — com Destino
+  // "PA" é horário especial programado, não lacre.
+  const seriaLacre = diaEntradaDepois;
+  const status = !seriaLacre ? 'Concluído no Mesmo Dia' : (horarioEspecial ? 'Horário Especial (PA)' : 'Possível Lacre');
+
+  return {
+    status,
+    dataSaida: linhaSaida['DtOper'], horaSaida: linhaSaida['HrOper'],
+    dataEntrada: linhaEntrada['DtOper'], horaEntrada: linhaEntrada['HrOper'],
+    diasDecorridos, duracaoMin: paraNumero(linhaEntrada['MinOper']),
+    saidaForaJanela, entradaAnomala, destino
+  };
+}
+
+// ============================================================
+// 4. ANÁLISE 2 — VALIDAÇÃO DE KM
+// ============================================================
+function analisarKm(linhasMapa) {
+  const linhaCarregado = encontrarFase(linhasMapa, FASE_CARREGADO);
+  const linhaPCFisica = encontrarFase(linhasMapa, FASE_PC_FISICA);
+
+  const kmPrev = linhaCarregado ? paraNumero(linhaCarregado['KmPrev']) : null;
+  const kmCarregado = linhaCarregado ? paraNumero(linhaCarregado['KmAtual']) : null;
+  const kmPCFisica = linhaPCFisica ? paraNumero(linhaPCFisica['KmAtual']) : null;
+
+  if (!kmCarregado || !kmPCFisica) {
+    return { status: 'Sem leitura de Km', kmPrev, kmCarregado, kmPCFisica, kmPercorrido: null, dispersaoKm: null, dispersaoKmPct: null };
+  }
+
+  const kmPercorrido = kmPCFisica - kmCarregado;
+  let status = 'OK';
+  if (kmPercorrido < 0) status = 'Km Retrocedeu (erro)';
+
+  let dispersaoKm = null, dispersaoKmPct = null;
+  if (kmPrev) {
+    dispersaoKm = kmPercorrido - kmPrev;
+    dispersaoKmPct = dispersaoKm / kmPrev;
+  }
+
+  return { status, kmPrev, kmCarregado, kmPCFisica, kmPercorrido, dispersaoKm, dispersaoKmPct };
+}
+
+// Pra cada Veículo, ordena os mapas cronologicamente (pela data/hora do
+// "Carregado") e confere se o Km só anda pra frente — hodômetro não regride.
+function checarSequenciaPorVeiculo(mapas) {
+  const porVeiculo = new Map();
+  mapas.forEach(m => {
+    if (!m.veiculo || m.veiculo === '000') return;
+    if (!porVeiculo.has(m.veiculo)) porVeiculo.set(m.veiculo, []);
+    porVeiculo.get(m.veiculo).push(m);
+  });
+
+  porVeiculo.forEach(lista => {
+    lista.sort((a, b) => (a.ordemChave || '').localeCompare(b.ordemChave || ''));
+    for (let i = 1; i < lista.length; i++) {
+      const anterior = lista[i - 1];
+      const atual = lista[i];
+      if (anterior.kmPCFisica && atual.kmCarregado && atual.kmCarregado < anterior.kmPCFisica) {
+        atual.sequenciaVeiculoOk = false;
+        atual.sequenciaObs = `Km do "Carregado" (${formatarNumero(atual.kmCarregado)}) é menor que o último Km conhecido do veículo, no Mapa ${anterior.mapa} (${formatarNumero(anterior.kmPCFisica)}).`;
+        if (atual.statusKm === 'OK') atual.statusKm = 'Sequência do Veículo Quebrada';
+      } else {
+        atual.sequenciaVeiculoOk = true;
+      }
+    }
+  });
+}
+
+// ============================================================
+// 5. MONTAGEM DA ANÁLISE COMPLETA (1 linha por Mapa)
+// ============================================================
+function analisarTodosOsMapas(registros, revenda, limiarDispersao) {
+  const porMapa = new Map();
+  registros.forEach(r => {
+    if (!porMapa.has(r['Mapa'])) porMapa.set(r['Mapa'], []);
+    porMapa.get(r['Mapa']).push(r);
+  });
+
+  const resultado = [];
+  porMapa.forEach((linhasMapa, mapa) => {
+    const linhaCarregado = encontrarFase(linhasMapa, FASE_CARREGADO);
+    const canonica = linhaCarregado || linhasMapa[0];
+
+    const lacre = analisarLacre(linhasMapa);
+    const km = analisarKm(linhasMapa);
+    const ordemChave = linhaCarregado ? `${paraDataISO(linhaCarregado['DtOper']) || ''} ${linhaCarregado['HrOper'] || ''}` : '';
+
+    resultado.push({
+      revenda, mapa, chave: `${revenda}-${mapa}`,
+      veiculo: canonica['Veiculo'], placa: canonica['Placa'], motorista: canonica['Motorista'],
+      ordemChave,
+      status: lacre.status, destino: lacre.destino,
+      dataSaida: lacre.dataSaida, horaSaida: lacre.horaSaida,
+      dataEntrada: lacre.dataEntrada, horaEntrada: lacre.horaEntrada,
+      diasDecorridos: lacre.diasDecorridos, duracaoMin: lacre.duracaoMin,
+      saidaForaJanela: lacre.saidaForaJanela, entradaAnomala: lacre.entradaAnomala,
+      statusKm: km.status, kmPrev: km.kmPrev, kmCarregado: km.kmCarregado, kmPCFisica: km.kmPCFisica,
+      kmPercorrido: km.kmPercorrido, dispersaoKm: km.dispersaoKm, dispersaoKmPct: km.dispersaoKmPct,
+      sequenciaVeiculoOk: true, sequenciaObs: ''
+    });
+  });
+
+  checarSequenciaPorVeiculo(resultado);
+
+  // Aplica o limiar de dispersão (recalculável na tela sem reprocessar o arquivo).
+  resultado.forEach(m => {
+    if (m.statusKm === 'OK' && m.dispersaoKmPct !== null && Math.abs(m.dispersaoKmPct) > limiarDispersao) {
+      m.statusKm = 'Dispersão Alta';
+    }
+  });
+
+  return resultado;
+}
+
+// ============================================================
+// 6. RESUMO
+// ============================================================
+function renderizarResumoCarreg() {
+  document.getElementById('statLinhasCarreg').textContent = baseAtual.length.toLocaleString('pt-BR');
+  document.getElementById('statMapasCarreg').textContent = analiseMapasAtual.length.toLocaleString('pt-BR');
+  document.getElementById('statEmRotaCarreg').textContent = analiseMapasAtual.filter(m => m.status === 'Em Rota').length.toLocaleString('pt-BR');
+  document.getElementById('statConcluidoCarreg').textContent = analiseMapasAtual.filter(m => m.status === 'Concluído no Mesmo Dia').length.toLocaleString('pt-BR');
+  document.getElementById('statLacreCarreg').textContent = analiseMapasAtual.filter(m => m.status === 'Possível Lacre').length.toLocaleString('pt-BR');
+  document.getElementById('statKmAlertaCarreg').textContent = analiseMapasAtual.filter(m => m.statusKm !== 'OK' && m.statusKm !== 'Sem leitura de Km').length.toLocaleString('pt-BR');
+}
+
+// ============================================================
+// 7. TABELA — LACRE
+// ============================================================
+function badgeStatusLacre(status) {
+  const classes = {
+    'Possível Lacre': 'badge-estouro',
+    'Horário Especial (PA)': 'badge-alerta',
+    'Em Rota': 'badge-alerta',
+    'Concluído no Mesmo Dia': 'badge-ok',
+    'Não Carregado / Cancelado': 'badge-neutro',
+    'Fora do Escopo (Saída fora de 07:00–12:00)': 'badge-neutro'
+  };
+  return `<span class="badge ${classes[status] || 'badge-neutro'}">${escapeHtmlCarreg(status)}</span>`;
+}
+
+const COLUNAS_LACRE = [
+  { chave: 'chaveFmt', label: 'Chave' },
+  { chave: 'mapa', label: 'Mapa', numerico: true },
+  { chave: 'placa', label: 'Placa' },
+  { chave: 'motorista', label: 'Motorista', numerico: true },
+  { chave: 'destinoFmt', label: 'Destino' },
+  { chave: 'dataSaidaFmt', label: 'Data Saída' },
+  { chave: 'horaSaida', label: 'Hora Saída' },
+  { chave: 'dataEntradaFmt', label: 'Data Entrada' },
+  { chave: 'horaEntrada', label: 'Hora Entrada' },
+  { chave: 'diasDecorridosFmt', label: 'Dias', numerico: true },
+  { chave: 'duracaoFmt', label: 'Duração' },
+  { chave: 'statusFmt', label: 'Status' }
+];
+
+document.getElementById('filtroTextoLacre').addEventListener('input', renderizarTabelaLacre);
+
+// Este relatório mostra só quem realmente é "Possível Lacre" — Horário Especial
+// (PA), Em Rota, Concluído no Mesmo Dia e Não Carregado/Cancelado ficam de fora,
+// já que não são problema. A busca por Mapa/Placa/Motorista continua disponível.
+function filtrarLacre() {
+  const texto = document.getElementById('filtroTextoLacre').value.trim().toLowerCase();
+  return analiseMapasAtual.filter(m => {
+    if (m.status !== 'Possível Lacre') return false;
+    if (texto) {
+      const alvo = `${m.mapa} ${m.placa || ''} ${m.motorista || ''}`.toLowerCase();
+      if (!alvo.includes(texto)) return false;
+    }
+    return true;
+  });
+}
+
+function renderizarTabelaLacre() {
+  const dados = filtrarLacre().sort((a, b) => (b.diasDecorridos || 0) - (a.diasDecorridos || 0));
+  const thead = document.getElementById('theadLacre');
+  const tbody = document.getElementById('tbodyLacre');
+
+  thead.innerHTML = COLUNAS_LACRE.map(c => `<th>${c.label}</th>`).join('');
+  tbody.innerHTML = dados.map(m => {
+    const linha = {
+      chaveFmt: m.chave, mapa: paraNumeroExibicao(m.mapa), placa: m.placa || '-', motorista: paraNumeroExibicao(m.motorista), destinoFmt: m.destino || '-',
+      dataSaidaFmt: m.dataSaida || '-', horaSaida: m.horaSaida || '-',
+      dataEntradaFmt: m.dataEntrada || '-', horaEntrada: m.horaEntrada || '-',
+      diasDecorridosFmt: m.diasDecorridos !== null ? m.diasDecorridos : '-',
+      duracaoFmt: formatarMinutos(m.duracaoMin),
+      statusFmt: badgeStatusLacre(m.status)
+    };
+    return renderizarLinhaTabela(COLUNAS_LACRE, linha);
+  }).join('');
+}
+
+document.getElementById('btnExcelLacre').addEventListener('click', () => {
+  const dados = filtrarLacre();
+  if (!dados.length) return;
+  const linhas = dados.map(m => ({
+    'Chave': m.chave, 'Mapa': m.mapa, 'Revenda': m.revenda, 'Veículo': m.veiculo, 'Placa': m.placa, 'Motorista': m.motorista, 'Destino': m.destino,
+    'Data Saída': m.dataSaida, 'Hora Saída': m.horaSaida,
+    'Data Entrada': m.dataEntrada, 'Hora Entrada': m.horaEntrada,
+    'Dias Decorridos': m.diasDecorridos, 'Duração': formatarMinutos(m.duracaoMin),
+    'Saída Fora da Janela 07:00-12:00': m.saidaForaJanela ? 'Sim' : 'Não',
+    'Entrada entre 00:00-06:30': m.entradaAnomala ? 'Sim' : 'Não',
+    'Status': m.status
+  }));
+  const planilha = XLSX.utils.json_to_sheet(linhas);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, planilha, 'Lacre');
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `mapas_lacre_${dataHoje}.xlsx`);
+  mostrarToastCarreg('✅ Arquivo baixado com sucesso.', 'success');
+});
+
+// ============================================================
+// 8. TABELA — KM
+// ============================================================
+function badgeStatusKm(status) {
+  const classes = {
+    'OK': 'badge-ok',
+    'Sem leitura de Km': 'badge-neutro',
+    'Dispersão Alta': 'badge-alerta',
+    'Km Retrocedeu (erro)': 'badge-estouro',
+    'Sequência do Veículo Quebrada': 'badge-estouro'
+  };
+  return `<span class="badge ${classes[status] || 'badge-neutro'}">${escapeHtmlCarreg(status)}</span>`;
+}
+
+const COLUNAS_KM = [
+  { chave: 'chaveFmt', label: 'Chave' },
+  { chave: 'mapa', label: 'Mapa', numerico: true },
+  { chave: 'placa', label: 'Placa' },
+  { chave: 'motorista', label: 'Motorista', numerico: true },
+  { chave: 'kmPrevFmt', label: 'Km Previsto', numerico: true },
+  { chave: 'kmCarregadoFmt', label: 'Km Carregado', numerico: true },
+  { chave: 'kmPCFisicaFmt', label: 'Km PC Física', numerico: true },
+  { chave: 'kmPercorridoFmt', label: 'Km Percorrido', numerico: true },
+  { chave: 'dispersaoFmt', label: 'Dispersão', numerico: true },
+  { chave: 'dispersaoPctFmt', label: 'Dispersão %', numerico: true },
+  { chave: 'statusFmt', label: 'Status' }
+];
+
+document.getElementById('filtroStatusKm').addEventListener('change', renderizarTabelaKm);
+document.getElementById('btnRecalcularKm').addEventListener('click', () => {
+  if (!baseAtual.length) return;
+  const limiar = Number(document.getElementById('limiarDispersaoKm').value) / 100;
+  analiseMapasAtual = analisarTodosOsMapas(baseAtual, revendaAtual, limiar);
+  renderizarResumoCarreg();
+  renderizarTabelaLacre();
+  renderizarTabelaKm();
+  mostrarToastCarreg('✅ Recalculado com o novo limite de dispersão.', 'success');
+});
+
+function filtrarKm() {
+  const statusSel = document.getElementById('filtroStatusKm').value;
+  return analiseMapasAtual.filter(m => !statusSel || m.statusKm === statusSel);
+}
+
+function renderizarTabelaKm() {
+  const dados = filtrarKm().sort((a, b) => Math.abs(b.dispersaoKmPct || 0) - Math.abs(a.dispersaoKmPct || 0));
+  const thead = document.getElementById('theadKm');
+  const tbody = document.getElementById('tbodyKm');
+
+  thead.innerHTML = COLUNAS_KM.map(c => `<th>${c.label}</th>`).join('');
+  tbody.innerHTML = dados.map(m => {
+    const linha = {
+      chaveFmt: m.chave, mapa: paraNumeroExibicao(m.mapa), placa: m.placa || '-', motorista: paraNumeroExibicao(m.motorista),
+      kmPrevFmt: formatarNumero(m.kmPrev), kmCarregadoFmt: formatarNumero(m.kmCarregado), kmPCFisicaFmt: formatarNumero(m.kmPCFisica),
+      kmPercorridoFmt: formatarNumero(m.kmPercorrido), dispersaoFmt: formatarNumero(m.dispersaoKm), dispersaoPctFmt: formatarPercentual(m.dispersaoKmPct),
+      statusFmt: badgeStatusKm(m.statusKm) + (m.sequenciaObs ? `<br><span class="small text-muted-ink" title="${escapeHtmlCarreg(m.sequenciaObs)}">${escapeHtmlCarreg(m.sequenciaObs)}</span>` : '')
+    };
+    return renderizarLinhaTabela(COLUNAS_KM, linha);
+  }).join('');
+}
+
+document.getElementById('btnExcelKm').addEventListener('click', () => {
+  const dados = filtrarKm();
+  if (!dados.length) return;
+  const linhas = dados.map(m => ({
+    'Chave': m.chave, 'Mapa': m.mapa, 'Revenda': m.revenda, 'Veículo': m.veiculo, 'Placa': m.placa, 'Motorista': m.motorista,
+    'Km Previsto': m.kmPrev, 'Km Carregado': m.kmCarregado, 'Km PC Física': m.kmPCFisica, 'Km Percorrido': m.kmPercorrido,
+    'Dispersão (km)': m.dispersaoKm, 'Dispersão (%)': m.dispersaoKmPct !== null ? m.dispersaoKmPct * 100 : null,
+    'Sequência do Veículo OK': m.sequenciaVeiculoOk ? 'Sim' : 'Não', 'Observação': m.sequenciaObs,
+    'Status': m.statusKm
+  }));
+  const planilha = XLSX.utils.json_to_sheet(linhas);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, planilha, 'Validacao Km');
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `validacao_km_${dataHoje}.xlsx`);
+  mostrarToastCarreg('✅ Arquivo baixado com sucesso.', 'success');
+});
+
+// ============================================================
+// 9. SALVAR NO BANCO
+// Duas tabelas, dois comportamentos diferentes:
+//   - "carregamento_eventos": dado BRUTO, 1 linha por Mapa+Fase (igual veio
+//     no CSV). Reimportar um arquivo que se sobrepõe a um já importado NÃO
+//     pode sobrescrever histórico — só grava o que ainda não existe (mesma
+//     regra usada na Base de Clientes: ON CONFLICT DO NOTHING via
+//     ignoreDuplicates). Chave = Revenda-Mapa-Fase.
+//   - "carregamento_analise": resultado CALCULADO, 1 linha por Mapa. Esse
+//     sim é sobrescrito a cada processamento — é sempre a leitura mais
+//     recente (um mapa "Em Rota" ontem pode virar "Concluído" hoje).
+// Exige que as duas tabelas já existam no Supabase (SQL fornecido à parte).
+// ============================================================
+function converterLinhaBrutaParaBanco(r, revenda) {
+  return {
+    chave: `${revenda}-${r['Mapa']}-${r['Fase']}`,
+    revenda, mapa: r['Mapa'], fase: r['Fase'],
+    veiculo: r['Veiculo'], placa: r['Placa'],
+    frota_cadastro: r['Frota Cadastro'], tipo_mapa: r['Tipo Mapa'], entrega: r['Entrega'],
+    emissao: paraDataISO(r['Emissao']), data_oper: paraDataISO(r['DtOper']), hora_oper: r['HrOper'],
+    usuario: r['Usuario'],
+    lacre_1: r['Lacre-1'], lacre_2: r['Lacre-2'], lacre_3: r['Lacre-3'], lacre_4: r['Lacre-4'],
+    motorista: r['Motorista'],
+    data_ini_carreg: paraDataISO(r['DtIniCarreg']), hora_ini_carreg: r['HrIniCarreg'],
+    data_fim_carreg: paraDataISO(r['DtFimCarreg']), hora_fim_carreg: r['HrFimCarreg'],
+    km_prev: r['KmPrev'], km_atual: r['KmAtual'], conferente: r['Conferente'], destino: r['Destino'],
+    promax_rf: r['Promax/RF'], liberacao: r['Liberacao'], frota_mapa: r['Frota Mapa'],
+    motivo_nao_carreg: r['Motivo Nao Carreg'], cx_carregadas: r['Cx Carregadas'], min_oper: r['MinOper']
+  };
+}
+
+// Insere só os eventos que ainda não existem (ON CONFLICT DO NOTHING) — o
+// .select('chave') depois do upsert devolve só as linhas que entraram de
+// verdade, então o tamanho do retorno é a contagem real de novidades.
+async function salvarEventosBrutos() {
+  const linhas = baseAtual.map(r => converterLinhaBrutaParaBanco(r, revendaAtual));
+  const TAMANHO_LOTE = 500;
+  let salvas = 0;
+  for (let i = 0; i < linhas.length; i += TAMANHO_LOTE) {
+    const lote = linhas.slice(i, i + TAMANHO_LOTE);
+    const { data, error } = await supabaseClient
+      .from('carregamento_eventos')
+      .upsert(lote, { onConflict: 'chave', ignoreDuplicates: true })
+      .select('chave');
+    if (error) throw error;
+    salvas += data ? data.length : 0;
+  }
+  return { total: linhas.length, salvas, jaExistiam: linhas.length - salvas };
+}
+
+document.getElementById('btnSalvarBancoCarreg').addEventListener('click', async () => {
+  if (!analiseMapasAtual.length) return;
+  const statusEl = document.getElementById('statusSalvarBancoCarreg');
+  const btn = document.getElementById('btnSalvarBancoCarreg');
+  btn.disabled = true;
+  statusEl.textContent = 'Salvando eventos brutos no banco...';
+
+  try {
+    const resultadoEventos = await salvarEventosBrutos();
+    statusEl.textContent = `${resultadoEventos.salvas} evento(s) novo(s) salvos (${resultadoEventos.jaExistiam} já existiam) · atualizando análise...`;
+
+    const linhasBanco = analiseMapasAtual.map(m => ({
+      chave: m.chave,
+      revenda: m.revenda,
+      mapa: m.mapa,
+      veiculo: m.veiculo,
+      placa: m.placa,
+      motorista: m.motorista,
+      data_saida: paraDataISO(m.dataSaida),
+      hora_saida: m.horaSaida,
+      data_entrada: paraDataISO(m.dataEntrada),
+      hora_entrada: m.horaEntrada,
+      dias_decorridos: m.diasDecorridos,
+      duracao_min: m.duracaoMin,
+      status_lacre: m.status,
+      km_prev: m.kmPrev,
+      km_carregado: m.kmCarregado,
+      km_pc_fisica: m.kmPCFisica,
+      km_percorrido: m.kmPercorrido,
+      dispersao_km: m.dispersaoKm,
+      dispersao_km_pct: m.dispersaoKmPct,
+      status_km: m.statusKm,
+      sequencia_veiculo_ok: m.sequenciaVeiculoOk
+    }));
+
+    const TAMANHO_LOTE = 500;
+    let salvasAnalise = 0;
+    for (let i = 0; i < linhasBanco.length; i += TAMANHO_LOTE) {
+      const lote = linhasBanco.slice(i, i + TAMANHO_LOTE);
+      const { error } = await supabaseClient.from('carregamento_analise').upsert(lote, { onConflict: 'chave' });
+      if (error) throw error;
+      salvasAnalise += lote.length;
+    }
+
+    statusEl.textContent = `${resultadoEventos.salvas} evento(s) novo(s) salvos (${resultadoEventos.jaExistiam} já existiam) · ${salvasAnalise} mapa(s) com análise atualizada.`;
+    mostrarToastCarreg(`✅ Banco atualizado: ${resultadoEventos.salvas} evento(s) novo(s), ${salvasAnalise} mapa(s) analisados.`, 'success');
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToastCarreg('❌ Falhou ao salvar no banco (confira se as tabelas "carregamento_eventos" e "carregamento_analise" já existem): ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ============================================================
+// 10. CONSULTAR LACRES SALVOS — lê direto do banco (tabela
+// "carregamento_analise"), sem depender de arquivo processado nesta sessão.
+// ============================================================
+let resultadoConsultaLacreAtual = [];
+
+async function buscarLacreSalvo(filtros) {
+  let query = supabaseClient.from('carregamento_analise').select('*').eq('status_lacre', 'Possível Lacre');
+  if (filtros.revenda) query = query.eq('revenda', filtros.revenda);
+  if (filtros.mes) {
+    const inicio = `${filtros.mes}-01`;
+    const dataFim = new Date(`${filtros.mes}-01T00:00:00`);
+    dataFim.setMonth(dataFim.getMonth() + 1);
+    const fim = dataFim.toISOString().slice(0, 10);
+    query = query.gte('data_saida', inicio).lt('data_saida', fim);
+  }
+  if (filtros.data) query = query.eq('data_saida', filtros.data);
+  query = query.order('data_saida', { ascending: false }).limit(2000);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data || [];
+}
+
+function lerFiltrosConsultaLacre() {
+  return {
+    revenda: document.getElementById('consultaLacreRevenda').value,
+    mes: document.getElementById('consultaLacreMes').value,
+    data: document.getElementById('consultaLacreData').value
+  };
+}
+
+document.getElementById('btnBuscarConsultaLacre').addEventListener('click', async () => {
+  const statusEl = document.getElementById('statusConsultaLacre');
+  const btn = document.getElementById('btnBuscarConsultaLacre');
+  btn.disabled = true;
+  statusEl.textContent = 'Buscando...';
+
+  try {
+    const filtros = lerFiltrosConsultaLacre();
+    resultadoConsultaLacreAtual = await buscarLacreSalvo(filtros);
+    renderizarConsultaLacre();
+    statusEl.textContent = `${resultadoConsultaLacreAtual.length.toLocaleString('pt-BR')} mapa(s) com possível lacre encontrado(s).`;
+    document.getElementById('btnExcelConsultaLacre').disabled = !resultadoConsultaLacreAtual.length;
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToastCarreg('❌ Erro ao consultar o banco (confira se a tabela "carregamento_analise" já existe): ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('btnLimparConsultaLacre').addEventListener('click', () => {
+  document.getElementById('consultaLacreRevenda').value = '';
+  document.getElementById('consultaLacreMes').value = '';
+  document.getElementById('consultaLacreData').value = '';
+  resultadoConsultaLacreAtual = [];
+  renderizarConsultaLacre();
+  document.getElementById('statusConsultaLacre').textContent = '';
+  document.getElementById('btnExcelConsultaLacre').disabled = true;
+});
+
+const COLUNAS_CONSULTA_LACRE = [
+  { chave: 'chave', label: 'Chave' },
+  { chave: 'mapaFmt', label: 'Mapa', numerico: true },
+  { chave: 'revenda', label: 'Revenda' },
+  { chave: 'placa', label: 'Placa' },
+  { chave: 'motoristaFmt', label: 'Motorista', numerico: true },
+  { chave: 'data_saida', label: 'Data Saída' },
+  { chave: 'hora_saida', label: 'Hora Saída' },
+  { chave: 'data_entrada', label: 'Data Entrada' },
+  { chave: 'hora_entrada', label: 'Hora Entrada' },
+  { chave: 'dias_decorridos', label: 'Dias', numerico: true }
+];
+
+function renderizarConsultaLacre() {
+  const thead = document.getElementById('theadConsultaLacre');
+  const tbody = document.getElementById('tbodyConsultaLacre');
+
+  thead.innerHTML = COLUNAS_CONSULTA_LACRE.map(c => `<th>${c.label}</th>`).join('');
+  tbody.innerHTML = resultadoConsultaLacreAtual.map(r => {
+    const linha = {
+      chave: r.chave, mapaFmt: paraNumeroExibicao(r.mapa), revenda: r.revenda, placa: r.placa || '-',
+      motoristaFmt: paraNumeroExibicao(r.motorista),
+      data_saida: r.data_saida ? isoParaDataBR(r.data_saida) : '-', hora_saida: r.hora_saida || '-',
+      data_entrada: r.data_entrada ? isoParaDataBR(r.data_entrada) : '-', hora_entrada: r.hora_entrada || '-',
+      dias_decorridos: r.dias_decorridos !== null ? r.dias_decorridos : '-'
+    };
+    return renderizarLinhaTabela(COLUNAS_CONSULTA_LACRE, linha);
+  }).join('');
+}
+
+document.getElementById('btnExcelConsultaLacre').addEventListener('click', () => {
+  if (!resultadoConsultaLacreAtual.length) return;
+  const linhas = resultadoConsultaLacreAtual.map(r => ({
+    'Chave': r.chave, 'Mapa': r.mapa, 'Revenda': r.revenda, 'Veículo': r.veiculo, 'Placa': r.placa, 'Motorista': r.motorista,
+    'Data Saída': isoParaDataBR(r.data_saida), 'Hora Saída': r.hora_saida,
+    'Data Entrada': isoParaDataBR(r.data_entrada), 'Hora Entrada': r.hora_entrada,
+    'Dias Decorridos': r.dias_decorridos, 'Duração (min)': r.duracao_min,
+    'Status': r.status_lacre
+  }));
+  const planilha = XLSX.utils.json_to_sheet(linhas);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, planilha, 'Lacres Salvos');
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `lacres_salvos_${dataHoje}.xlsx`);
+  mostrarToastCarreg('✅ Arquivo baixado com sucesso.', 'success');
+});
+
+// ============================================================
+// 11. TOAST DE FEEDBACK
+// ============================================================
+function mostrarToastCarreg(mensagem, tipo) {
+  const div = document.createElement('div');
+  div.className = `toast-custom alert alert-${tipo}`;
+  div.textContent = mensagem;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 4500);
+}
+</script>
+</body>
+</html>
