@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consultas & Análises · PainelOT</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="nav-shared.js"></script>
+<style>
+  :root {
+    --brand-50:  #eef4ff; --brand-100: #dce8ff; --brand-200: #b3ceff;
+    --brand-500: #245bc7; --brand-600: #1c4aa8; --brand-700: #163a85;
+    --ink-900: #101828; --ink-700: #344054; --ink-500: #667085;
+    --surface-0: #ffffff; --surface-1: #e9edf4;
+    --border-soft: #e3e8f0;
+    --radius-lg: 1rem; --radius-md: 0.7rem; --radius-sm: 0.5rem;
+    --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+    --shadow-pop: 0 4px 10px rgba(16,24,40,.10), 0 12px 32px rgba(16,24,40,.10);
+  }
+  * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { background: var(--surface-1); color: var(--ink-700); padding-bottom: 4rem; }
+  h1, h2, h3, h4, h5, h6 { color: var(--ink-900); letter-spacing: -0.01em; }
+  .text-primary-dark { color: var(--brand-700) !important; }
+  .breadcrumb-trail { font-size: .78rem; color: var(--ink-500); margin-bottom: .35rem; }
+  .card-shadow { box-shadow: var(--shadow-card); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface-0); }
+  .etapa-card { text-decoration: none; display: block; height: 100%; transition: transform .12s, box-shadow .12s; }
+  .etapa-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-pop); }
+  .etapa-card .etapa-icone {
+    width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--brand-50); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1.15rem;
+  }
+  .etapa-card .etapa-titulo { color: var(--ink-900); font-weight: 700; font-size: 1.05rem; margin: .6rem 0 .3rem; }
+  .etapa-card .etapa-desc { color: var(--ink-500); font-size: .85rem; }
+  .etapa-card .etapa-ir { color: var(--brand-600); font-size: .82rem; font-weight: 600; margin-top: .6rem; display: inline-flex; align-items: center; gap: .3rem; }
+</style>
+</head>
+<body>
+  <div class="container"><div id="navHost"></div></div>
+  <script>montarNavegacao('consultas');</script>
+
+  <div class="container py-4">
+    <div class="page-header mb-4">
+      <div class="breadcrumb-trail">Consultas &amp; Análises</div>
+      <h1 class="display-6 fw-semibold text-primary-dark mb-1">
+        <i class="bi bi-graph-up-arrow me-2" style="color: var(--brand-500);"></i>Consultas &amp; Análises
+      </h1>
+      <p class="small mb-0">Depois que os dados já estão no banco, é aqui que você olha, cruza e investiga.</p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-4">
+        <a class="card card-shadow p-4 etapa-card" href="analise-diaria.html">
+          <span class="etapa-icone"><i class="bi bi-clipboard2-pulse-fill"></i></span>
+          <div class="etapa-titulo">Análise Diária</div>
+          <div class="etapa-desc">Investigação automática dos piores Mapas do dia: Pareto de clientes, gap geográfico, recorrência de rota e sugestão de tratativa.</div>
+          <div class="etapa-ir">Abrir <i class="bi bi-arrow-right"></i></div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <a class="card card-shadow p-4 etapa-card" href="ranking-estouro.html">
+          <span class="etapa-icone"><i class="bi bi-graph-up-arrow"></i></span>
+          <div class="etapa-titulo">Ranking de Estouro</div>
+          <div class="etapa-desc">Clientes e cidades que mais estouram tempo estimado — quem priorizar primeiro.</div>
+          <div class="etapa-ir">Abrir <i class="bi bi-arrow-right"></i></div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <a class="card card-shadow p-4 etapa-card" href="consulta-mapa.html">
+          <span class="etapa-icone"><i class="bi bi-signpost-2-fill"></i></span>
+          <div class="etapa-titulo">Consulta por Mapa</div>
+          <div class="etapa-desc">Busca pontual: digite um Mapa e veja os atendimentos e indicadores dele.</div>
+          <div class="etapa-ir">Abrir <i class="bi bi-arrow-right"></i></div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <a class="card card-shadow p-4 etapa-card" href="analise.html">
+          <span class="etapa-icone"><i class="bi bi-layout-text-window-reverse"></i></span>
+          <div class="etapa-titulo">Análise</div>
+          <div class="etapa-desc">Consulta geral e cruzamentos livres sobre a base já tratada.</div>
+          <div class="etapa-ir">Abrir <i class="bi bi-arrow-right"></i></div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <a class="card card-shadow p-4 etapa-card" href="vinculo-tabelas.html">
+          <span class="etapa-icone"><i class="bi bi-link-45deg"></i></span>
+          <div class="etapa-titulo">Vínculo de Tabelas</div>
+          <div class="etapa-desc">Confere se Revenda+Mapa, Revenda+Mapa+Fase e Revenda+CodigoCliente estão casando entre as tabelas.</div>
+          <div class="etapa-ir">Abrir <i class="bi bi-arrow-right"></i></div>
+        </a>
+      </div>
+    </div>
+
+    <div class="card card-shadow p-3 mt-4">
+      <p class="small mb-0"><i class="bi bi-info-circle me-1"></i> Dentro de cada consulta você encontra uma aba de navegação rápida
+      pra trocar entre as 5 sem precisar voltar aqui.</p>
+    </div>
+  </div>
+</body>
+</html>

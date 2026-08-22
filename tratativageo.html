@@ -131,52 +131,11 @@
 
     @media (max-width: 576px) { .card-shadow { padding: 1rem !important; } }
   </style>
+<script src="nav-shared.js"></script>
 </head>
 <body>
-  <div class="container">
-    <nav class="navbar navbar-expand-lg navbar-site px-3 py-2 mb-2">
-      <div class="container-fluid px-0">
-        <a class="navbar-brand" href="index.html">
-          <span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span>
-          <span class="brand-text"><span class="sub">Painel</span>OT</span>
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir menu">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="menuPrincipal">
-          <ul class="navbar-nav ms-auto gap-1 align-items-lg-center">
-            <li class="nav-item">
-              <a class="nav-link" href="index.html"><i class="bi bi-journal-richtext me-1"></i>Diário de Tratativas</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link active" aria-current="page" href="tratativageo.html"><i class="bi bi-geo-alt-fill me-1"></i>Geolocalizador</a>
-            </li>
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="menuImportacao" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-cloud-arrow-up-fill me-1"></i>Importação de Dados
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuImportacao">
-                <li><a class="dropdown-item" href="tratamento-dados.html"><i class="bi bi-truck"></i>Tratamento de Base</a></li>
-                <li><a class="dropdown-item" href="tratamento-2art.html"><i class="bi bi-files"></i>Base 2art</a></li>
-                <li><a class="dropdown-item" href="tratamento-clientes.html"><i class="bi bi-people-fill"></i>Base de Clientes</a></li>
-                <li><a class="dropdown-item" href="tratamento-carregamento.html"><i class="bi bi-truck-flatbed"></i>Carregamento / Lacre</a></li>
-              </ul>
-            </li>
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="menuAnalises" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-graph-up-arrow me-1"></i>Consultas &amp; Análises
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuAnalises">
-                <li><a class="dropdown-item" href="consulta-mapa.html"><i class="bi bi-signpost-2-fill"></i>Consulta por Mapa</a></li>
-                <li><a class="dropdown-item" href="vinculo-tabelas.html"><i class="bi bi-link-45deg"></i>Vínculo de Tabelas</a></li>
-                <li><a class="dropdown-item" href="ranking-estouro.html"><i class="bi bi-graph-up-arrow"></i>Ranking de Estouro</a></li>
-              </ul>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
-  </div>
+  <div class="container"><div id="navHost"></div></div>
+  <script>montarNavegacao('geo');</script>
   <div class="container py-4">
 
     <div class="page-header">

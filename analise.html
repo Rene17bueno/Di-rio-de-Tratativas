@@ -1,0 +1,2311 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análise - Painel OT</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="estado-sessao.js"></script>
+<style>
+  :root {
+    --brand-50:  #eef4ff; --brand-100: #dce8ff; --brand-200: #b3ceff;
+    --brand-500: #245bc7; --brand-600: #1c4aa8; --brand-700: #163a85;
+    --ink-900: #101828; --ink-700: #344054; --ink-500: #667085; --ink-400: #98a2b3;
+    --surface-0: #ffffff; --surface-1: #e9edf4; --surface-2: #eef2f8;
+    --border-soft: #e3e8f0; --border-strong: #c9d3e0;
+    --success: #0f9d58; --success-bg: #e6f7ee; --danger: #c0362c; --danger-bg: #fbeae8;
+    --radius-lg: 1rem; --radius-md: 0.7rem; --radius-sm: 0.5rem;
+    --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+    --shadow-pop: 0 4px 10px rgba(16,24,40,.10), 0 12px 32px rgba(16,24,40,.10);
+    --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem;
+    --space-5: 1.5rem; --space-6: 2rem; --space-7: 2.5rem;
+  }
+  * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  html { -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--surface-1); color: var(--ink-700); padding-bottom: 4rem; overflow-x: hidden; }
+  ::selection { background: var(--brand-200); }
+  h1, h2, h3, h4, h5, h6 { color: var(--ink-900); letter-spacing: -0.01em; }
+  .text-primary-dark { color: var(--brand-700) !important; }
+  .text-muted-ink { color: var(--ink-500) !important; }
+  small, .small { color: var(--ink-500); }
+
+  .card-shadow { box-shadow: var(--shadow-card); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface-0); }
+  .section-head { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-4); }
+  .section-head > div { min-width: 0; }
+  .section-head .icon-chip {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    background: var(--brand-50); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; flex-shrink: 0;
+  }
+  .section-head h5 { font-weight: 700; font-size: 1.05rem; margin-bottom: .1rem; }
+  .section-head p { margin-bottom: 0; font-size: .84rem; color: var(--ink-500); max-width: 62ch; }
+  .step-badge {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--brand-500); color: white;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+  }
+
+  .btn { font-weight: 600; letter-spacing: -0.005em; }
+  .btn-primary-brand { background: var(--brand-500); border: 1px solid var(--brand-500); color: #fff; }
+  .btn-primary-brand:hover { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+  .btn-primary-brand:disabled { background: var(--brand-200); border-color: var(--brand-200); opacity: .7; }
+  .btn-primary-soft { background: var(--brand-50); border: 1px solid var(--brand-100); color: var(--brand-700); }
+  .btn-primary-soft:hover { background: var(--brand-100); border-color: var(--brand-200); color: var(--brand-700); }
+  .btn-primary-soft:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-excel { background: #1a7a4c; border: 1px solid #1a7a4c; color: white; }
+  .btn-excel:hover { background: #15603c; border-color: #15603c; color: white; }
+  .btn-excel:disabled { background: #a7c9b6; border-color: #a7c9b6; }
+  .btn-outline-secondary { border-color: var(--border-strong); color: var(--ink-700); }
+
+  .form-label { font-size: .78rem; font-weight: 600; color: var(--ink-700); }
+  .form-control, .form-select { border-color: var(--border-strong); font-size: .88rem; }
+  .form-control:focus, .form-select:focus { border-color: var(--brand-500); box-shadow: 0 0 0 .2rem var(--brand-50); }
+
+  .table-preview-wrap { max-height: 560px; overflow: auto; border-radius: var(--radius-md); }
+  .table-preview-wrap table { font-size: 0.82rem; margin-bottom: 0; }
+  .table-preview-wrap thead th {
+    position: sticky; top: 0; background: var(--surface-2); color: var(--ink-700); z-index: 1;
+    text-align: center; vertical-align: middle; white-space: normal;
+    font-size: .74rem; text-transform: uppercase; letter-spacing: .03em; font-weight: 700;
+    border-color: var(--border-soft);
+  }
+  .table-preview-wrap tbody td { border-color: var(--border-soft); vertical-align: middle; }
+  .table-hover > tbody > tr:hover > * { background-color: var(--brand-50); }
+
+  .stat-box { background: var(--surface-1); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: .9rem 1.1rem; }
+  .stat-box .stat-label { font-size: .74rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .03em; }
+  .stat-box .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+  .stat-box.stat-danger .stat-value { color: var(--danger); }
+
+  .badge-estouro { background: var(--danger-bg); color: var(--danger); border: 1px solid #f2c6c2; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .toast-custom {
+    position: fixed; top: 20px; right: 20px; z-index: 9999;
+    max-width: 350px; min-width: 250px; animation: slideIn 0.3s ease;
+    box-shadow: var(--shadow-pop);
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  .navbar-site { background: var(--surface-0); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); margin-top: 1rem; }
+  .navbar-site .navbar-brand { display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .brand-mark {
+    width: 32px; height: 32px; border-radius: .55rem; background: var(--brand-500); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .navbar-site .brand-text { line-height: 1.05; }
+  .navbar-site .brand-text .sub { display: block; font-size: .66rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .05em; }
+  .navbar-site .nav-link { color: var(--ink-700); font-weight: 600; font-size: .88rem; border-radius: var(--radius-sm); padding: .5rem .85rem; transition: background 0.15s, color .15s; }
+  .navbar-site .nav-link:hover { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .nav-link.active { background: var(--brand-500); color: #fff !important; }
+  .navbar-site .nav-item.dropdown.section-active > .nav-link { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-menu { border: 1px solid var(--border-soft); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); padding: .4rem; margin-top: .4rem; }
+  .navbar-site .dropdown-item { border-radius: var(--radius-sm); font-size: .86rem; font-weight: 500; color: var(--ink-700); padding: .5rem .65rem; display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .dropdown-item i { color: var(--brand-500); width: 1.1em; text-align: center; }
+  .navbar-site .dropdown-item:hover, .navbar-site .dropdown-item:focus { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-item.active { background: var(--brand-500); color: #fff; }
+  .navbar-site .dropdown-item.active i { color: #fff; }
+
+  .breadcrumb-trail { font-size: .78rem; color: var(--ink-500); margin-bottom: .35rem; }
+  .breadcrumb-trail i { font-size: .65rem; vertical-align: middle; margin: 0 .3rem; }
+  .page-header { margin-bottom: var(--space-4); }
+  .page-header h3 { font-weight: 700; font-size: 1.5rem; }
+
+  .info-card {
+    display: flex; gap: var(--space-3); align-items: flex-start;
+    background: var(--brand-50); border: 1px solid var(--brand-100);
+    border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+  }
+  .info-card .info-card-icon {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--surface-0); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+    box-shadow: 0 1px 2px rgba(16,24,40,.06);
+  }
+  .info-card p { color: var(--ink-700); font-size: .88rem; margin-bottom: .6rem; max-width: 78ch; }
+  .info-card p:last-child { margin-bottom: 0; }
+  .info-card .info-card-ref {
+    display: flex; gap: .5rem; align-items: flex-start;
+    background: var(--surface-0); border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+    padding: .55rem .75rem; font-size: .78rem; color: var(--ink-500); max-width: 78ch;
+  }
+  .info-card .info-card-ref i { color: var(--brand-500); margin-top: .15rem; flex-shrink: 0; }
+  .info-card .info-card-ref strong { color: var(--ink-700); }
+
+  /* ---------- Painel por cidade (Ranking de Estouro) ---------- */
+  .grafico-cidade-card { border: 1px solid var(--border-soft); border-radius: var(--radius-md); background: var(--surface-1); padding: 1rem; }
+  .grafico-cidade-legenda { display: flex; align-items: center; gap: 1rem; font-size: 0.78rem; color: var(--ink-500); }
+  .grafico-cidade-legenda .chave { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .grafico-cidade-legenda .chave-cor { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .grafico-barra-hit { cursor: pointer; }
+  .grafico-barra-hit:hover rect.barra, .grafico-barra-hit:focus rect.barra { filter: brightness(1.08); }
+  .grafico-tooltip {
+    position: absolute; z-index: 20; pointer-events: none;
+    background: var(--ink-900); color: #ffffff; font-size: 0.76rem;
+    padding: 0.35rem 0.6rem; border-radius: 0.5rem; white-space: nowrap;
+    box-shadow: var(--shadow-pop);
+    opacity: 0; transition: opacity 0.1s;
+  }
+  .grafico-tooltip.mostrar { opacity: 1; }
+  .grafico-tooltip .valor { font-weight: 700; }
+
+  /* ---------- Tabelas de detalhe por dia da semana (3 lado a lado) ---------- */
+  .tabela-dia-semana-wrap { max-height: 560px; overflow: auto; }
+  .tabela-dia-semana { font-size: 0.56rem; table-layout: fixed; width: 100%; }
+  .tabela-dia-semana th, .tabela-dia-semana td { padding: .16rem .15rem; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; }
+  .tabela-dia-semana thead th { font-size: .54rem; padding: .28rem .15rem; }
+  .tabela-dia-semana td.col-cliente, .tabela-dia-semana th.col-cliente { width: 28%; white-space: normal; line-height: 1.1; }
+  .tabela-dia-semana td.col-cliente span { font-size: .52rem; }
+  .tabela-dia-semana th:not(.col-cliente), .tabela-dia-semana td:not(.col-cliente) { width: 12%; white-space: nowrap; }
+
+  .celula-diagonal { position: relative; height: 30px; padding: 0 !important; }
+  .celula-diagonal::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom right, transparent calc(50% - .5px), rgba(0,0,0,.28) calc(50% - .5px) calc(50% + .5px), transparent calc(50% + .5px));
+    pointer-events: none;
+  }
+  .celula-diagonal .valor-principal, .celula-diagonal .valor-secundario { position: absolute; font-size: .54rem; font-weight: 700; line-height: 1; }
+  .celula-diagonal .valor-principal { top: 3px; left: 4px; }
+  .celula-diagonal .valor-secundario { bottom: 3px; right: 4px; color: var(--danger); }
+
+  /* ---------- Abas de topo da página Análise ---------- */
+  .analise-tabs .nav-link { font-weight: 600; color: var(--ink-500); border: none; border-bottom: 2px solid transparent; }
+  .analise-tabs .nav-link.active { color: var(--brand-700); border-bottom-color: var(--brand-500); background: transparent; }
+  .analise-tabs .nav-link:hover { color: var(--brand-600); }
+</style>
+<script src="nav-shared.js"></script>
+</head>
+<body>
+  <div class="container"><div id="navHost"></div></div>
+  <script>montarNavegacao('consultas', 'analise');</script>
+  <div class="container"><div id="subNavHost"></div></div>
+  <script>montarSubNav('consultas', 'analise');</script>
+
+<div class="container py-4" style="max-width: 1400px;">
+
+  <div class="page-header">
+    <div class="breadcrumb-trail">Consultas &amp; Análises <i class="bi bi-chevron-right"></i> Análise</div>
+    <h3 class="text-primary-dark mb-0"><i class="bi bi-layout-text-window-reverse me-2"></i>Análise</h3>
+  </div>
+
+  <div class="info-card mb-4">
+    <span class="info-card-icon"><i class="bi bi-info-circle-fill"></i></span>
+    <div>
+      <p>
+        Reúne numa página só os principais painéis já disponíveis em Base 2art, Base de Clientes,
+        Consulta por Mapa, Carregamento/Lacre e Ranking de Estouro — são cópias (as páginas originais
+        continuam existindo do jeito que estão). Os painéis que carregam sozinhos abrem com a Revenda
+        <strong>MGA</strong> e o mês/dia <strong>mais recente que tem dado de verdade no banco</strong>
+        (não necessariamente hoje). Buscar Mapa e Análise por PDV precisam de um número específico
+        digitado, então abrem só com a Revenda pronta, esperando você buscar.
+      </p>
+    </div>
+  </div>
+
+  <ul class="nav analise-tabs mb-3" id="analiseTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="tabTopIndicadoresBtn" data-bs-toggle="tab" data-bs-target="#tabTopIndicadores" type="button" role="tab"><i class="bi bi-calendar3 me-1"></i>Indicadores</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tabTopPdvBtn" data-bs-toggle="tab" data-bs-target="#tabTopPdv" type="button" role="tab"><i class="bi bi-person-badge me-1"></i>Análise por PDV</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tabTopMapaBtn" data-bs-toggle="tab" data-bs-target="#tabTopMapa" type="button" role="tab"><i class="bi bi-signpost-2-fill me-1"></i>Buscar Mapa</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tabTopLacreBtn" data-bs-toggle="tab" data-bs-target="#tabTopLacre" type="button" role="tab"><i class="bi bi-database-fill me-1"></i>Lacres Salvos</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tabTopRankingBtn" data-bs-toggle="tab" data-bs-target="#tabTopRanking" type="button" role="tab"><i class="bi bi-graph-up-arrow me-1"></i>Ranking de Estouro</button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="analiseTabsContent">
+    <div class="tab-pane fade show active" id="tabTopIndicadores" role="tabpanel">
+      <div class="card card-shadow p-4" id="cardPainelPeriodo">
+        <div class="section-head">
+          <span class="icon-chip"><i class="bi bi-calendar3"></i></span>
+          <div>
+            <h5 class="mb-0">Painel de Indicadores</h5>
+            <p>Busca direto no banco de dados. Médias e % consideram só mapas com MapaValidoHr = Sim e MapaValidoHr-saida = Sim (aba Tempo) ou MapaValidoKm = Sim (aba Km). Abre com Revenda MGA e o mês mais recente com dado.</p>
+          </div>
+        </div>
+
+        <ul class="nav nav-tabs mb-3" id="tabsPainelIndicadores" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tabTempoBtn" data-bs-toggle="tab" data-bs-target="#tabTempo" type="button" role="tab" aria-controls="tabTempo" aria-selected="true">
+              <i class="bi bi-clock-history me-1"></i>Tempo
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tabKmBtn" data-bs-toggle="tab" data-bs-target="#tabKm" type="button" role="tab" aria-controls="tabKm" aria-selected="false">
+              <i class="bi bi-signpost-split me-1"></i>Km
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content" id="tabsPainelIndicadoresContent">
+          <div class="tab-pane fade show active" id="tabTempo" role="tabpanel" aria-labelledby="tabTempoBtn">
+
+            <h6 class="text-primary-dark fw-semibold mb-2">Por Dia</h6>
+            <div class="row g-2 mb-3 align-items-end">
+              <div class="col-6 col-md-3">
+                <label class="form-label small text-secondary mb-1">Revenda</label>
+                <select class="form-select form-select-sm" id="painelDiaRevenda">
+                  <option value="" disabled>Selecione...</option>
+                  <option value="MGA" selected>MGA</option>
+                  <option value="GPA">GPA</option>
+                  <option value="PG">PG</option>
+                  <option value="NP">NP</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label small text-secondary mb-1">Mês</label>
+                <input type="month" class="form-control form-control-sm" id="painelDiaMes">
+              </div>
+              <div class="col-6 col-md-3">
+                <button class="btn btn-sm btn-primary-soft w-100" id="btnGerarPainelDia"><i class="bi bi-search me-1"></i>Gerar</button>
+              </div>
+            </div>
+            <div id="containerPainelDia" class="mb-4"></div>
+
+            <h6 class="text-primary-dark fw-semibold mb-1">Dispersão de Tempo por Semana e por Mês</h6>
+            <p class="text-secondary small mb-2">Semana de calendário (Segunda a Domingo) — a Semana 1 do mês pode ter menos de 7 dias se o mês não começar numa segunda-feira.</p>
+            <div class="row g-2 mb-3 align-items-end">
+              <div class="col-6 col-md-3">
+                <label class="form-label small text-secondary mb-1">Mês <small class="text-secondary fw-normal">(só filtra a tabela de Semana)</small></label>
+                <select class="form-select form-select-sm" id="painelSemanaMesMes">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label small text-secondary mb-1">Ano</label>
+                <select class="form-select form-select-sm" id="painelSemanaMesAno"></select>
+              </div>
+              <div class="col-6 col-md-3">
+                <button class="btn btn-sm btn-primary-soft w-100" id="btnGerarPainelSemanaMes"><i class="bi bi-arrow-clockwise me-1"></i>Atualizar</button>
+              </div>
+            </div>
+            <div class="table-responsive mb-4">
+              <table class="table table-sm table-bordered text-center align-middle mb-0" id="tabelaPainelSemana" style="font-size:0.78rem;"></table>
+            </div>
+            <div class="table-responsive mb-2">
+              <table class="table table-sm table-bordered text-center align-middle mb-0" id="tabelaPainelMes" style="font-size:0.78rem;"></table>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="tabKm" role="tabpanel" aria-labelledby="tabKmBtn">
+
+            <h6 class="text-primary-dark fw-semibold mb-2">Por Dia</h6>
+            <div class="row g-2 mb-3 align-items-end">
+              <div class="col-6 col-md-3">
+                <label class="form-label small text-secondary mb-1">Revenda</label>
+                <select class="form-select form-select-sm" id="painelDiaRevendaKm">
+                  <option value="" disabled>Selecione...</option>
+                  <option value="MGA" selected>MGA</option>
+                  <option value="GPA">GPA</option>
+                  <option value="PG">PG</option>
+                  <option value="NP">NP</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label small text-secondary mb-1">Mês</label>
+                <input type="month" class="form-control form-control-sm" id="painelDiaMesKm">
+              </div>
+              <div class="col-6 col-md-3">
+                <button class="btn btn-sm btn-primary-soft w-100" id="btnGerarPainelDiaKm"><i class="bi bi-search me-1"></i>Gerar</button>
+              </div>
+            </div>
+            <div id="containerPainelDiaKm" class="mb-4"></div>
+
+            <h6 class="text-primary-dark fw-semibold mb-1">Dispersão de Km por Semana e por Mês</h6>
+            <p class="text-secondary small mb-2">Semana de calendário (Segunda a Domingo) — a Semana 1 do mês pode ter menos de 7 dias se o mês não começar numa segunda-feira.</p>
+            <div class="row g-2 mb-3 align-items-end">
+              <div class="col-6 col-md-3">
+                <label class="form-label small text-secondary mb-1">Mês <small class="text-secondary fw-normal">(só filtra a tabela de Semana)</small></label>
+                <select class="form-select form-select-sm" id="painelSemanaMesMesKm">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label small text-secondary mb-1">Ano</label>
+                <select class="form-select form-select-sm" id="painelSemanaMesAnoKm"></select>
+              </div>
+              <div class="col-6 col-md-3">
+                <button class="btn btn-sm btn-primary-soft w-100" id="btnGerarPainelSemanaMesKm"><i class="bi bi-arrow-clockwise me-1"></i>Atualizar</button>
+              </div>
+            </div>
+            <div class="table-responsive mb-4">
+              <table class="table table-sm table-bordered text-center align-middle mb-0" id="tabelaPainelSemanaKm" style="font-size:0.78rem;"></table>
+            </div>
+            <div class="table-responsive mb-2">
+              <table class="table table-sm table-bordered text-center align-middle mb-0" id="tabelaPainelMesKm" style="font-size:0.78rem;"></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane fade" id="tabTopPdv" role="tabpanel">
+      <div class="card card-shadow p-4" id="cardAnalisePdv">
+        <div class="section-head">
+          <span class="icon-chip"><i class="bi bi-search"></i></span>
+          <div>
+            <h5 class="mb-0">Análise por PDV (Cod_cliente)</h5>
+            <p>
+              Busca direto no banco de dados. Considera as 10 tours mais recentes do cliente (pela Data). As médias e
+              medianas de tempo, peso e volume usam apenas, dentre essas 10, as tours com Status "Concluído" e
+              Dentro_do_raio verdadeiro. Revenda já vem em MGA — digite o Cod_cliente e clique em Analisar.
+            </p>
+          </div>
+        </div>
+
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Revenda</label>
+            <select class="form-select form-select-sm" id="pdvFiltroRevenda">
+              <option value="">Todas</option>
+              <option value="MGA" selected>MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-4">
+            <label class="form-label small text-secondary mb-1">Cod_cliente</label>
+            <input type="text" class="form-control form-control-sm" id="inputPdvCodCliente" list="listaCodClientes" placeholder="Ex: 31048">
+            <datalist id="listaCodClientes"></datalist>
+          </div>
+          <div class="col-6 col-md-2">
+            <button class="btn btn-sm btn-primary-brand w-100" id="btnAnalisarPdv">Analisar</button>
+          </div>
+        </div>
+
+        <div id="resultadoAnalisePdv" class="d-none">
+          <div class="row g-2 mb-3">
+            <div class="col-6 col-md-4">
+              <div class="stat-box"><div class="stat-label">Revenda</div><div class="stat-value" id="pdvRevenda">-</div></div>
+            </div>
+            <div class="col-6 col-md-4">
+              <div class="stat-box"><div class="stat-label">Cod_cliente</div><div class="stat-value" id="pdvCodCliente">-</div></div>
+            </div>
+            <div class="col-6 col-md-4">
+              <div class="stat-box"><div class="stat-label">Apontamentos usados</div><div class="stat-value" id="pdvQtdApontamentos">-</div></div>
+            </div>
+          </div>
+
+          <div class="table-responsive mb-3">
+            <table class="table table-bordered table-sm text-center align-middle mb-0" style="font-size:0.85rem;">
+              <thead>
+                <tr class="table-light"><th></th><th>Real</th><th>Planejado</th><th>Dispersão</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="fw-semibold text-start">Média de Atendimento</td>
+                  <td id="pdvMediaReal">-</td><td id="pdvMediaPlan">-</td><td id="pdvDispersaoMedia">-</td>
+                </tr>
+                <tr>
+                  <td class="fw-semibold text-start">Mediana de Atendimento</td>
+                  <td id="pdvMedianaReal">-</td><td id="pdvMedianaPlan">-</td><td id="pdvDispersaoMediana">-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-6 col-md-3">
+              <div class="stat-box"><div class="stat-label">Raio (10 tours)</div><div class="stat-value" id="pdvRaio">-</div></div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-box"><div class="stat-label">Entrega Concluída (10 tours)</div><div class="stat-value" id="pdvConcluido">-</div></div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-box"><div class="stat-label">Média Peso</div><div class="stat-value" id="pdvMediaPeso">-</div></div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-box"><div class="stat-label">Média Volume</div><div class="stat-value" id="pdvMediaVolume">-</div></div>
+            </div>
+          </div>
+
+          <p class="small mb-2">10 tours mais recentes do PDV (a coluna "Usado no cálculo" marca as que entraram nas médias/medianas):</p>
+          <div class="table-preview-wrap border rounded-3" style="max-height:300px;">
+            <table class="table table-hover table-bordered table-sm mb-0 align-middle" style="font-size:0.8rem;">
+              <thead>
+                <tr>
+                  <th>Mapa</th><th>Data</th><th>Placa</th><th>Tempo de Atendimento</th><th>Tempo Estimado</th><th>Status</th><th>Dentro_do_raio</th><th>Usado no cálculo</th>
+                </tr>
+              </thead>
+              <tbody id="pdvTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="pdvSemResultado" class="text-secondary small d-none">Nenhum apontamento encontrado para esse Cod_cliente.</div>
+      </div>
+    </div>
+    <div class="tab-pane fade" id="tabTopMapa" role="tabpanel">
+      <div class="card card-shadow p-4 mb-4">
+        <div class="section-head">
+          <span class="icon-chip"><i class="bi bi-search"></i></span>
+          <div>
+            <h5 class="mb-0">Buscar Mapa</h5>
+            <p>Revenda já vem em MGA. Informe o número do Mapa (Data é opcional) e clique em Buscar.</p>
+          </div>
+        </div>
+        <div class="row g-2 align-items-end">
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Revenda</label>
+            <select class="form-select form-select-sm" id="bmRevenda">
+              <option value="" disabled>Revenda...</option>
+              <option value="MGA" selected>MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Mapa</label>
+            <input type="text" class="form-control form-control-sm" id="bmMapa" placeholder="Ex: 451070">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small text-secondary mb-1">Data <small class="text-secondary fw-normal">(opcional — um Mapa pode repetir em datas diferentes)</small></label>
+            <input type="date" class="form-control form-control-sm" id="bmData">
+          </div>
+          <div class="col-6 col-md-3">
+            <button class="btn btn-sm btn-primary-brand w-100" id="bmBtnBuscar"><i class="bi bi-search me-1"></i>Buscar</button>
+          </div>
+        </div>
+        <div class="mt-2"><span id="bmStatusBusca" class="small"></span></div>
+      </div>
+
+      <div class="card card-shadow p-4 mb-4 d-none" id="bmCardBase2art">
+        <div class="section-head mb-3">
+          <span class="icon-chip"><i class="bi bi-files"></i></span>
+          <div><h5 class="mb-0">Base 2art</h5></div>
+        </div>
+        <div class="table-responsive border rounded-3">
+          <table class="table table-hover table-bordered mb-0 align-middle" style="font-size:0.78rem;">
+            <thead><tr id="bmTheadBase2art"></tr></thead>
+            <tbody id="bmTbodyBase2art"></tbody>
+          </table>
+        </div>
+        <p class="text-secondary small mb-0 mt-2 d-none" id="bmSemBase2art">Nenhum registro encontrado na base 2art pra esse Mapa/Revenda.</p>
+      </div>
+
+      <div class="card card-shadow p-4 d-none" id="bmCardBaseDados">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <div class="section-head mb-0">
+            <span class="icon-chip"><i class="bi bi-truck"></i></span>
+            <div><h5 class="mb-0">Base Tratamento de Base (paradas do Mapa)</h5></div>
+          </div>
+          <button class="btn btn-excel" id="bmBtnBaixarExcelParadas" disabled><i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel</button>
+        </div>
+        <p class="small mb-2" id="bmInfoBaseDados"></p>
+        <div class="table-preview-wrap border rounded-3">
+          <table class="table table-hover table-bordered mb-0 align-middle">
+            <thead><tr id="bmTheadParadas"></tr></thead>
+            <tbody id="bmTbodyParadas"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane fade" id="tabTopLacre" role="tabpanel">
+      <div class="card card-shadow p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <div class="section-head mb-0">
+            <span class="icon-chip"><i class="bi bi-database-fill"></i></span>
+            <div>
+              <h5 class="mb-0">Consultar Lacres Salvos</h5>
+              <p>Busca direto no banco de dados (tabela <code>carregamento_analise</code>). Abre com Revenda MGA e o mês mais recente com dado.</p>
+            </div>
+          </div>
+          <button class="btn btn-excel" id="btnExcelConsultaLacre" disabled><i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel</button>
+        </div>
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-6 col-md-3">
+            <label class="form-label mb-1">Revenda</label>
+            <select class="form-select form-select-sm" id="consultaLacreRevenda">
+              <option value="">Todas</option>
+              <option value="MGA" selected>MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label mb-1">Mês</label>
+            <input type="month" class="form-control form-control-sm" id="consultaLacreMes">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label mb-1">Data (Saída)</label>
+            <input type="date" class="form-control form-control-sm" id="consultaLacreData">
+          </div>
+          <div class="col-6 col-md-2">
+            <button class="btn btn-sm btn-primary-soft w-100" id="btnBuscarConsultaLacre"><i class="bi bi-search me-1"></i>Buscar</button>
+          </div>
+          <div class="col-6 col-md-2">
+            <button class="btn btn-sm btn-outline-secondary w-100" id="btnLimparConsultaLacre"><i class="bi bi-x-circle me-1"></i>Limpar</button>
+          </div>
+        </div>
+        <div class="mb-2"><span id="statusConsultaLacre" class="small"></span></div>
+        <div class="table-preview-wrap border rounded-3">
+          <table class="table table-hover table-bordered mb-0 align-middle" style="font-size:.8rem;">
+            <thead><tr id="theadConsultaLacre"></tr></thead>
+            <tbody id="tbodyConsultaLacre"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane fade" id="tabTopRanking" role="tabpanel">
+      <div class="card card-shadow p-4 mb-4">
+        <div class="section-head">
+          <span class="icon-chip"><i class="bi bi-sliders"></i></span>
+          <div>
+            <h5 class="mb-0">Filtros da busca</h5>
+            <p>Abre com Revenda MGA. Pra cada cliente, considera as 10 tours mais recentes (pela Data) e calcula a dispersão média entre o Tempo de Atendimento real e o Estimado.</p>
+          </div>
+        </div>
+        <div class="row g-3 align-items-end">
+          <div class="col-6 col-md-3">
+            <label class="form-label mb-1">Revenda</label>
+            <select class="form-select form-select-sm" id="inputRevenda">
+              <option value="" disabled>Revenda...</option>
+              <option value="MGA" selected>MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label mb-1">Cidade <span class="fw-normal text-muted-ink">(opcional)</span></label>
+            <input type="text" class="form-control form-control-sm" id="inputCidade" list="listaCidadesRanking" placeholder="Escolha a revenda pra ver as cidades...">
+            <datalist id="listaCidadesRanking"></datalist>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label mb-1">Mín. apontamentos válidos</label>
+            <input type="number" class="form-control form-control-sm" id="inputMinApontamentos" value="3" min="1" max="10">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label mb-1">Top N clientes</label>
+            <input type="number" class="form-control form-control-sm" id="inputTopN" value="30" min="1" max="500">
+          </div>
+          <div class="col-6 col-md-2">
+            <button class="btn btn-sm btn-primary-brand w-100" id="btnGerarRanking"><i class="bi bi-search me-1"></i>Gerar Ranking</button>
+          </div>
+        </div>
+        <div class="mt-2"><span id="statusBusca" class="small"></span></div>
+      </div>
+
+      <div class="card card-shadow p-4 mb-4 d-none" id="cardResultado">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-3">
+          <div class="section-head mb-0">
+            <span class="icon-chip"><i class="bi bi-trophy-fill"></i></span>
+            <div><h5 class="mb-0">Clientes com Maior Estouro</h5><p>Ordenado do maior atraso médio pro menor.</p></div>
+          </div>
+          <button class="btn btn-excel" id="btnBaixarExcelRanking" disabled><i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel</button>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-6 col-md-3"><div class="stat-box"><div class="stat-label">Clientes analisados</div><div class="stat-value" id="statClientesAnalisados">0</div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-box"><div class="stat-label">Exibidos no ranking</div><div class="stat-value" id="statClientesRanking">0</div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-box"><div class="stat-label">Apontamentos lidos</div><div class="stat-value" id="statApontamentosLidos">0</div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-box stat-danger"><div class="stat-label">Maior estouro</div><div class="stat-value" id="statMaiorEstouro">-</div></div></div>
+        </div>
+        <div class="table-preview-wrap border rounded-3">
+          <table class="table table-hover table-bordered mb-0 align-middle">
+            <thead><tr id="theadRanking"></tr></thead>
+            <tbody id="tbodyRanking"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card card-shadow p-4 mt-4" id="cardPainelCidades">
+        <div class="section-head">
+          <span class="icon-chip"><i class="bi bi-bar-chart-fill"></i></span>
+          <div>
+            <h5 class="mb-0">Top 10 Cidades — Maior Estouro por Revenda</h5>
+            <p>Pra cada uma das 4 revendas, calcula o Estouro de cada cliente e tira a média por cidade. Barras vermelhas = atendimento demorou mais que o planejado; azuis = adiantado.</p>
+          </div>
+        </div>
+        <div class="row g-3 align-items-end mb-3">
+          <div class="col-6 col-md-3">
+            <label class="form-label mb-1">Mín. apontamentos válidos</label>
+            <input type="number" class="form-control form-control-sm" id="inputMinApontamentosCidades" value="3" min="1" max="10">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label mb-1">Ordenar por</label>
+            <select class="form-select form-select-sm" id="selectModoCidades">
+              <option value="tempo">Estouro (Média) — tempo</option>
+              <option value="quantidade">Quantidade de apontamentos com estouro</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <button class="btn btn-sm btn-primary-brand w-100" id="btnGerarGraficosCidades"><i class="bi bi-bar-chart-fill me-1"></i>Gerar Gráficos</button>
+          </div>
+          <div class="col-12 col-md-3"><span id="statusGraficosCidades" class="small"></span></div>
+        </div>
+        <div class="row g-3" id="gridGraficosCidades"></div>
+      </div>
+
+      <div class="card card-shadow p-4 mt-4" id="cardDetalheDiaSemana">
+        <div class="section-head">
+          <span class="icon-chip"><i class="bi bi-calendar-week-fill"></i></span>
+          <div>
+            <h5 class="mb-0">Piores Clientes de uma Cidade — Detalhe por Dia da Semana</h5>
+            <p>Revenda já vem em MGA. Escolha a cidade pra ver os clientes com maior estouro médio e o padrão de atendimento por dia da semana.</p>
+          </div>
+        </div>
+        <div class="row g-3 align-items-end mb-3">
+          <div class="col-6 col-md-3">
+            <label class="form-label mb-1">Revenda</label>
+            <select class="form-select form-select-sm" id="inputRevendaDetalhe">
+              <option value="" disabled>Revenda...</option>
+              <option value="MGA" selected>MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label mb-1">Cidade</label>
+            <input type="text" class="form-control form-control-sm" id="inputCidadeDetalhe" list="listaCidadesDetalhe" placeholder="Escolha a revenda pra ver as cidades...">
+            <datalist id="listaCidadesDetalhe"></datalist>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label mb-1">Mín. apontamentos</label>
+            <input type="number" class="form-control form-control-sm" id="inputMinApontamentosDetalhe" value="3" min="1" max="10">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label mb-1">Qtd. clientes</label>
+            <input type="number" class="form-control form-control-sm" id="inputTopNDetalhe" value="10" min="1" max="50">
+          </div>
+          <div class="col-6 col-md-2">
+            <button class="btn btn-sm btn-primary-brand w-100" id="btnGerarDetalheDiaSemana"><i class="bi bi-search me-1"></i>Gerar</button>
+          </div>
+        </div>
+        <div class="mb-2"><span id="statusDetalheDiaSemana" class="small"></span></div>
+        <div id="resultadoDetalheDiaSemana"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// -1. CONFIGURAÇÃO DO BANCO DE DADOS (Supabase — compartilhado por todos os
+// painéis desta página; cada painel abaixo roda no seu próprio escopo (IIFE)
+// pra evitar qualquer conflito de nomes entre os painéis copiados).
+// ============================================================
+const SUPABASE_URL = 'https://scbdlyfavqlzstbulrup.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_M55itc2oMAlK3bEFj9Le5Q_CeBsVBUV';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================================
+// PAINEL 1 — INDICADORES (cópia de tratamento-2art.html, "Painel de
+// Indicadores"). Auto-carrega com Revenda MGA e o mês/ano mais recente que
+// tem dado real em atendimentos_2art (não necessariamente hoje).
+// ============================================================
+(function painelIndicadores() {
+  const META_TML_PADRAO = '00:30:00';
+  const META_TR_PADRAO = '08:50:00';
+  const META_TI_PADRAO = '00:30:00';
+  const META_JL_PADRAO = '10:20:00';
+
+  const REVENDA_CIDADE = { MGA: 'Maringá', GPA: 'Guarapuava', PG: 'Ponta Grossa', NP: 'Norte Pioneiro' };
+  const NOMES_MESES_2ART = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const NOMES_DIAS_SEMANA_2ART = ['DOMINGO', 'SEGUNDA-FEIRA', 'TERÇA-FEIRA', 'QUARTA-FEIRA', 'QUINTA-FEIRA', 'SEXTA-FEIRA', 'SÁBADO'];
+
+  const TAMANHO_PAGINA_BANCO = 1000;
+
+  function formatarDataISOParaBR(dataISO) {
+    const match = String(dataISO ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return match ? `${match[3]}/${match[2]}/${match[1]}` : '';
+  }
+
+  function converterLinhaBancoParaPadrao2art(l) {
+    return {
+      'Chave': l.chave, 'Revenda': l.revenda, 'Data': formatarDataISOParaBR(l.data),
+      'Transp': l.transp, 'Frota': l.frota, 'Veiculo': l.veiculo, 'Placa': l.placa, 'Mapa': l.mapa,
+      'Capac': l.capac, 'Entregas': l.entregas, 'Nu Entregador': l.nu_entregador, 'CxCarreg': l.cx_carreg, 'Ocup': l.ocup,
+      'HrIncio': l.hr_inicio, 'TML': l.tml, 'Meta TML': l.meta_tml, 'Status TML': l.status_tml,
+      'HrSai': l.hr_sai, 'HrEntr': l.hr_entr, 'TR': l.tr, 'Meta TR': l.meta_tr, 'Status TR': l.status_tr,
+      'Dispersão de Tempo%': l.dispersao_tempo_pct, 'Dispersão de Tempo': l.dispersao_tempo, 'TempoPrev': l.tempo_prev,
+      'TmpoInterno': l.tmpo_interno, 'Meta TI': l.meta_ti, 'Status TI': l.status_ti,
+      'JL': l.jl, 'StatusJL': l.status_jl,
+      'KmSai': l.km_sai, 'KM Real': l.km_real, 'KmEntr': l.km_entr,
+      'Dispersão de Km': l.dispersao_km, 'Dispersão de Km%': l.dispersao_km_pct, 'KmPrev': l.km_prev,
+      'CapacidadeVeiculoKG': l.capacidade_veiculo_kg, 'PesoCargaKG': l.peso_carga_kg,
+      'Dispersão de Peso': l.dispersao_peso, 'Dispersão de Peso%': l.dispersao_peso_pct,
+      'MapaValidoHr': l.mapa_valido_hr, 'MapaValidoHr-saida': l.mapa_valido_hr_saida, 'MapaValidoKm': l.mapa_valido_km
+    };
+  }
+
+  async function buscarTodasLinhas2art(montarQuery, limiteMaximo) {
+    let todasLinhas = [];
+    let pagina = 0;
+    while (true) {
+      let query = montarQuery(supabaseClient.from('atendimentos_2art').select('*'))
+        .order('id', { ascending: true })
+        .range(pagina * TAMANHO_PAGINA_BANCO, pagina * TAMANHO_PAGINA_BANCO + TAMANHO_PAGINA_BANCO - 1);
+      const { data, error } = await query;
+      if (error) throw error;
+      todasLinhas = todasLinhas.concat(data || []);
+      if (!data || data.length < TAMANHO_PAGINA_BANCO) break;
+      if (limiteMaximo && todasLinhas.length >= limiteMaximo) break;
+      pagina++;
+    }
+    return limiteMaximo ? todasLinhas.slice(0, limiteMaximo) : todasLinhas;
+  }
+
+  function formatarNumeroBR(valor, casas = 2) {
+    if (valor === null || valor === undefined || isNaN(valor)) return '';
+    return valor.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+  }
+
+  function horaParaMinutos(valor) {
+    const texto = String(valor ?? '').trim();
+    if (texto === '') return null;
+    const negativo = texto.startsWith('-');
+    const limpo = negativo ? texto.slice(1) : texto;
+    const partes = limpo.split(':').map(p => parseInt(p, 10));
+    if (!partes.length || partes.some(isNaN)) return null;
+    const totalMin = (partes[0] || 0) * 60 + (partes[1] || 0) + (partes[2] || 0) / 60;
+    return negativo ? -totalMin : totalMin;
+  }
+
+  function minutosParaHora(minutos) {
+    if (minutos === null || minutos === undefined || isNaN(minutos)) return '';
+    const sinal = minutos < 0 ? '-' : '';
+    const totalMin = Math.round(Math.abs(minutos));
+    const pad = n => String(n).padStart(2, '0');
+    return `${sinal}${pad(Math.floor(totalMin / 60))}:${pad(totalMin % 60)}`;
+  }
+
+  function calcularFracaoHoras(horaNumerador, horaDenominador) {
+    const minNum = horaParaMinutos(horaNumerador);
+    const minDen = horaParaMinutos(horaDenominador);
+    if (minNum === null || minDen === null || minDen === 0) return null;
+    return minNum / minDen;
+  }
+
+  function calcularDispersaoPercentualHoras(horaNumerador, horaDenominador) {
+    const fracao = calcularFracaoHoras(horaNumerador, horaDenominador);
+    return fracao === null ? null : fracao - 1;
+  }
+
+  function dispersaoPercentualAgregada(linhas, colunaNumerador, colunaDenominador) {
+    let somaNum = 0, somaDen = 0, temValido = false;
+    linhas.forEach(l => {
+      const minNum = horaParaMinutos(l[colunaNumerador]);
+      const minDen = horaParaMinutos(l[colunaDenominador]);
+      if (minNum !== null && minDen !== null) { somaNum += minNum; somaDen += minDen; temValido = true; }
+    });
+    if (!temValido || somaDen === 0) return null;
+    return somaNum / somaDen - 1;
+  }
+
+  function formatarPercentual(fracao) {
+    if (fracao === null || fracao === undefined || isNaN(fracao)) return '';
+    return (fracao * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+  }
+
+  function calcularMediaNumero(coluna, linhas) {
+    const valores = linhas.map(r => r[coluna]).filter(v => v !== null && v !== undefined && !isNaN(v));
+    if (!valores.length) return null;
+    return valores.reduce((total, v) => total + v, 0) / valores.length;
+  }
+
+  function somaNumero(linhas, coluna) {
+    const valores = linhas.map(r => r[coluna]).filter(v => v !== null && v !== undefined && !isNaN(v));
+    if (!valores.length) return null;
+    return valores.reduce((total, v) => total + v, 0);
+  }
+
+  function dispersaoPercentualNumericaAgregada(linhas, colunaNumerador, colunaDenominador) {
+    let somaNum = 0, somaDen = 0, temValido = false;
+    linhas.forEach(l => {
+      const num = l[colunaNumerador], den = l[colunaDenominador];
+      if (num !== null && num !== undefined && den !== null && den !== undefined && !isNaN(num) && !isNaN(den)) { somaNum += num; somaDen += den; temValido = true; }
+    });
+    if (!temValido || somaDen === 0) return null;
+    return somaNum / somaDen - 1;
+  }
+
+  function removerAcentos(texto) {
+    return texto.replace(/[áàâã]/g, 'a').replace(/[éèê]/g, 'e').replace(/[íìî]/g, 'i').replace(/[óòôõ]/g, 'o').replace(/[úùû]/g, 'u').replace(/ç/g, 'c');
+  }
+  function frotaValida(frota) {
+    const texto = removerAcentos(String(frota ?? '').trim().toLowerCase());
+    return texto === 'padrao' || texto === 'fixo';
+  }
+
+  function parseDataBR(dataBR) {
+    const match = String(dataBR ?? '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return null;
+    return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+  }
+
+  function semanaDoMesLinha(dataBR) {
+    const d = parseDataBR(dataBR);
+    if (!d) return null;
+    const primeiroDiaMes = new Date(d.getFullYear(), d.getMonth(), 1);
+    const diaSemanaPrimeiro = (primeiroDiaMes.getDay() + 6) % 7;
+    const inicioSemana1 = new Date(d.getFullYear(), d.getMonth(), 1 - diaSemanaPrimeiro);
+    const diffDias = Math.round((d - inicioSemana1) / 86400000);
+    return Math.floor(diffDias / 7) + 1;
+  }
+  function mesNumeroLinha(dataBR) {
+    const d = parseDataBR(dataBR);
+    return d ? d.getMonth() + 1 : null;
+  }
+  function mediaHorasDeArray(linhas, coluna) {
+    const minutos = linhas.map(r => horaParaMinutos(r[coluna])).filter(m => m !== null);
+    if (!minutos.length) return null;
+    return minutos.reduce((total, m) => total + m, 0) / minutos.length;
+  }
+  function pctStatusDeArray(linhas, colunaStatus) {
+    if (!linhas.length) return null;
+    return linhas.filter(r => r[colunaStatus] === 1).length / linhas.length;
+  }
+  function mediaDispersaoPctDeArray(linhas) {
+    return dispersaoPercentualAgregada(linhas, 'TR', 'TempoPrev');
+  }
+  function classeCorDispersao(pct) {
+    if (pct === null) return '';
+    return Math.abs(pct) > 0.15 ? 'bg-danger-subtle text-danger fw-semibold' : 'bg-info-subtle';
+  }
+
+  function mostrarToastInd(mensagem, tipo) {
+    const div = document.createElement('div');
+    div.className = `toast-custom alert alert-${tipo}`;
+    div.textContent = mensagem;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 4000);
+  }
+
+  // ---- Por Dia (Tempo) ----
+  document.getElementById('btnGerarPainelDia').addEventListener('click', gerarPainelDia);
+  document.getElementById('painelDiaRevenda').addEventListener('change', gerarPainelDia);
+
+  async function gerarPainelDia() {
+    const revendaSel = document.getElementById('painelDiaRevenda').value;
+    if (!revendaSel) { document.getElementById('containerPainelDia').innerHTML = '<p class="text-secondary small">Selecione uma revenda para ver os dados.</p>'; return; }
+    const mesSel = document.getElementById('painelDiaMes').value;
+    if (!mesSel) return;
+
+    const [ano, mes] = mesSel.split('-').map(Number);
+    const primeiroDia = `${mesSel}-01`;
+    const ultimoDiaNum = new Date(ano, mes, 0).getDate();
+    const ultimoDia = `${mesSel}-${String(ultimoDiaNum).padStart(2, '0')}`;
+
+    const btn = document.getElementById('btnGerarPainelDia');
+    btn.disabled = true;
+    try {
+      const data = await buscarTodasLinhas2art(query => {
+        let q = query.gte('data', primeiroDia).lte('data', ultimoDia);
+        if (revendaSel) q = q.eq('revenda', revendaSel);
+        return q;
+      });
+      const linhas = data.map(converterLinhaBancoParaPadrao2art).filter(r => r['MapaValidoHr'] === 'Sim' && r['MapaValidoHr-saida'] === 'Sim' && frotaValida(r['Frota']));
+
+      const container = document.getElementById('containerPainelDia');
+      container.innerHTML = '';
+      const revendasParaMostrar = revendaSel ? [revendaSel] : Object.keys(REVENDA_CIDADE);
+      revendasParaMostrar.forEach(revenda => {
+        const linhasRevenda = linhas.filter(r => r['Revenda'] === revenda);
+        const porDia = {};
+        for (let dia = 1; dia <= ultimoDiaNum; dia++) porDia[dia] = [];
+        linhasRevenda.forEach(r => { const d = parseDataBR(r['Data']); if (d) porDia[d.getDate()].push(r); });
+
+        const bloco = document.createElement('div');
+        bloco.className = 'mb-4';
+        bloco.innerHTML = `
+          <div class="fw-semibold text-primary-dark small mb-1">${REVENDA_CIDADE[revenda]} (${revenda})</div>
+          <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+            <table class="table table-sm table-bordered text-center align-middle mb-0" style="font-size:0.78rem;"></table>
+          </div>`;
+        container.appendChild(bloco);
+        renderizarPainelDia(bloco.querySelector('table'), ano, mes, ultimoDiaNum, porDia);
+      });
+    } catch (erro) {
+      console.error(erro);
+      mostrarToastInd('❌ Erro ao gerar o painel por dia: ' + erro.message, 'danger');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function renderizarPainelDia(tabela, ano, mes, ultimoDiaNum, porDia) {
+    let html = `
+      <thead>
+        <tr><th rowspan="2">Data</th><th rowspan="2">Dia Semana</th><th colspan="3">TML</th><th colspan="3">TR</th><th colspan="3">TI</th><th colspan="3">JL</th><th colspan="2">D.T.</th></tr>
+        <tr>
+          <th>Meta</th><th>TML(HH:MM)</th><th>TML(%)</th>
+          <th>Meta</th><th>TR(HH:MM)</th><th>TR(%)</th>
+          <th>Meta</th><th>TI(HH:MM)</th><th>TI(%)</th>
+          <th>Meta</th><th>JL(HH:MM)</th><th>JL(%)</th>
+          <th>D.T(HH:MM)</th><th>D.T.%</th>
+        </tr>
+      </thead>
+      <tbody>`;
+    for (let dia = 1; dia <= ultimoDiaNum; dia++) {
+      const linhasDia = porDia[dia];
+      const dataFmt = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`;
+      const nomeDia = NOMES_DIAS_SEMANA_2ART[new Date(ano, mes - 1, dia).getDay()];
+      const mediaTML = mediaHorasDeArray(linhasDia, 'TML'), pctTML = pctStatusDeArray(linhasDia, 'Status TML');
+      const mediaTR = mediaHorasDeArray(linhasDia, 'TR'), pctTR = pctStatusDeArray(linhasDia, 'Status TR');
+      const mediaTI = mediaHorasDeArray(linhasDia, 'TmpoInterno'), pctTI = pctStatusDeArray(linhasDia, 'Status TI');
+      const mediaJL = mediaHorasDeArray(linhasDia, 'JL'), pctJL = pctStatusDeArray(linhasDia, 'StatusJL');
+      const mediaDT = mediaHorasDeArray(linhasDia, 'Dispersão de Tempo'), pctDT = mediaDispersaoPctDeArray(linhasDia);
+      html += `<tr>
+        <td>${dataFmt}</td><td>${nomeDia}</td>
+        <td>${META_TML_PADRAO}</td><td>${mediaTML !== null ? minutosParaHora(mediaTML) : ''}</td><td>${pctTML !== null ? formatarPercentual(pctTML) : ''}</td>
+        <td>${META_TR_PADRAO}</td><td>${mediaTR !== null ? minutosParaHora(mediaTR) : ''}</td><td>${pctTR !== null ? formatarPercentual(pctTR) : ''}</td>
+        <td>${META_TI_PADRAO}</td><td>${mediaTI !== null ? minutosParaHora(mediaTI) : ''}</td><td>${pctTI !== null ? formatarPercentual(pctTI) : ''}</td>
+        <td>${META_JL_PADRAO}</td><td>${mediaJL !== null ? minutosParaHora(mediaJL) : ''}</td><td>${pctJL !== null ? formatarPercentual(pctJL) : ''}</td>
+        <td>${mediaDT !== null ? minutosParaHora(mediaDT) : ''}</td><td class="${classeCorDispersao(pctDT)}">${pctDT !== null ? formatarPercentual(pctDT) : ''}</td>
+      </tr>`;
+    }
+    html += '</tbody>';
+    tabela.innerHTML = html;
+  }
+
+  // ---- Por Dia (Km) ----
+  document.getElementById('btnGerarPainelDiaKm').addEventListener('click', gerarPainelDiaKm);
+  document.getElementById('painelDiaRevendaKm').addEventListener('change', gerarPainelDiaKm);
+
+  async function gerarPainelDiaKm() {
+    const revendaSel = document.getElementById('painelDiaRevendaKm').value;
+    if (!revendaSel) { document.getElementById('containerPainelDiaKm').innerHTML = '<p class="text-secondary small">Selecione uma revenda para ver os dados.</p>'; return; }
+    const mesSel = document.getElementById('painelDiaMesKm').value;
+    if (!mesSel) return;
+
+    const [ano, mes] = mesSel.split('-').map(Number);
+    const primeiroDia = `${mesSel}-01`;
+    const ultimoDiaNum = new Date(ano, mes, 0).getDate();
+    const ultimoDia = `${mesSel}-${String(ultimoDiaNum).padStart(2, '0')}`;
+
+    const btn = document.getElementById('btnGerarPainelDiaKm');
+    btn.disabled = true;
+    try {
+      const data = await buscarTodasLinhas2art(query => query.gte('data', primeiroDia).lte('data', ultimoDia).eq('revenda', revendaSel));
+      const linhas = data.map(converterLinhaBancoParaPadrao2art).filter(r => r['MapaValidoKm'] === 'Sim' && frotaValida(r['Frota']));
+
+      const porDia = {};
+      for (let dia = 1; dia <= ultimoDiaNum; dia++) porDia[dia] = [];
+      linhas.forEach(r => { const d = parseDataBR(r['Data']); if (d) porDia[d.getDate()].push(r); });
+
+      const container = document.getElementById('containerPainelDiaKm');
+      container.innerHTML = '';
+      const bloco = document.createElement('div');
+      bloco.innerHTML = `
+        <div class="fw-semibold text-primary-dark small mb-1">${REVENDA_CIDADE[revendaSel]} (${revendaSel})</div>
+        <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+          <table class="table table-sm table-bordered text-center align-middle mb-0" style="font-size:0.78rem;"></table>
+        </div>`;
+      container.appendChild(bloco);
+      renderizarPainelDiaKm(bloco.querySelector('table'), ano, mes, ultimoDiaNum, porDia);
+    } catch (erro) {
+      console.error(erro);
+      mostrarToastInd('❌ Erro ao gerar o painel por dia (Km): ' + erro.message, 'danger');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function renderizarPainelDiaKm(tabela, ano, mes, ultimoDiaNum, porDia) {
+    let html = `
+      <thead>
+        <tr><th rowspan="2">Data</th><th rowspan="2">Dia Semana</th><th rowspan="2">KmSai (méd)</th><th rowspan="2">KmEntr (méd)</th><th rowspan="2">KM Real (méd)</th><th rowspan="2">KmPrev (méd)</th><th colspan="2">Dispersão de Km</th></tr>
+        <tr><th>Média</th><th>%</th></tr>
+      </thead>
+      <tbody>`;
+    for (let dia = 1; dia <= ultimoDiaNum; dia++) {
+      const linhasDia = porDia[dia];
+      const dataFmt = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`;
+      const nomeDia = NOMES_DIAS_SEMANA_2ART[new Date(ano, mes - 1, dia).getDay()];
+      const mediaKmSai = calcularMediaNumero('KmSai', linhasDia), mediaKmEntr = calcularMediaNumero('KmEntr', linhasDia);
+      const mediaKmReal = calcularMediaNumero('KM Real', linhasDia), mediaKmPrev = calcularMediaNumero('KmPrev', linhasDia);
+      const mediaDispKm = calcularMediaNumero('Dispersão de Km', linhasDia);
+      const pctDispKm = dispersaoPercentualNumericaAgregada(linhasDia, 'KM Real', 'KmPrev');
+      html += `<tr>
+        <td>${dataFmt}</td><td>${nomeDia}</td>
+        <td>${mediaKmSai !== null ? formatarNumeroBR(mediaKmSai) : ''}</td>
+        <td>${mediaKmEntr !== null ? formatarNumeroBR(mediaKmEntr) : ''}</td>
+        <td>${mediaKmReal !== null ? formatarNumeroBR(mediaKmReal) : ''}</td>
+        <td>${mediaKmPrev !== null ? formatarNumeroBR(mediaKmPrev) : ''}</td>
+        <td>${mediaDispKm !== null ? formatarNumeroBR(mediaDispKm) : ''}</td>
+        <td class="${classeCorDispersao(pctDispKm)}">${pctDispKm !== null ? formatarPercentual(pctDispKm) : ''}</td>
+      </tr>`;
+    }
+    html += '</tbody>';
+    tabela.innerHTML = html;
+  }
+
+  // ---- Por Semana / Por Mês (Tempo) ----
+  function popularAnoPainelSemanaMes(anoPreSelecionado) {
+    const select = document.getElementById('painelSemanaMesAno');
+    const anoAtual = anoPreSelecionado || new Date().getFullYear();
+    const anos = [];
+    for (let a = anoAtual - 2; a <= anoAtual + 1; a++) anos.push(a);
+    select.innerHTML = anos.map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('');
+  }
+  function popularMesPainelSemanaMes(mesPreSelecionado) {
+    const select = document.getElementById('painelSemanaMesMes');
+    const mesAtual = mesPreSelecionado || new Date().getMonth() + 1;
+    select.innerHTML = '<option value="">Todos</option>' + NOMES_MESES_2ART.map((nome, i) => `<option value="${i + 1}" ${i + 1 === mesAtual ? 'selected' : ''}>${nome}</option>`).join('');
+  }
+  document.getElementById('btnGerarPainelSemanaMes').addEventListener('click', gerarPainelSemanaMes);
+  document.getElementById('painelSemanaMesMes').addEventListener('change', gerarPainelSemanaMes);
+  document.getElementById('painelSemanaMesAno').addEventListener('change', gerarPainelSemanaMes);
+
+  async function gerarPainelSemanaMes() {
+    const mesSel = document.getElementById('painelSemanaMesMes').value;
+    const ano = Number(document.getElementById('painelSemanaMesAno').value);
+    const btn = document.getElementById('btnGerarPainelSemanaMes');
+    btn.disabled = true;
+    try {
+      const data = await buscarTodasLinhas2art(query => query.gte('data', `${ano}-01-01`).lte('data', `${ano}-12-31`));
+      const linhasAno = data.map(converterLinhaBancoParaPadrao2art).filter(r => r['MapaValidoHr'] === 'Sim' && r['MapaValidoHr-saida'] === 'Sim' && frotaValida(r['Frota']));
+      const linhasSemana = mesSel ? linhasAno.filter(r => mesNumeroLinha(r['Data']) === Number(mesSel)) : linhasAno;
+
+      const revendas = Object.keys(REVENDA_CIDADE);
+      const gruposSemana = [1, 2, 3, 4, 5, 6].map(n => ({ chave: n, rotulo: `Semana ${n}` }));
+      const gruposMes = NOMES_MESES_2ART.map((nome, i) => ({ chave: i + 1, rotulo: nome }));
+
+      renderizarPainelPeriodo('tabelaPainelSemana', 'Semana', linhasSemana, revendas, gruposSemana, semanaDoMesLinha);
+      renderizarPainelPeriodo('tabelaPainelMes', 'Mês', linhasAno, revendas, gruposMes, mesNumeroLinha);
+    } catch (erro) {
+      console.error(erro);
+      mostrarToastInd('❌ Erro ao gerar o painel por semana/mês: ' + erro.message, 'danger');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function renderizarPainelPeriodo(idTabela, rotuloLinha, linhas, revendas, grupos, funcaoGrupo, colunas) {
+    const cfg = colunas || [
+      { rotulo: 'D.T(HH:MM)', calcular: lg => mediaHorasDeArray(lg, 'Dispersão de Tempo'), formatar: minutosParaHora },
+      { rotulo: '%', calcular: lg => mediaDispersaoPctDeArray(lg), formatar: formatarPercentual, corDispersao: true }
+    ];
+    let thead = `<thead><tr><th rowspan="2">${rotuloLinha}</th>`;
+    revendas.forEach(r => { thead += `<th colspan="${cfg.length}">${REVENDA_CIDADE[r]}</th>`; });
+    thead += `</tr><tr>`;
+    revendas.forEach(() => { cfg.forEach(c => { thead += `<th>${c.rotulo}</th>`; }); });
+    thead += `</tr></thead>`;
+
+    const acumuladorTotal = {};
+    revendas.forEach(r => acumuladorTotal[r] = []);
+    function linhaHtml(rotulo, linhasPorRevenda, classeLinha) {
+      let html = `<tr class="${classeLinha || ''}"><td class="fw-semibold text-start">${rotulo}</td>`;
+      revendas.forEach(r => {
+        const linhasGrupo = linhasPorRevenda[r];
+        cfg.forEach(c => {
+          const valor = c.calcular(linhasGrupo);
+          const classe = c.corDispersao ? classeCorDispersao(valor) : '';
+          html += `<td class="${classe}">${valor !== null ? c.formatar(valor) : ''}</td>`;
+        });
+      });
+      return html + '</tr>';
+    }
+    let corpo = '<tbody>';
+    grupos.forEach(grupo => {
+      const linhasPorRevenda = {};
+      revendas.forEach(r => {
+        const linhasGrupo = linhas.filter(l => l['Revenda'] === r && funcaoGrupo(l['Data']) === grupo.chave);
+        acumuladorTotal[r].push(...linhasGrupo);
+        linhasPorRevenda[r] = linhasGrupo;
+      });
+      corpo += linhaHtml(grupo.rotulo, linhasPorRevenda);
+    });
+    corpo += linhaHtml('Total', acumuladorTotal, 'table-light fw-semibold');
+    corpo += '</tbody>';
+    document.getElementById(idTabela).innerHTML = thead + corpo;
+  }
+
+  // ---- Por Semana / Por Mês (Km) ----
+  function popularAnoPainelSemanaMesKm(anoPreSelecionado) {
+    const select = document.getElementById('painelSemanaMesAnoKm');
+    const anoAtual = anoPreSelecionado || new Date().getFullYear();
+    const anos = [];
+    for (let a = anoAtual - 2; a <= anoAtual + 1; a++) anos.push(a);
+    select.innerHTML = anos.map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('');
+  }
+  function popularMesPainelSemanaMesKm(mesPreSelecionado) {
+    const select = document.getElementById('painelSemanaMesMesKm');
+    const mesAtual = mesPreSelecionado || new Date().getMonth() + 1;
+    select.innerHTML = '<option value="">Todos</option>' + NOMES_MESES_2ART.map((nome, i) => `<option value="${i + 1}" ${i + 1 === mesAtual ? 'selected' : ''}>${nome}</option>`).join('');
+  }
+  document.getElementById('btnGerarPainelSemanaMesKm').addEventListener('click', gerarPainelSemanaMesKm);
+  document.getElementById('painelSemanaMesMesKm').addEventListener('change', gerarPainelSemanaMesKm);
+  document.getElementById('painelSemanaMesAnoKm').addEventListener('change', gerarPainelSemanaMesKm);
+
+  async function gerarPainelSemanaMesKm() {
+    const mesSel = document.getElementById('painelSemanaMesMesKm').value;
+    const ano = Number(document.getElementById('painelSemanaMesAnoKm').value);
+    const btn = document.getElementById('btnGerarPainelSemanaMesKm');
+    btn.disabled = true;
+    try {
+      const data = await buscarTodasLinhas2art(query => query.gte('data', `${ano}-01-01`).lte('data', `${ano}-12-31`));
+      const linhasAno = data.map(converterLinhaBancoParaPadrao2art).filter(r => r['MapaValidoKm'] === 'Sim' && frotaValida(r['Frota']));
+      const linhasSemana = mesSel ? linhasAno.filter(r => mesNumeroLinha(r['Data']) === Number(mesSel)) : linhasAno;
+
+      const revendas = Object.keys(REVENDA_CIDADE);
+      const gruposSemana = [1, 2, 3, 4, 5, 6].map(n => ({ chave: n, rotulo: `Semana ${n}` }));
+      const gruposMes = NOMES_MESES_2ART.map((nome, i) => ({ chave: i + 1, rotulo: nome }));
+      const colunasKm = [
+        { rotulo: 'Km (méd)', calcular: lg => calcularMediaNumero('Dispersão de Km', lg), formatar: formatarNumeroBR },
+        { rotulo: '%', calcular: lg => dispersaoPercentualNumericaAgregada(lg, 'KM Real', 'KmPrev'), formatar: formatarPercentual, corDispersao: true },
+        { rotulo: 'KM Real (soma)', calcular: lg => somaNumero(lg, 'KM Real'), formatar: formatarNumeroBR },
+        { rotulo: 'KmPrev (soma)', calcular: lg => somaNumero(lg, 'KmPrev'), formatar: formatarNumeroBR }
+      ];
+      renderizarPainelPeriodo('tabelaPainelSemanaKm', 'Semana', linhasSemana, revendas, gruposSemana, semanaDoMesLinha, colunasKm);
+      renderizarPainelPeriodo('tabelaPainelMesKm', 'Mês', linhasAno, revendas, gruposMes, mesNumeroLinha, colunasKm);
+    } catch (erro) {
+      console.error(erro);
+      mostrarToastInd('❌ Erro ao gerar o painel por semana/mês (Km): ' + erro.message, 'danger');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ---- Inicialização: Revenda MGA + mês/ano mais recente com dado real ----
+  async function obterDataMaisRecente2art(revenda) {
+    let query = supabaseClient.from('atendimentos_2art').select('data').order('data', { ascending: false }).limit(1);
+    if (revenda) query = query.eq('revenda', revenda);
+    const { data, error } = await query;
+    if (error || !data || !data.length) return null;
+    return data[0].data;
+  }
+
+  (async function inicializarPainelIndicadores() {
+    const dataRecenteMGA = await obterDataMaisRecente2art('MGA');
+    const mesRecenteMGA = dataRecenteMGA ? dataRecenteMGA.slice(0, 7) : new Date().toISOString().slice(0, 7);
+    document.getElementById('painelDiaMes').value = mesRecenteMGA;
+    document.getElementById('painelDiaMesKm').value = mesRecenteMGA;
+
+    const dataRecenteGeral = dataRecenteMGA || await obterDataMaisRecente2art(null);
+    const anoRecente = dataRecenteGeral ? Number(dataRecenteGeral.slice(0, 4)) : new Date().getFullYear();
+    const mesRecenteNum = dataRecenteGeral ? Number(dataRecenteGeral.slice(5, 7)) : new Date().getMonth() + 1;
+
+    popularAnoPainelSemanaMes(anoRecente);
+    popularMesPainelSemanaMes(mesRecenteNum);
+    popularAnoPainelSemanaMesKm(anoRecente);
+    popularMesPainelSemanaMesKm(mesRecenteNum);
+
+    gerarPainelDia();
+    gerarPainelDiaKm();
+    gerarPainelSemanaMes();
+    gerarPainelSemanaMesKm();
+  })();
+})();
+
+// ============================================================
+// PAINEL 2 — ANÁLISE POR PDV (cópia de tratamento-dados.html). Revenda já
+// vem em MGA; não busca sozinho — precisa do Cod_cliente digitado.
+// ============================================================
+(function painelPdv() {
+  async function popularListaCodClientesDoBanco() {
+    try {
+      const { data, error } = await supabaseClient
+        .from('atendimentos').select('cod_cliente')
+        .not('cod_cliente', 'is', null)
+        .order('cod_cliente', { ascending: true }).limit(2000);
+      if (error) throw error;
+      const codigos = Array.from(new Set((data || []).map(r => r.cod_cliente)));
+      document.getElementById('listaCodClientes').innerHTML = codigos.map(c => `<option value="${c}"></option>`).join('');
+    } catch (erro) {
+      console.error('Falha ao carregar lista de Cod_cliente do banco:', erro);
+    }
+  }
+  popularListaCodClientesDoBanco();
+
+  function horaParaSegundos(str) {
+    if (!str) return null;
+    const negativo = str.startsWith('-');
+    const limpo = negativo ? str.slice(1) : str;
+    const partes = limpo.split(':').map(Number);
+    if (partes.length !== 3 || partes.some(isNaN)) return null;
+    const segundos = partes[0] * 3600 + partes[1] * 60 + partes[2];
+    return negativo ? -segundos : segundos;
+  }
+  function segundosParaHora(segundos) {
+    if (segundos === null || segundos === undefined || isNaN(segundos)) return '';
+    const sinal = segundos < 0 ? '-' : '';
+    const abs = Math.round(Math.abs(segundos));
+    const pad = n => String(n).padStart(2, '0');
+    return `${sinal}${pad(Math.floor(abs / 3600))}:${pad(Math.floor((abs % 3600) / 60))}:${pad(abs % 60)}`;
+  }
+  function media(numeros) { if (!numeros.length) return null; return numeros.reduce((a, b) => a + b, 0) / numeros.length; }
+  function mediana(numeros) {
+    if (!numeros.length) return null;
+    const ordenado = [...numeros].sort((a, b) => a - b);
+    const meio = Math.floor(ordenado.length / 2);
+    return ordenado.length % 2 === 0 ? (ordenado[meio - 1] + ordenado[meio]) / 2 : ordenado[meio];
+  }
+  function ehVerdadeiro(valor) {
+    if (valor === true) return true;
+    if (typeof valor === 'number') return valor === 1;
+    if (typeof valor === 'string') { const v = valor.trim().toLowerCase(); return v === 'true' || v === 'verdadeiro' || v === 'sim' || v === '1'; }
+    return false;
+  }
+  function formatarData(data) {
+    if (!(data instanceof Date) || isNaN(data)) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(data.getDate())}/${pad(data.getMonth() + 1)}/${data.getFullYear()}`;
+  }
+  function formatarNumero(valor) {
+    const numero = Number(valor);
+    if (valor === null || valor === undefined || valor === '' || isNaN(numero)) return '';
+    return numero.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function mostrarToastPdv(mensagem, tipo) {
+    const div = document.createElement('div');
+    div.className = `toast-custom alert alert-${tipo}`;
+    div.textContent = mensagem;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 4000);
+  }
+
+  function converterLinhaBancoParaLinhaPadrao(l) {
+    return {
+      'Revenda': l.revenda, 'Data': l.data ? new Date(l.data + 'T00:00:00') : null,
+      'Mapa': l.mapa, 'Chave-Mapa': l.chave_mapa, 'Cod_cliente': l.cod_cliente, 'Chave-PDV': l.chave_pdv,
+      'Placa': l.placa, 'Chegou_em': l.chegou_em, 'Finalizada_em': l.finalizada_em,
+      'Tempo de Atendimento': l.tempo_atendimento, 'Hora_estimada_chegada': l.hora_estimada_chegada,
+      'Hora_estimada_partida': l.hora_estimada_partida, 'Tempo Estimado de Atendimento': l.tempo_estimado_atendimento,
+      'Status': l.status, 'Valor_total': l.valor_total, 'Peso_total_kg': l.peso_total_kg,
+      'Volume': l.volume, 'Dentro_do_raio': l.dentro_do_raio
+    };
+  }
+
+  document.getElementById('btnAnalisarPdv').addEventListener('click', analisarPdv);
+
+  async function analisarPdv() {
+    const codDigitado = document.getElementById('inputPdvCodCliente').value.trim();
+    const resultadoEl = document.getElementById('resultadoAnalisePdv');
+    const semResultadoEl = document.getElementById('pdvSemResultado');
+    const btn = document.getElementById('btnAnalisarPdv');
+
+    if (!codDigitado) { resultadoEl.classList.add('d-none'); semResultadoEl.classList.add('d-none'); return; }
+
+    const codNum = Number(codDigitado);
+    const revendaSel = document.getElementById('pdvFiltroRevenda').value;
+
+    let dez;
+    btn.disabled = true;
+    const textoOriginalBtn = btn.innerHTML;
+    btn.innerHTML = 'Buscando...';
+    try {
+      let consulta = supabaseClient.from('atendimentos').select('*').eq('cod_cliente', codNum).order('data', { ascending: false }).limit(10);
+      if (revendaSel) consulta = consulta.eq('revenda', revendaSel);
+      const { data, error } = await consulta;
+      if (error) throw error;
+      dez = (data || []).map(converterLinhaBancoParaLinhaPadrao);
+    } catch (erro) {
+      console.error(erro);
+      mostrarToastPdv('❌ Erro ao buscar dados no banco: ' + erro.message, 'danger');
+      resultadoEl.classList.add('d-none'); semResultadoEl.classList.add('d-none');
+      return;
+    } finally {
+      btn.disabled = false; btn.innerHTML = textoOriginalBtn;
+    }
+
+    if (!dez.length) { resultadoEl.classList.add('d-none'); semResultadoEl.classList.remove('d-none'); return; }
+
+    const validas = dez.filter(l => l['Status'] === 'Concluído' && ehVerdadeiro(l['Dentro_do_raio']));
+    const segundosReal = validas.map(l => horaParaSegundos(l['Tempo de Atendimento'])).filter(v => v !== null);
+    const segundosPlan = validas.map(l => horaParaSegundos(l['Tempo Estimado de Atendimento'])).filter(v => v !== null);
+    const pesos = validas.map(l => l['Peso_total_kg']).filter(v => v !== null && !isNaN(v));
+    const volumes = validas.map(l => l['Volume']).filter(v => v !== null && !isNaN(v));
+
+    const mediaReal = media(segundosReal), mediaPlan = media(segundosPlan);
+    const medianaReal = mediana(segundosReal), medianaPlan = mediana(segundosPlan);
+    const pctRaio = dez.length ? (dez.filter(l => ehVerdadeiro(l['Dentro_do_raio'])).length / dez.length) * 100 : 0;
+    const pctConcluido = dez.length ? (dez.filter(l => l['Status'] === 'Concluído').length / dez.length) * 100 : 0;
+
+    document.getElementById('pdvRevenda').textContent = dez[0]['Revenda'] || '—';
+    document.getElementById('pdvCodCliente').textContent = codDigitado;
+    document.getElementById('pdvQtdApontamentos').textContent = `${validas.length} de ${dez.length}`;
+    document.getElementById('pdvMediaReal').textContent = mediaReal !== null ? segundosParaHora(mediaReal) : '—';
+    document.getElementById('pdvMediaPlan').textContent = mediaPlan !== null ? segundosParaHora(mediaPlan) : '—';
+    document.getElementById('pdvDispersaoMedia').textContent = (mediaReal !== null && mediaPlan !== null) ? segundosParaHora(mediaReal - mediaPlan) : '—';
+    document.getElementById('pdvMedianaReal').textContent = medianaReal !== null ? segundosParaHora(medianaReal) : '—';
+    document.getElementById('pdvMedianaPlan').textContent = medianaPlan !== null ? segundosParaHora(medianaPlan) : '—';
+    document.getElementById('pdvDispersaoMediana').textContent = (medianaReal !== null && medianaPlan !== null) ? segundosParaHora(medianaReal - medianaPlan) : '—';
+    document.getElementById('pdvRaio').textContent = `${pctRaio.toFixed(0)}%`;
+    document.getElementById('pdvConcluido').textContent = `${pctConcluido.toFixed(0)}%`;
+    document.getElementById('pdvMediaPeso').textContent = pesos.length ? formatarNumero(media(pesos)) : '—';
+    document.getElementById('pdvMediaVolume').textContent = volumes.length ? formatarNumero(media(volumes)) : '—';
+
+    document.getElementById('pdvTbody').innerHTML = dez.map(l => {
+      const usado = validas.includes(l);
+      return `<tr class="${usado ? '' : 'text-secondary'}">
+        <td>${l['Mapa'] ?? ''}</td><td>${formatarData(l['Data'])}</td><td>${l['Placa'] ?? ''}</td>
+        <td>${l['Tempo de Atendimento'] ?? ''}</td><td>${l['Tempo Estimado de Atendimento'] ?? ''}</td>
+        <td>${l['Status'] ?? ''}</td><td>${ehVerdadeiro(l['Dentro_do_raio']) ? 'Verdadeiro' : 'Falso'}</td><td>${usado ? '✔' : ''}</td>
+      </tr>`;
+    }).join('');
+
+    resultadoEl.classList.remove('d-none');
+    semResultadoEl.classList.add('d-none');
+  }
+})();
+
+// ============================================================
+// PAINEL 3 — BUSCAR MAPA (cópia de consulta-mapa.html). Revenda já vem em
+// MGA; não busca sozinho — precisa do número do Mapa digitado.
+// ============================================================
+(function painelBuscarMapa() {
+  const CAMPOS_2ART = {
+    veiculo: 'Veiculo', placa: 'Placa', entregas: 'Entregas', nu_entregador: 'Nu Entregador', cx_carreg: 'CxCarreg', ocup: 'Ocup',
+    hr_inicio: 'HrIncio', tml: 'TML', hr_sai: 'HrSai', hr_entr: 'HrEntr', tr: 'TR', meta_tr: 'Meta TR', status_tr: 'Status TR',
+    tempo_prev: 'TempoPrev', tmpo_interno: 'TmpoInterno', jl: 'JL', km_sai: 'KmSai', km_real: 'KM Real', km_entr: 'KmEntr',
+    capacidade_veiculo_kg: 'CapacidadeVeiculoKG', peso_carga_kg: 'PesoCargaKG', dispersao_peso: 'Dispersão de Peso'
+  };
+  const COLUNAS_PARADAS = [
+    { chave: 'cod_cliente', label: 'Cod_cliente', tipo: 'texto' },
+    { chave: 'nome_cliente_join', label: 'Nome Cliente', tipo: 'texto' },
+    { chave: 'cidade_join', label: 'Cidade', tipo: 'texto' },
+    { chave: 'placa', label: 'Placa', tipo: 'texto' },
+    { chave: 'chegou_em', label: 'Chegou_em', tipo: 'texto' },
+    { chave: 'finalizada_em', label: 'Finalizada_em', tipo: 'texto' },
+    { chave: 'tempo_atendimento', label: 'Tempo de Atendimento', tipo: 'texto' },
+    { chave: 'hora_estimada_chegada', label: 'Hora_estimada_chegada', tipo: 'texto' },
+    { chave: 'hora_estimada_partida', label: 'Hora_estimada_partida', tipo: 'texto' },
+    { chave: 'tempo_estimado_atendimento', label: 'Tempo Estimado de Atendimento', tipo: 'texto' },
+    { chave: 'status', label: 'Status', tipo: 'texto' },
+    { chave: 'valor_total', label: 'Valor_total', tipo: 'moeda' },
+    { chave: 'peso_total_kg', label: 'Peso_total_kg', tipo: 'numero' },
+    { chave: 'volume', label: 'Volume', tipo: 'numero' },
+    { chave: 'dentro_do_raio', label: 'Dentro_do_raio', tipo: 'booleano' }
+  ];
+  const LIMITE_PARADAS = 500;
+
+  function formatarDataISOParaBR(dataISO) {
+    const match = String(dataISO ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return match ? `${match[3]}/${match[2]}/${match[1]}` : '';
+  }
+  function ehVerdadeiro(valor) {
+    if (valor === true) return true;
+    if (typeof valor === 'number') return valor === 1;
+    if (typeof valor === 'string') { const v = valor.trim().toLowerCase(); return v === 'true' || v === 'verdadeiro' || v === 'sim' || v === '1'; }
+    return false;
+  }
+  function escapeHtmlMapa(texto) {
+    return String(texto ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function formatarValor2art(chave, valor) {
+    if (valor === null || valor === undefined || valor === '') return '-';
+    if (chave.endsWith('_pct')) return (Number(valor) * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    if (typeof valor === 'number') return Number.isInteger(valor) ? valor.toLocaleString('pt-BR') : valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return valor;
+  }
+  function formatarValorParada(campo, valor) {
+    if (valor === null || valor === undefined || valor === '') return '';
+    switch (campo.tipo) {
+      case 'data': return formatarDataISOParaBR(valor);
+      case 'moeda': return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      case 'numero': return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      case 'booleano': return ehVerdadeiro(valor) ? 'Verdadeiro' : 'Falso';
+      default: return escapeHtmlMapa(valor);
+    }
+  }
+  function mostrarToastMapa(mensagem, tipo) {
+    const div = document.createElement('div');
+    div.className = `toast-custom alert alert-${tipo}`;
+    div.textContent = mensagem;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 4000);
+  }
+
+  document.getElementById('bmBtnBuscar').addEventListener('click', buscarMapa);
+  document.getElementById('bmMapa').addEventListener('keydown', e => { if (e.key === 'Enter') buscarMapa(); });
+
+  let paradasEncontradas = [];
+
+  async function anexarNomeECidade(paradas) {
+    paradas.forEach(p => { p.chave_calculada = (p.revenda && p.cod_cliente != null) ? `${p.revenda}-${p.cod_cliente}` : null; });
+    const chaves = Array.from(new Set(paradas.map(p => p.chave_calculada).filter(Boolean)));
+    if (!chaves.length) return;
+    try {
+      const { data, error } = await supabaseClient.from('clientes').select('chave, nome_cliente, cidade').in('chave', chaves);
+      if (error) throw error;
+      const porChave = new Map((data || []).map(c => [c.chave, c]));
+      paradas.forEach(p => {
+        const cliente = porChave.get(p.chave_calculada);
+        p.nome_cliente_join = cliente ? cliente.nome_cliente : null;
+        p.cidade_join = cliente ? cliente.cidade : null;
+      });
+    } catch (erro) {
+      console.warn('Não deu pra buscar Nome Cliente/Cidade na tabela "clientes":', erro.message);
+    }
+  }
+
+  async function buscarMapa() {
+    const revenda = document.getElementById('bmRevenda').value;
+    const mapaStr = document.getElementById('bmMapa').value.trim();
+    const dataStr = document.getElementById('bmData').value;
+    const statusEl = document.getElementById('bmStatusBusca');
+
+    if (!revenda || !mapaStr) { statusEl.textContent = ''; mostrarToastMapa('⚠️ Selecione a Revenda e digite o Mapa.', 'warning'); return; }
+    const mapaNum = Number(mapaStr);
+    if (isNaN(mapaNum)) { mostrarToastMapa('⚠️ Mapa inválido — digite só números.', 'warning'); return; }
+
+    const btn = document.getElementById('bmBtnBuscar');
+    btn.disabled = true;
+    statusEl.textContent = 'Buscando...';
+    try {
+      let query2art = supabaseClient.from('atendimentos_2art').select('*').eq('revenda', revenda).eq('mapa', mapaNum).order('data', { ascending: false });
+      let queryParadas = supabaseClient.from('atendimentos').select('*').eq('revenda', revenda).eq('mapa', mapaNum).order('data', { ascending: false }).order('cod_cliente', { ascending: true }).limit(LIMITE_PARADAS);
+      if (dataStr) { query2art = query2art.eq('data', dataStr); queryParadas = queryParadas.eq('data', dataStr); }
+
+      const [{ data: dados2art, error: erro2art }, { data: dadosParadas, error: erroParadas }] = await Promise.all([query2art, queryParadas]);
+      if (erro2art) throw erro2art;
+      if (erroParadas) throw erroParadas;
+
+      await anexarNomeECidade(dadosParadas || []);
+      renderizarBase2art(dados2art || []);
+      renderizarParadas(dadosParadas || []);
+
+      document.getElementById('bmCardBase2art').classList.remove('d-none');
+      document.getElementById('bmCardBaseDados').classList.remove('d-none');
+      statusEl.textContent = `${(dados2art || []).length} registro(s) na base 2art, ${(dadosParadas || []).length} parada(s) na Tratamento de Base.`;
+      salvarEstadoAtualMapa(dados2art || [], statusEl.textContent);
+    } catch (erro) {
+      console.error(erro);
+      statusEl.textContent = '';
+      mostrarToastMapa('❌ Erro ao buscar: ' + erro.message, 'danger');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function renderizarBase2art(registros) {
+    const thead = document.getElementById('bmTheadBase2art');
+    const tbody = document.getElementById('bmTbodyBase2art');
+    const semResultado = document.getElementById('bmSemBase2art');
+    if (!registros.length) { thead.innerHTML = ''; tbody.innerHTML = ''; semResultado.classList.remove('d-none'); return; }
+    semResultado.classList.add('d-none');
+    const colunas = [{ chave: 'data', label: 'Data' }, ...Object.entries(CAMPOS_2ART).map(([chave, label]) => ({ chave, label }))];
+    thead.innerHTML = colunas.map(c => `<th>${c.label}</th>`).join('');
+    tbody.innerHTML = registros.map(r => `<tr>${colunas.map(c => `<td>${c.chave === 'data' ? formatarDataISOParaBR(r.data) : formatarValor2art(c.chave, r[c.chave])}</td>`).join('')}</tr>`).join('');
+  }
+
+  function renderizarParadas(registros) {
+    paradasEncontradas = registros;
+    const thead = document.getElementById('bmTheadParadas');
+    const tbody = document.getElementById('bmTbodyParadas');
+    thead.innerHTML = COLUNAS_PARADAS.map(c => `<th>${c.label}</th>`).join('');
+    tbody.innerHTML = registros.map(r => `<tr>${COLUNAS_PARADAS.map(c => `<td>${formatarValorParada(c, r[c.chave])}</td>`).join('')}</tr>`).join('');
+    const atingiuLimite = registros.length === LIMITE_PARADAS;
+    document.getElementById('bmInfoBaseDados').textContent = registros.length
+      ? `${registros.length} parada(s) encontrada(s)${atingiuLimite ? ' (limite de ' + LIMITE_PARADAS + ' atingido)' : ''}.`
+      : 'Nenhuma parada encontrada na Tratamento de Base pra esse Mapa/Revenda.';
+    document.getElementById('bmBtnBaixarExcelParadas').disabled = !registros.length;
+  }
+
+  document.getElementById('bmBtnBaixarExcelParadas').addEventListener('click', () => {
+    if (!paradasEncontradas.length) return;
+    const linhas = paradasEncontradas.map(r => {
+      const linha = {};
+      COLUNAS_PARADAS.forEach(c => { linha[c.label] = formatarValorParada(c, r[c.chave]); });
+      return linha;
+    });
+    const planilha = XLSX.utils.json_to_sheet(linhas);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, planilha, 'Paradas');
+    const dataHoje = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `consulta_mapa_${dataHoje}.xlsx`);
+    mostrarToastMapa('✅ Arquivo baixado com sucesso.', 'success');
+  });
+
+  // Estado próprio desta página (chave distinta da consulta-mapa.html padrão,
+  // pra não misturar/sobrescrever o que está salvo na página original).
+  const CHAVE_ESTADO_MAPA = 'estado_consulta_mapa_analise';
+
+  function salvarEstadoAtualMapa(dados2art, statusTexto) {
+    salvarEstadoPagina(CHAVE_ESTADO_MAPA, {
+      inputs: { revenda: document.getElementById('bmRevenda').value, mapa: document.getElementById('bmMapa').value, data: document.getElementById('bmData').value },
+      dados2art, paradasEncontradas, statusTexto
+    });
+  }
+
+  (function restaurarEstadoAtualMapa() {
+    const estado = carregarEstadoPagina(CHAVE_ESTADO_MAPA);
+    if (!estado) return;
+    document.getElementById('bmMapa').value = estado.inputs.mapa || '';
+    document.getElementById('bmData').value = estado.inputs.data || '';
+    if (estado.inputs.revenda) document.getElementById('bmRevenda').value = estado.inputs.revenda;
+    if (!estado.dados2art && !estado.paradasEncontradas) return;
+    renderizarBase2art(estado.dados2art || []);
+    renderizarParadas(estado.paradasEncontradas || []);
+    document.getElementById('bmCardBase2art').classList.remove('d-none');
+    document.getElementById('bmCardBaseDados').classList.remove('d-none');
+    document.getElementById('bmStatusBusca').textContent = estado.statusTexto || '';
+  })();
+})();
+
+// ============================================================
+// PAINEL 4 — CONSULTAR LACRES SALVOS (cópia de tratamento-carregamento.html).
+// Auto-carrega com Revenda MGA e o mês mais recente que tem dado real em
+// carregamento_analise (não necessariamente hoje).
+// ============================================================
+(function painelLacre() {
+  function isoParaDataBR(dataISO) {
+    const m = String(dataISO ?? '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return dataISO || '-';
+    return `${m[3]}/${m[2]}/${m[1]}`;
+  }
+  function paraNumeroExibicao(valor) {
+    if (valor === null || valor === undefined || valor === '') return '-';
+    const numero = Number(valor);
+    return isNaN(numero) ? String(valor) : String(numero);
+  }
+  function renderizarLinhaTabelaLacre(colunas, linha) {
+    return `<tr>${colunas.map(c => `<td${c.numerico ? ' class="text-end"' : ''}>${linha[c.chave] ?? ''}</td>`).join('')}</tr>`;
+  }
+  function mostrarToastLacre(mensagem, tipo) {
+    const div = document.createElement('div');
+    div.className = `toast-custom alert alert-${tipo}`;
+    div.textContent = mensagem;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 4500);
+  }
+
+  let resultadoConsultaLacreAtual = [];
+
+  async function buscarLacreSalvo(filtros) {
+    let query = supabaseClient.from('carregamento_analise').select('*').eq('status_lacre', 'Possível Lacre');
+    if (filtros.revenda) query = query.eq('revenda', filtros.revenda);
+    if (filtros.mes) {
+      const inicio = `${filtros.mes}-01`;
+      const dataFim = new Date(`${filtros.mes}-01T00:00:00`);
+      dataFim.setMonth(dataFim.getMonth() + 1);
+      const fim = dataFim.toISOString().slice(0, 10);
+      query = query.gte('data_saida', inicio).lt('data_saida', fim);
+    }
+    if (filtros.data) query = query.eq('data_saida', filtros.data);
+    query = query.order('data_saida', { ascending: false }).limit(2000);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }
+
+  function lerFiltrosConsultaLacre() {
+    return {
+      revenda: document.getElementById('consultaLacreRevenda').value,
+      mes: document.getElementById('consultaLacreMes').value,
+      data: document.getElementById('consultaLacreData').value
+    };
+  }
+
+  async function executarBuscaConsultaLacre() {
+    const statusEl = document.getElementById('statusConsultaLacre');
+    const btn = document.getElementById('btnBuscarConsultaLacre');
+    btn.disabled = true;
+    statusEl.textContent = 'Buscando...';
+    try {
+      const filtros = lerFiltrosConsultaLacre();
+      resultadoConsultaLacreAtual = await buscarLacreSalvo(filtros);
+      renderizarConsultaLacre();
+      statusEl.textContent = `${resultadoConsultaLacreAtual.length.toLocaleString('pt-BR')} mapa(s) com possível lacre encontrado(s).`;
+      document.getElementById('btnExcelConsultaLacre').disabled = !resultadoConsultaLacreAtual.length;
+    } catch (erro) {
+      console.error(erro);
+      statusEl.textContent = '';
+      mostrarToastLacre('❌ Erro ao consultar o banco (confira se a tabela "carregamento_analise" já existe): ' + erro.message, 'danger');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+  document.getElementById('btnBuscarConsultaLacre').addEventListener('click', executarBuscaConsultaLacre);
+
+  document.getElementById('btnLimparConsultaLacre').addEventListener('click', () => {
+    document.getElementById('consultaLacreRevenda').value = '';
+    document.getElementById('consultaLacreMes').value = '';
+    document.getElementById('consultaLacreData').value = '';
+    resultadoConsultaLacreAtual = [];
+    renderizarConsultaLacre();
+    document.getElementById('statusConsultaLacre').textContent = '';
+    document.getElementById('btnExcelConsultaLacre').disabled = true;
+  });
+
+  const COLUNAS_CONSULTA_LACRE = [
+    { chave: 'chave', label: 'Chave' },
+    { chave: 'mapaFmt', label: 'Mapa', numerico: true },
+    { chave: 'revenda', label: 'Revenda' },
+    { chave: 'placa', label: 'Placa' },
+    { chave: 'motoristaFmt', label: 'Motorista', numerico: true },
+    { chave: 'data_saida', label: 'Data Saída' },
+    { chave: 'hora_saida', label: 'Hora Saída' },
+    { chave: 'data_entrada', label: 'Data Entrada' },
+    { chave: 'hora_entrada', label: 'Hora Entrada' },
+    { chave: 'dias_decorridos', label: 'Dias', numerico: true }
+  ];
+
+  function renderizarConsultaLacre() {
+    const thead = document.getElementById('theadConsultaLacre');
+    const tbody = document.getElementById('tbodyConsultaLacre');
+    thead.innerHTML = COLUNAS_CONSULTA_LACRE.map(c => `<th>${c.label}</th>`).join('');
+    tbody.innerHTML = resultadoConsultaLacreAtual.map(r => {
+      const linha = {
+        chave: r.chave, mapaFmt: paraNumeroExibicao(r.mapa), revenda: r.revenda, placa: r.placa || '-',
+        motoristaFmt: paraNumeroExibicao(r.motorista),
+        data_saida: r.data_saida ? isoParaDataBR(r.data_saida) : '-', hora_saida: r.hora_saida || '-',
+        data_entrada: r.data_entrada ? isoParaDataBR(r.data_entrada) : '-', hora_entrada: r.hora_entrada || '-',
+        dias_decorridos: r.dias_decorridos !== null ? r.dias_decorridos : '-'
+      };
+      return renderizarLinhaTabelaLacre(COLUNAS_CONSULTA_LACRE, linha);
+    }).join('');
+  }
+
+  document.getElementById('btnExcelConsultaLacre').addEventListener('click', () => {
+    if (!resultadoConsultaLacreAtual.length) return;
+    const linhas = resultadoConsultaLacreAtual.map(r => ({
+      'Chave': r.chave, 'Mapa': r.mapa, 'Revenda': r.revenda, 'Veículo': r.veiculo, 'Placa': r.placa, 'Motorista': r.motorista,
+      'Data Saída': isoParaDataBR(r.data_saida), 'Hora Saída': r.hora_saida,
+      'Data Entrada': isoParaDataBR(r.data_entrada), 'Hora Entrada': r.hora_entrada,
+      'Dias Decorridos': r.dias_decorridos, 'Duração (min)': r.duracao_min, 'Status': r.status_lacre
+    }));
+    const planilha = XLSX.utils.json_to_sheet(linhas);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, planilha, 'Lacres Salvos');
+    const dataHoje = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `lacres_salvos_${dataHoje}.xlsx`);
+    mostrarToastLacre('✅ Arquivo baixado com sucesso.', 'success');
+  });
+
+  async function obterMesMaisRecenteLacre(revenda) {
+    let query = supabaseClient.from('carregamento_analise').select('data_saida').not('data_saida', 'is', null).order('data_saida', { ascending: false }).limit(1);
+    if (revenda) query = query.eq('revenda', revenda);
+    const { data, error } = await query;
+    if (error || !data || !data.length) return null;
+    return data[0].data_saida.slice(0, 7);
+  }
+
+  (async function inicializarPainelLacre() {
+    const mesRecente = await obterMesMaisRecenteLacre('MGA');
+    document.getElementById('consultaLacreMes').value = mesRecente || new Date().toISOString().slice(0, 7);
+    executarBuscaConsultaLacre();
+  })();
+})();
+
+// ============================================================
+// PAINEL 5 — RANKING DE ESTOURO (cópia de ranking-estouro.html). Auto-carrega
+// "Filtros da busca" e "Painel por Cidade" com Revenda MGA. "Detalhe por Dia
+// da Semana" precisa de Cidade digitada, então só deixa a Revenda pronta.
+// ============================================================
+(function painelRanking() {
+  const TAMANHO_PAGINA_BANCO = 1000;
+  const LIMITE_ATENDIMENTOS = 20000;
+  const QTD_TOURS_POR_CLIENTE = 10;
+
+  function horaParaSegundos(str) {
+    if (!str) return null;
+    const negativo = str.startsWith('-');
+    const limpo = negativo ? str.slice(1) : str;
+    const partes = limpo.split(':').map(Number);
+    if (partes.length !== 3 || partes.some(isNaN)) return null;
+    const segundos = partes[0] * 3600 + partes[1] * 60 + partes[2];
+    return negativo ? -segundos : segundos;
+  }
+  function segundosParaHora(segundos) {
+    if (segundos === null || segundos === undefined || isNaN(segundos)) return '';
+    const sinal = segundos < 0 ? '-' : '';
+    const abs = Math.round(Math.abs(segundos));
+    const pad = n => String(n).padStart(2, '0');
+    return `${sinal}${pad(Math.floor(abs / 3600))}:${pad(Math.floor((abs % 3600) / 60))}:${pad(abs % 60)}`;
+  }
+  function media(numeros) { if (!numeros.length) return null; return numeros.reduce((a, b) => a + b, 0) / numeros.length; }
+  function mediana(numeros) {
+    if (!numeros.length) return null;
+    const ordenado = [...numeros].sort((a, b) => a - b);
+    const meio = Math.floor(ordenado.length / 2);
+    return ordenado.length % 2 === 0 ? (ordenado[meio - 1] + ordenado[meio]) / 2 : ordenado[meio];
+  }
+  function formatarNumero(valor) {
+    if (valor === null || valor === undefined || isNaN(valor)) return '-';
+    return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function ehVerdadeiro(valor) {
+    if (valor === true) return true;
+    if (typeof valor === 'number') return valor === 1;
+    if (typeof valor === 'string') { const v = valor.trim().toLowerCase(); return v === 'true' || v === 'verdadeiro' || v === 'sim' || v === '1'; }
+    return false;
+  }
+
+  async function buscarTodosAtendimentos(revenda) {
+    let todasLinhas = [];
+    let pagina = 0;
+    while (true) {
+      const { data, error } = await supabaseClient
+        .from('atendimentos')
+        .select('cod_cliente,data,status,dentro_do_raio,tempo_atendimento,tempo_estimado_atendimento,peso_total_kg,volume')
+        .eq('revenda', revenda).not('cod_cliente', 'is', null)
+        .order('cod_cliente', { ascending: true }).order('data', { ascending: false })
+        .range(pagina * TAMANHO_PAGINA_BANCO, pagina * TAMANHO_PAGINA_BANCO + TAMANHO_PAGINA_BANCO - 1);
+      if (error) throw error;
+      todasLinhas = todasLinhas.concat(data || []);
+      if (!data || data.length < TAMANHO_PAGINA_BANCO) break;
+      if (todasLinhas.length >= LIMITE_ATENDIMENTOS) break;
+      pagina++;
+    }
+    return todasLinhas.slice(0, LIMITE_ATENDIMENTOS);
+  }
+
+  async function buscarClientesPorRevenda(revenda) {
+    const mapa = new Map();
+    try {
+      let pagina = 0;
+      while (true) {
+        const { data, error } = await supabaseClient
+          .from('clientes').select('codigo_cliente, nome_cliente, cidade').eq('revenda', revenda)
+          .range(pagina * TAMANHO_PAGINA_BANCO, pagina * TAMANHO_PAGINA_BANCO + TAMANHO_PAGINA_BANCO - 1);
+        if (error) throw error;
+        (data || []).forEach(c => mapa.set(String(c.codigo_cliente).trim(), c));
+        if (!data || data.length < TAMANHO_PAGINA_BANCO) break;
+        pagina++;
+      }
+    } catch (erro) {
+      console.warn('Não deu pra buscar a tabela "clientes":', erro.message);
+    }
+    return mapa;
+  }
+
+  const cacheCidadesPorRevenda = new Map();
+  async function buscarCidadesPorRevenda(revenda) {
+    if (cacheCidadesPorRevenda.has(revenda)) return cacheCidadesPorRevenda.get(revenda);
+    const mapaClientes = await buscarClientesPorRevenda(revenda);
+    const cidades = new Set();
+    mapaClientes.forEach(c => { if (c.cidade) cidades.add(c.cidade.trim()); });
+    const lista = Array.from(cidades).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    cacheCidadesPorRevenda.set(revenda, lista);
+    return lista;
+  }
+  async function atualizarDatalistCidade(revendaSelectId, datalistId) {
+    const revenda = document.getElementById(revendaSelectId).value;
+    const datalistEl = document.getElementById(datalistId);
+    if (!revenda) { datalistEl.innerHTML = ''; return; }
+    const cidades = await buscarCidadesPorRevenda(revenda);
+    datalistEl.innerHTML = cidades.map(c => `<option value="${escapeHtmlRank(c)}"></option>`).join('');
+  }
+  document.getElementById('inputRevenda').addEventListener('change', () => atualizarDatalistCidade('inputRevenda', 'listaCidadesRanking'));
+  document.getElementById('inputRevendaDetalhe').addEventListener('change', () => atualizarDatalistCidade('inputRevendaDetalhe', 'listaCidadesDetalhe'));
+
+  let rankingAtual = [];
+  document.getElementById('btnGerarRanking').addEventListener('click', gerarRanking);
+
+  async function gerarRanking() {
+    const revenda = document.getElementById('inputRevenda').value;
+    const cidadeFiltro = document.getElementById('inputCidade').value.trim().toLowerCase();
+    const minApontamentos = Math.max(1, Number(document.getElementById('inputMinApontamentos').value) || 1);
+    const topN = Math.max(1, Number(document.getElementById('inputTopN').value) || 30);
+    if (!revenda) { mostrarToastRank('⚠️ Selecione a Revenda.', 'warning'); return; }
+
+    const statusEl = document.getElementById('statusBusca');
+    const btn = document.getElementById('btnGerarRanking');
+    btn.disabled = true;
+    statusEl.textContent = 'Buscando apontamentos no banco...';
+    try {
+      const [atendimentos, mapaClientes] = await Promise.all([buscarTodosAtendimentos(revenda), buscarClientesPorRevenda(revenda)]);
+      statusEl.textContent = 'Calculando dispersão por cliente...';
+      await new Promise(r => setTimeout(r, 10));
+
+      const porCliente = new Map();
+      atendimentos.forEach(a => {
+        const chave = String(a.cod_cliente);
+        if (!porCliente.has(chave)) porCliente.set(chave, []);
+        porCliente.get(chave).push(a);
+      });
+
+      const linhas = [];
+      porCliente.forEach((registros, codCliente) => {
+        const ultimasDez = registros.slice(0, QTD_TOURS_POR_CLIENTE);
+        const validas = ultimasDez.filter(r => r.status === 'Concluído' && ehVerdadeiro(r.dentro_do_raio));
+        const segundosReal = validas.map(r => horaParaSegundos(r.tempo_atendimento)).filter(v => v !== null);
+        const segundosPlan = validas.map(r => horaParaSegundos(r.tempo_estimado_atendimento)).filter(v => v !== null);
+        const qtdValida = Math.min(segundosReal.length, segundosPlan.length);
+        if (qtdValida < minApontamentos) return;
+
+        const mediaReal = media(segundosReal), mediaPlan = media(segundosPlan);
+        const estouroSegundos = mediaReal - mediaPlan;
+        const medianaReal = mediana(segundosReal), medianaPlan = mediana(segundosPlan);
+        const estouroMedianaSegundos = medianaReal - medianaPlan;
+
+        let qtdEstouros = 0;
+        validas.forEach(r => {
+          const segReal = horaParaSegundos(r.tempo_atendimento), segPlan = horaParaSegundos(r.tempo_estimado_atendimento);
+          if (segReal === null || segPlan === null) return;
+          if (segReal - segPlan > 0) qtdEstouros++;
+        });
+
+        const volumes = validas.map(r => r.volume).filter(v => v !== null && v !== undefined && !isNaN(v));
+        const pesos = validas.map(r => r.peso_total_kg).filter(v => v !== null && v !== undefined && !isNaN(v));
+        const volumeMedio = media(volumes), pesoMedio = media(pesos);
+
+        const cliente = mapaClientes.get(codCliente);
+        const cidade = cliente ? (cliente.cidade || '') : '';
+        if (cidadeFiltro && !cidade.toLowerCase().includes(cidadeFiltro)) return;
+
+        linhas.push({
+          revenda, codCliente, medianaReal, medianaPlan, estouroMedianaSegundos,
+          nomeCliente: cliente ? (cliente.nome_cliente || '') : '', cidade,
+          apontamentosUsados: `${validas.length} de ${ultimasDez.length}`,
+          mediaReal, mediaPlan, estouroSegundos, volumeMedio, pesoMedio, qtdEstouros
+        });
+      });
+
+      linhas.sort((a, b) => b.estouroSegundos - a.estouroSegundos);
+      rankingAtual = linhas.slice(0, topN);
+      renderizarRanking();
+
+      document.getElementById('statClientesAnalisados').textContent = porCliente.size.toLocaleString('pt-BR');
+      document.getElementById('statClientesRanking').textContent = rankingAtual.length.toLocaleString('pt-BR');
+      document.getElementById('statApontamentosLidos').textContent = atendimentos.length.toLocaleString('pt-BR');
+      document.getElementById('statMaiorEstouro').textContent = rankingAtual.length ? segundosParaHora(rankingAtual[0].estouroSegundos) : '-';
+      document.getElementById('cardResultado').classList.remove('d-none');
+      document.getElementById('btnBaixarExcelRanking').disabled = !rankingAtual.length;
+
+      const atingiuLimite = atendimentos.length === LIMITE_ATENDIMENTOS;
+      statusEl.textContent = `${linhas.length.toLocaleString('pt-BR')} cliente(s) com apontamentos válidos suficientes${atingiuLimite ? ' (limite de ' + LIMITE_ATENDIMENTOS.toLocaleString('pt-BR') + ' apontamentos lidos atingido)' : ''}.`;
+    } catch (erro) {
+      console.error(erro);
+      statusEl.textContent = '';
+      mostrarToastRank('❌ Erro ao gerar o ranking: ' + erro.message, 'danger');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  const COLUNAS_RANKING = [
+    { chave: 'posicao', label: '#' }, { chave: 'revenda', label: 'Revenda' }, { chave: 'cidade', label: 'Cidade' },
+    { chave: 'codCliente', label: 'Cod_cliente' }, { chave: 'nomeCliente', label: 'Nome Cliente' },
+    { chave: 'apontamentosUsados', label: 'Apontamentos Usados' }, { chave: 'mediaRealFmt', label: 'Média Real' },
+    { chave: 'mediaPlanFmt', label: 'Média Planejado' }, { chave: 'estouroFmt', label: 'Estouro (Média)' },
+    { chave: 'medianaRealFmt', label: 'Mediana Real' }, { chave: 'medianaPlanFmt', label: 'Mediana Planejado' },
+    { chave: 'estouroMedianaFmt', label: 'Estouro (Mediana)' }, { chave: 'volumeMedioFmt', label: 'Volume Médio' },
+    { chave: 'pesoMedioFmt', label: 'Peso Médio (kg)' }, { chave: 'qtdEstouros', label: 'Qtd. Estouros' }
+  ];
+
+  function renderizarRanking() {
+    const thead = document.getElementById('theadRanking');
+    const tbody = document.getElementById('tbodyRanking');
+    thead.innerHTML = COLUNAS_RANKING.map(c => `<th>${c.label}</th>`).join('');
+    tbody.innerHTML = rankingAtual.map((l, i) => {
+      const linha = {
+        posicao: i + 1, revenda: l.revenda, cidade: l.cidade || '-', codCliente: l.codCliente, nomeCliente: l.nomeCliente || '-',
+        apontamentosUsados: l.apontamentosUsados, mediaRealFmt: segundosParaHora(l.mediaReal), mediaPlanFmt: segundosParaHora(l.mediaPlan),
+        estouroFmt: segundosParaHora(l.estouroSegundos), medianaRealFmt: segundosParaHora(l.medianaReal), medianaPlanFmt: segundosParaHora(l.medianaPlan),
+        estouroMedianaFmt: segundosParaHora(l.estouroMedianaSegundos), volumeMedioFmt: formatarNumero(l.volumeMedio),
+        pesoMedioFmt: formatarNumero(l.pesoMedio), qtdEstouros: l.qtdEstouros
+      };
+      return `<tr>${COLUNAS_RANKING.map(c => {
+        if (c.chave === 'estouroFmt' || c.chave === 'estouroMedianaFmt') return `<td><span class="badge badge-estouro">${linha[c.chave]}</span></td>`;
+        return `<td>${linha[c.chave] ?? ''}</td>`;
+      }).join('')}</tr>`;
+    }).join('');
+  }
+
+  // ---- Painel por Cidade ----
+  const REVENDAS_PAINEL = ['MGA', 'GPA', 'PG', 'NP'];
+  const COR_ESTOURO_POSITIVO = '#e34948', COR_ESTOURO_NEGATIVO = '#2a78d6', COR_ZERO_LINHA = '#c3c2b7';
+  let resultadosCidadesCache = null;
+
+  document.getElementById('btnGerarGraficosCidades').addEventListener('click', gerarGraficosCidades);
+  document.getElementById('selectModoCidades').addEventListener('change', () => { if (resultadosCidadesCache) montarGraficosCidades(resultadosCidadesCache); });
+
+  async function gerarGraficosCidades() {
+    const minApontamentos = Math.max(1, Number(document.getElementById('inputMinApontamentosCidades').value) || 1);
+    const statusEl = document.getElementById('statusGraficosCidades');
+    const btn = document.getElementById('btnGerarGraficosCidades');
+    btn.disabled = true;
+    statusEl.textContent = 'Buscando as 4 revendas e calculando por cidade...';
+    try {
+      const resultadosPorRevenda = {};
+      for (const revenda of REVENDAS_PAINEL) {
+        const [atendimentos, mapaClientes] = await Promise.all([buscarTodosAtendimentos(revenda), buscarClientesPorRevenda(revenda)]);
+        resultadosPorRevenda[revenda] = calcularTopCidades(atendimentos, mapaClientes, minApontamentos);
+      }
+      resultadosCidadesCache = resultadosPorRevenda;
+      montarGraficosCidades(resultadosPorRevenda);
+      statusEl.textContent = `Gráficos gerados (${new Date().toLocaleTimeString('pt-BR')}).`;
+    } catch (erro) {
+      console.error(erro);
+      statusEl.textContent = '';
+      mostrarToastRank('❌ Erro ao gerar os gráficos por cidade: ' + erro.message, 'danger');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function calcularTopCidades(atendimentos, mapaClientes, minApontamentos) {
+    const porCliente = new Map();
+    atendimentos.forEach(a => {
+      const chave = String(a.cod_cliente);
+      if (!porCliente.has(chave)) porCliente.set(chave, []);
+      porCliente.get(chave).push(a);
+    });
+    const porCidade = new Map();
+    porCliente.forEach((registros, codCliente) => {
+      const ultimasDez = registros.slice(0, QTD_TOURS_POR_CLIENTE);
+      const validas = ultimasDez.filter(r => r.status === 'Concluído' && ehVerdadeiro(r.dentro_do_raio));
+      let qtdEstourosCliente = 0;
+      const dispersoesCliente = [];
+      validas.forEach(r => {
+        const segReal = horaParaSegundos(r.tempo_atendimento), segPlan = horaParaSegundos(r.tempo_estimado_atendimento);
+        if (segReal === null || segPlan === null) return;
+        dispersoesCliente.push(segReal - segPlan);
+        if (segReal - segPlan > 0) qtdEstourosCliente++;
+      });
+      if (dispersoesCliente.length < minApontamentos) return;
+      const cliente = mapaClientes.get(codCliente);
+      const cidade = cliente ? (cliente.cidade || '').trim() : '';
+      if (!cidade) return;
+      if (!porCidade.has(cidade)) porCidade.set(cidade, { somaEstouro: [], qtdEstouros: 0, qtdTotalApontamentos: 0, qtdClientes: 0 });
+      const acumulado = porCidade.get(cidade);
+      acumulado.somaEstouro.push(media(dispersoesCliente));
+      acumulado.qtdEstouros += qtdEstourosCliente;
+      acumulado.qtdTotalApontamentos += dispersoesCliente.length;
+      acumulado.qtdClientes += 1;
+    });
+    return Array.from(porCidade.entries()).map(([cidade, acumulado]) => ({
+      cidade, valorMedioSegundos: media(acumulado.somaEstouro), qtdEstouros: acumulado.qtdEstouros,
+      qtdSemEstouro: acumulado.qtdTotalApontamentos - acumulado.qtdEstouros, qtdClientes: acumulado.qtdClientes
+    }));
+  }
+
+  const CAMPO_POR_MODO = { tempo: 'valorMedioSegundos', quantidade: 'qtdEstouros' };
+  function topDezCidades(cidades, modo) {
+    const campo = CAMPO_POR_MODO[modo];
+    return [...cidades].sort((a, b) => b[campo] - a[campo]).slice(0, 10);
+  }
+
+  function montarGraficosCidades(resultadosPorRevenda) {
+    const modo = document.getElementById('selectModoCidades').value;
+    const ehTempo = modo === 'tempo';
+    const grid = document.getElementById('gridGraficosCidades');
+    grid.innerHTML = REVENDAS_PAINEL.map(revenda => `
+      <div class="col-12 col-lg-6">
+        <div class="grafico-cidade-card">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <h6 class="text-primary-dark fw-bold mb-0">${revenda}</h6>
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2" type="button" data-toggle-tabela="${revenda}"><i class="bi bi-table"></i> <span class="small">Tabela</span></button>
+          </div>
+          <div class="grafico-cidade-legenda mb-2">
+            ${ehTempo
+              ? `<span class="chave"><span class="chave-cor" style="background:${COR_ESTOURO_POSITIVO};"></span>Atrasado</span><span class="chave"><span class="chave-cor" style="background:${COR_ESTOURO_NEGATIVO};"></span>Adiantado</span>`
+              : `<span class="chave"><span class="chave-cor" style="background:${COR_ESTOURO_POSITIVO};"></span>Com estouro</span><span class="chave"><span class="chave-cor" style="background:${COR_ESTOURO_NEGATIVO};"></span>Sem estouro</span>`}
+          </div>
+          <div id="svgWrap-${revenda}" style="position:relative;"></div>
+          <div id="tabelaWrap-${revenda}" class="d-none"></div>
+        </div>
+      </div>`).join('');
+
+    REVENDAS_PAINEL.forEach(revenda => {
+      const top10 = topDezCidades(resultadosPorRevenda[revenda], modo);
+      renderizarGraficoBarrasCidade(`svgWrap-${revenda}`, top10, modo);
+      renderizarTabelaCidades(`tabelaWrap-${revenda}`, top10);
+    });
+
+    grid.querySelectorAll('[data-toggle-tabela]').forEach(botao => {
+      botao.addEventListener('click', () => {
+        const revenda = botao.getAttribute('data-toggle-tabela');
+        const svgWrap = document.getElementById(`svgWrap-${revenda}`);
+        const tabelaWrap = document.getElementById(`tabelaWrap-${revenda}`);
+        const mostrarTabela = svgWrap.classList.contains('d-none') === false;
+        svgWrap.classList.toggle('d-none', mostrarTabela);
+        tabelaWrap.classList.toggle('d-none', !mostrarTabela);
+        botao.innerHTML = mostrarTabela ? '<i class="bi bi-bar-chart-fill"></i> <span class="small">Gráfico</span>' : '<i class="bi bi-table"></i> <span class="small">Tabela</span>';
+      });
+    });
+  }
+
+  function pathBarraHorizontal(xBase, xPonta, y, altura, raio) {
+    const indoDireita = xPonta >= xBase;
+    const r = Math.max(0, Math.min(raio, altura / 2, Math.abs(xPonta - xBase)));
+    return indoDireita
+      ? `M ${xBase} ${y} H ${xPonta - r} Q ${xPonta} ${y} ${xPonta} ${y + r} V ${y + altura - r} Q ${xPonta} ${y + altura} ${xPonta - r} ${y + altura} H ${xBase} Z`
+      : `M ${xBase} ${y} H ${xPonta + r} Q ${xPonta} ${y} ${xPonta} ${y + r} V ${y + altura - r} Q ${xPonta} ${y + altura} ${xPonta + r} ${y + altura} H ${xBase} Z`;
+  }
+  function truncarTexto(texto, maxChars) { return texto.length > maxChars ? texto.slice(0, maxChars - 1) + '…' : texto; }
+  function escapeHtmlRank(texto) {
+    return String(texto ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function renderizarGraficoBarrasCidade(idContainer, dados, modo) {
+    const container = document.getElementById(idContainer);
+    if (!dados || !dados.length) { container.innerHTML = '<p class="text-secondary small mb-0 mt-2">Sem cidades com apontamentos válidos suficientes pra essa revenda.</p>'; return; }
+    const ehTempo = modo === 'tempo';
+    const largura = 520, larguraLabel = 116, padTopo = 6, padBaixo = 6;
+    let barrasSvg, altura, linhaZero = '';
+
+    if (ehTempo) {
+      const alturaBarra = 18, alturaLinha = 28, larguraValor = 96;
+      const larguraPlot = largura - larguraLabel - larguraValor;
+      altura = padTopo + dados.length * alturaLinha + padBaixo;
+      const valores = dados.map(d => d.valorMedioSegundos);
+      const dominioMin = Math.min(0, ...valores), dominioMax = Math.max(0, ...valores);
+      const escala = larguraPlot / ((dominioMax - dominioMin) || 1);
+      const xZero = larguraLabel + (0 - dominioMin) * escala;
+      linhaZero = `<line x1="${xZero}" y1="0" x2="${xZero}" y2="${altura}" stroke="${COR_ZERO_LINHA}" stroke-width="1"></line>`;
+      barrasSvg = dados.map((d, i) => {
+        const valor = d.valorMedioSegundos;
+        const y = padTopo + i * alturaLinha + (alturaLinha - alturaBarra) / 2;
+        const xPonta = larguraLabel + (valor - dominioMin) * escala;
+        const cor = valor >= 0 ? COR_ESTOURO_POSITIVO : COR_ESTOURO_NEGATIVO;
+        const path = pathBarraHorizontal(xZero, xPonta, y, alturaBarra, 4);
+        const valorFmt = (valor >= 0 ? '+' : '') + segundosParaHora(valor);
+        const labelFora = valor >= 0 ? xPonta + 6 : xPonta - 6;
+        const anchor = valor >= 0 ? 'start' : 'end';
+        const qtdTspan = `<tspan dx="4" font-size="9" font-weight="500" fill="#8a8a86">(${d.qtdEstouros}x)</tspan>`;
+        return `<g class="grafico-barra-hit" tabindex="0" role="img" aria-label="${escapeHtmlRank(d.cidade)}: ${valorFmt}, ${d.qtdEstouros} apontamento(s) com estouro, ${d.qtdClientes} cliente(s)" data-cidade="${escapeHtmlRank(d.cidade)}" data-valor="${valorFmt}" data-estouros="${d.qtdEstouros}" data-qtd="${d.qtdClientes}">
+          <rect x="0" y="${padTopo + i * alturaLinha}" width="${largura}" height="${alturaLinha}" fill="transparent"></rect>
+          <text x="${larguraLabel - 8}" y="${y + alturaBarra / 2 + 4}" text-anchor="end" font-size="11" fill="#52514e">${escapeHtmlRank(truncarTexto(d.cidade, 16))}</text>
+          <path class="barra" d="${path}" fill="${cor}"></path>
+          <text x="${labelFora}" y="${y + alturaBarra / 2 + 4}" text-anchor="${anchor}" font-size="10.5" fill="#0b0b0b" font-weight="600">${valorFmt}${qtdTspan}</text>
+        </g>`;
+      }).join('');
+    } else {
+      const alturaBarra = 9, gapBarras = 3, alturaLinha = alturaBarra * 2 + gapBarras + 10, larguraValor = 40;
+      const larguraPlot = largura - larguraLabel - larguraValor;
+      altura = padTopo + dados.length * alturaLinha + padBaixo;
+      const maxValor = Math.max(1, ...dados.flatMap(d => [d.qtdEstouros, d.qtdSemEstouro]));
+      const escala = larguraPlot / maxValor;
+      barrasSvg = dados.map((d, i) => {
+        const yBase = padTopo + i * alturaLinha;
+        const yEstouro = yBase + (alturaLinha - alturaBarra * 2 - gapBarras) / 2;
+        const ySemEstouro = yEstouro + alturaBarra + gapBarras;
+        const larguraEstouro = d.qtdEstouros * escala, larguraSemEstouro = d.qtdSemEstouro * escala;
+        const pathEstouro = pathBarraHorizontal(larguraLabel, larguraLabel + larguraEstouro, yEstouro, alturaBarra, 3);
+        const pathSemEstouro = pathBarraHorizontal(larguraLabel, larguraLabel + larguraSemEstouro, ySemEstouro, alturaBarra, 3);
+        return `<g class="grafico-barra-hit" tabindex="0" role="img" aria-label="${escapeHtmlRank(d.cidade)}: ${d.qtdEstouros} com estouro, ${d.qtdSemEstouro} sem estouro, ${d.qtdClientes} cliente(s)" data-cidade="${escapeHtmlRank(d.cidade)}" data-estouros="${d.qtdEstouros}" data-sem-estouro="${d.qtdSemEstouro}" data-qtd="${d.qtdClientes}">
+          <rect x="0" y="${yBase}" width="${largura}" height="${alturaLinha}" fill="transparent"></rect>
+          <text x="${larguraLabel - 8}" y="${yBase + alturaLinha / 2 + 4}" text-anchor="end" font-size="11" fill="#52514e">${escapeHtmlRank(truncarTexto(d.cidade, 16))}</text>
+          <path class="barra" d="${pathEstouro}" fill="${COR_ESTOURO_POSITIVO}"></path>
+          <text x="${larguraLabel + larguraEstouro + 5}" y="${yEstouro + alturaBarra / 2 + 3.5}" font-size="10" fill="#0b0b0b" font-weight="600">${d.qtdEstouros}</text>
+          <path class="barra" d="${pathSemEstouro}" fill="${COR_ESTOURO_NEGATIVO}"></path>
+          <text x="${larguraLabel + larguraSemEstouro + 5}" y="${ySemEstouro + alturaBarra / 2 + 3.5}" font-size="10" fill="#0b0b0b" font-weight="600">${d.qtdSemEstouro}</text>
+        </g>`;
+      }).join('');
+    }
+
+    container.innerHTML = `<svg viewBox="0 0 ${largura} ${altura}" width="100%" height="${altura}" role="group" aria-label="Top 10 cidades" style="overflow:visible;">${linhaZero}${barrasSvg}</svg><div class="grafico-tooltip" id="tooltip-${idContainer}"></div>`;
+    const tooltip = document.getElementById(`tooltip-${idContainer}`);
+    container.querySelectorAll('.grafico-barra-hit').forEach(grupo => {
+      const mostrar = evento => {
+        tooltip.textContent = '';
+        tooltip.appendChild(document.createTextNode(grupo.dataset.cidade));
+        tooltip.appendChild(document.createElement('br'));
+        const valorEl = document.createElement('span');
+        valorEl.className = 'valor';
+        if (ehTempo) {
+          valorEl.textContent = grupo.dataset.valor;
+          tooltip.appendChild(valorEl);
+          tooltip.appendChild(document.createTextNode(` · ${grupo.dataset.estouros} apontamento(s) c/ estouro · ${grupo.dataset.qtd} cliente(s)`));
+        } else {
+          valorEl.textContent = `${grupo.dataset.estouros} com estouro`;
+          tooltip.appendChild(valorEl);
+          tooltip.appendChild(document.createTextNode(` · ${grupo.dataset.semEstouro} sem estouro · ${grupo.dataset.qtd} cliente(s)`));
+        }
+        const retContainer = container.getBoundingClientRect();
+        const x = (evento.clientX !== undefined ? evento.clientX : retContainer.left) - retContainer.left;
+        tooltip.style.left = `${x + 12}px`;
+        tooltip.style.top = `${grupo.getBoundingClientRect().top - retContainer.top}px`;
+        tooltip.classList.add('mostrar');
+      };
+      const esconder = () => tooltip.classList.remove('mostrar');
+      grupo.addEventListener('pointermove', mostrar);
+      grupo.addEventListener('pointerenter', mostrar);
+      grupo.addEventListener('pointerleave', esconder);
+      grupo.addEventListener('focus', mostrar);
+      grupo.addEventListener('blur', esconder);
+    });
+  }
+
+  function renderizarTabelaCidades(idContainer, dados) {
+    const container = document.getElementById(idContainer);
+    if (!dados || !dados.length) { container.innerHTML = ''; return; }
+    container.innerHTML = `<table class="table table-sm table-bordered mb-0" style="font-size:0.78rem;">
+      <thead><tr><th>#</th><th>Cidade</th><th>Estouro (Média)</th><th>Qtd. c/ Estouro</th><th>Qtd. Sem Estouro</th><th>Clientes</th></tr></thead>
+      <tbody>${dados.map((d, i) => `<tr><td>${i + 1}</td><td>${escapeHtmlRank(d.cidade)}</td><td>${(d.valorMedioSegundos >= 0 ? '+' : '') + segundosParaHora(d.valorMedioSegundos)}</td><td>${d.qtdEstouros}</td><td>${d.qtdSemEstouro}</td><td>${d.qtdClientes}</td></tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  // ---- Detalhe por Dia da Semana ----
+  const DIAS_SEMANA = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+  const DIAS_SEMANA_UTEIS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+  function diaDaSemana(dataISO) {
+    if (!dataISO) return null;
+    const d = new Date(`${dataISO}T00:00:00`);
+    if (isNaN(d)) return null;
+    return DIAS_SEMANA[d.getDay()];
+  }
+  function interpolarCor(c1, c2, t) { return [0, 1, 2].map(i => Math.round(c1[i] + (c2[i] - c1[i]) * t)); }
+  const HEATMAP_VERDE = [15, 157, 88], HEATMAP_AMARELO = [245, 200, 60], HEATMAP_VERMELHO = [192, 54, 44];
+  function corHeatmap(valor, min, max) {
+    if (valor === null || valor === undefined || isNaN(valor) || min === max) return '';
+    const t = (valor - min) / (max - min);
+    const rgb = t <= 0.5 ? interpolarCor(HEATMAP_VERDE, HEATMAP_AMARELO, t / 0.5) : interpolarCor(HEATMAP_AMARELO, HEATMAP_VERMELHO, (t - 0.5) / 0.5);
+    return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.22)`;
+  }
+
+  document.getElementById('btnGerarDetalheDiaSemana').addEventListener('click', gerarDetalheDiaSemana);
+
+  async function gerarDetalheDiaSemana() {
+    const revenda = document.getElementById('inputRevendaDetalhe').value;
+    const cidadeDigitada = document.getElementById('inputCidadeDetalhe').value.trim();
+    const cidadeFiltro = cidadeDigitada.toLowerCase();
+    const minApontamentos = Math.max(1, Number(document.getElementById('inputMinApontamentosDetalhe').value) || 1);
+    const topN = Math.max(1, Number(document.getElementById('inputTopNDetalhe').value) || 10);
+    if (!revenda) { mostrarToastRank('⚠️ Selecione a Revenda.', 'warning'); return; }
+    if (!cidadeDigitada) { mostrarToastRank('⚠️ Selecione a Cidade.', 'warning'); return; }
+
+    const statusEl = document.getElementById('statusDetalheDiaSemana');
+    const btn = document.getElementById('btnGerarDetalheDiaSemana');
+    btn.disabled = true;
+    statusEl.textContent = 'Buscando apontamentos no banco...';
+    try {
+      const [atendimentos, mapaClientes] = await Promise.all([buscarTodosAtendimentos(revenda), buscarClientesPorRevenda(revenda)]);
+      statusEl.textContent = 'Calculando os piores clientes da cidade...';
+      await new Promise(r => setTimeout(r, 10));
+
+      const porCliente = new Map();
+      atendimentos.forEach(a => {
+        const cliente = mapaClientes.get(String(a.cod_cliente));
+        const cidade = cliente ? (cliente.cidade || '') : '';
+        if (!cidade.toLowerCase().includes(cidadeFiltro)) return;
+        const chave = String(a.cod_cliente);
+        if (!porCliente.has(chave)) porCliente.set(chave, []);
+        porCliente.get(chave).push(a);
+      });
+
+      const clientesCalculados = [];
+      porCliente.forEach((registros, codCliente) => {
+        const ultimasDez = registros.slice(0, QTD_TOURS_POR_CLIENTE);
+        const validas = ultimasDez.filter(r => r.status === 'Concluído' && ehVerdadeiro(r.dentro_do_raio));
+        const segundosReal = validas.map(r => horaParaSegundos(r.tempo_atendimento)).filter(v => v !== null);
+        const segundosPlan = validas.map(r => horaParaSegundos(r.tempo_estimado_atendimento)).filter(v => v !== null);
+        const qtdValida = Math.min(segundosReal.length, segundosPlan.length);
+        if (qtdValida < minApontamentos) return;
+        const cliente = mapaClientes.get(codCliente);
+        clientesCalculados.push({
+          codCliente, nomeCliente: cliente ? (cliente.nome_cliente || '') : '',
+          estouroSegundos: media(segundosReal) - media(segundosPlan), registrosValidos: validas
+        });
+      });
+
+      clientesCalculados.sort((a, b) => b.estouroSegundos - a.estouroSegundos);
+      const piores = clientesCalculados.slice(0, topN);
+      renderizarDetalheDiaSemana(piores, revenda, cidadeDigitada);
+      statusEl.textContent = `${revenda} · ${cidadeDigitada} — exibindo ${piores.length} de ${clientesCalculados.length} cliente(s) com apontamentos válidos suficientes.`;
+    } catch (erro) {
+      console.error(erro);
+      statusEl.textContent = '';
+      mostrarToastRank('❌ Erro ao gerar o detalhamento: ' + erro.message, 'danger');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function calcularMetricasPorDia(registros) {
+    const porDia = {};
+    DIAS_SEMANA_UTEIS.forEach(d => { porDia[d] = { qtd: 0, qtdEstouro: 0, temposSeg: [], pesos: [] }; });
+    registros.forEach(r => {
+      const dia = diaDaSemana(r.data);
+      if (!dia || !porDia[dia]) return;
+      porDia[dia].qtd++;
+      const seg = horaParaSegundos(r.tempo_atendimento);
+      if (seg !== null) porDia[dia].temposSeg.push(seg);
+      if (r.peso_total_kg !== null && r.peso_total_kg !== undefined && !isNaN(r.peso_total_kg)) porDia[dia].pesos.push(Number(r.peso_total_kg));
+      const segPlan = horaParaSegundos(r.tempo_estimado_atendimento);
+      if (seg !== null && segPlan !== null && seg > segPlan) porDia[dia].qtdEstouro++;
+    });
+    return porDia;
+  }
+
+  function renderizarDetalheDiaSemana(piores, revenda, cidadeExibicao) {
+    const container = document.getElementById('resultadoDetalheDiaSemana');
+    if (!piores.length) { container.innerHTML = '<p class="text-secondary small mb-0 mt-2">Nenhum cliente com apontamentos válidos suficientes pra essa cidade.</p>'; return; }
+    const dadosPorCliente = piores.map(c => ({ ...c, porDia: calcularMetricasPorDia(c.registrosValidos) }));
+    const qtds = [], temposMedios = [], pesosMedios = [];
+    dadosPorCliente.forEach(c => DIAS_SEMANA_UTEIS.forEach(d => {
+      const info = c.porDia[d];
+      if (info.qtd > 0) qtds.push(info.qtd);
+      if (info.temposSeg.length) temposMedios.push(media(info.temposSeg));
+      if (info.pesos.length) pesosMedios.push(media(info.pesos));
+    }));
+    const minQtd = Math.min(...qtds), maxQtd = Math.max(...qtds);
+    const minTempo = Math.min(...temposMedios), maxTempo = Math.max(...temposMedios);
+    const minPeso = Math.min(...pesosMedios), maxPeso = Math.max(...pesosMedios);
+
+    function celula(info, metrica) {
+      if (metrica === 'qtd' && info.qtd > 0) return { valor: info.qtd, valorSecundario: info.qtdEstouro, bg: corHeatmap(info.qtd, minQtd, maxQtd) };
+      if (metrica === 'tempo' && info.temposSeg.length) { const m = media(info.temposSeg); return { valor: segundosParaHora(m), bg: corHeatmap(m, minTempo, maxTempo) }; }
+      if (metrica === 'peso' && info.pesos.length) { const m = media(info.pesos); return { valor: formatarNumero(m), bg: corHeatmap(m, minPeso, maxPeso) }; }
+      return { valor: '', bg: '' };
+    }
+    function tabela(titulo, metrica) {
+      return `<div class="col-12 col-xl-4">
+        <h6 class="text-primary-dark fw-bold mb-2">${titulo}</h6>
+        <div class="tabela-dia-semana-wrap border rounded-3">
+          <table class="table table-bordered table-sm mb-0 align-middle text-center tabela-dia-semana">
+            <thead><tr><th class="text-start col-cliente">Cod_cliente / Nome</th>${DIAS_SEMANA_UTEIS.map(d => `<th>${d}</th>`).join('')}</tr></thead>
+            <tbody>
+              ${dadosPorCliente.map(c => `<tr>
+                <td class="text-start col-cliente">${escapeHtmlRank(c.codCliente)}<br><span class="text-muted-ink">${escapeHtmlRank(c.nomeCliente || '-')}</span></td>
+                ${DIAS_SEMANA_UTEIS.map(d => {
+                  const { valor, valorSecundario, bg } = celula(c.porDia[d], metrica);
+                  if (metrica === 'qtd' && valor !== '') return `<td class="celula-diagonal" style="background-color:${bg};"><span class="valor-principal">${valor}</span><span class="valor-secundario">${valorSecundario}</span></td>`;
+                  return `<td style="background:${bg};">${valor}</td>`;
+                }).join('')}
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    }
+    container.innerHTML = `
+      <p class="small text-muted-ink mb-3"><i class="bi bi-info-circle me-1"></i>Na tabela "Qtd. de Atendimentos por Dia", cada quadrado cortado mostra o total de atendimentos (canto superior esquerdo) e quantos estouraram (canto inferior direito).</p>
+      <div class="row g-3 align-items-start">${tabela('Qtd. de Atendimentos por Dia', 'qtd')}${tabela('Tempo Médio de Atendimento por Dia', 'tempo')}${tabela('Peso Médio (kg) por Dia', 'peso')}</div>`;
+  }
+
+  document.getElementById('btnBaixarExcelRanking').addEventListener('click', () => {
+    if (!rankingAtual.length) return;
+    const linhas = rankingAtual.map((l, i) => ({
+      '#': i + 1, 'Revenda': l.revenda, 'Cidade': l.cidade || '', 'Cod_cliente': l.codCliente, 'Nome Cliente': l.nomeCliente || '',
+      'Apontamentos Usados': l.apontamentosUsados, 'Média Real': segundosParaHora(l.mediaReal), 'Média Planejado': segundosParaHora(l.mediaPlan),
+      'Estouro (Média)': segundosParaHora(l.estouroSegundos), 'Mediana Real': segundosParaHora(l.medianaReal), 'Mediana Planejado': segundosParaHora(l.medianaPlan),
+      'Estouro (Mediana)': segundosParaHora(l.estouroMedianaSegundos), 'Volume Médio': formatarNumero(l.volumeMedio), 'Peso Médio (kg)': formatarNumero(l.pesoMedio), 'Qtd. Estouros': l.qtdEstouros
+    }));
+    const planilha = XLSX.utils.json_to_sheet(linhas);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, planilha, 'Ranking Estouro');
+    const dataHoje = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `ranking_estouro_${dataHoje}.xlsx`);
+    mostrarToastRank('✅ Arquivo baixado com sucesso.', 'success');
+  });
+
+  function mostrarToastRank(mensagem, tipo) {
+    const div = document.createElement('div');
+    div.className = `toast-custom alert alert-${tipo}`;
+    div.textContent = mensagem;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 4000);
+  }
+
+  // ---- Inicialização: Revenda MGA, dispara os painéis que carregam sozinhos ----
+  atualizarDatalistCidade('inputRevenda', 'listaCidadesRanking');
+  atualizarDatalistCidade('inputRevendaDetalhe', 'listaCidadesDetalhe');
+  gerarRanking();
+  gerarGraficosCidades();
+})();
+</script>
+</body>
+</html>

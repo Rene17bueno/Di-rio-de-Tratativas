@@ -1,0 +1,2485 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tratativas · PainelOT</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="nav-shared.js"></script>
+  <style>
+    :root {
+      --brand-50:  #eef4ff; --brand-100: #dce8ff; --brand-200: #b3ceff;
+      --brand-500: #245bc7; --brand-600: #1c4aa8; --brand-700: #163a85;
+      --ink-900: #101828; --ink-700: #344054; --ink-500: #667085; --ink-400: #98a2b3;
+      --surface-0: #ffffff; --surface-1: #e9edf4; --surface-2: #eef2f8;
+      --border-soft: #e3e8f0; --border-strong: #c9d3e0;
+      --success: #0f9d58; --success-bg: #e6f7ee; --danger: #c0362c; --danger-bg: #fbeae8;
+      --radius-lg: 1rem; --radius-md: 0.7rem; --radius-sm: 0.5rem;
+      --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+      --shadow-pop: 0 4px 10px rgba(16,24,40,.10), 0 12px 32px rgba(16,24,40,.10);
+      --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem;
+      --space-5: 1.5rem; --space-6: 2rem; --space-7: 2.5rem;
+    }
+    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    html { -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    body { background: var(--surface-1); color: var(--ink-700); padding-bottom: 4rem; overflow-x: hidden; }
+    h1, h2, h3, h4, h5, h6 { color: var(--ink-900); letter-spacing: -0.01em; }
+    .text-primary-dark { color: var(--brand-700) !important; }
+    small, .small { color: var(--ink-500); }
+    .card-shadow {
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      background: var(--surface-0);
+    }
+    .section-head { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-4); }
+    .section-head > div { min-width: 0; }
+    .section-head .icon-chip {
+      width: 36px; height: 36px; border-radius: var(--radius-sm);
+      background: var(--brand-50); color: var(--brand-600);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1.05rem; flex-shrink: 0;
+    }
+    .section-head h5 { font-weight: 700; font-size: 1.05rem; margin-bottom: .1rem; }
+    .section-head p { margin-bottom: 0; font-size: .84rem; color: var(--ink-500); max-width: 62ch; }
+    .breadcrumb-trail { font-size: .78rem; color: var(--ink-500); margin-bottom: .35rem; }
+    .breadcrumb-trail i { font-size: .65rem; vertical-align: middle; margin: 0 .3rem; }
+    .page-header { margin-bottom: var(--space-4); }
+    .info-card {
+      display: flex; gap: var(--space-3); align-items: flex-start;
+      background: var(--brand-50); border: 1px solid var(--brand-100);
+      border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+    }
+    .info-card .info-card-icon {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      background: var(--surface-0); color: var(--brand-600);
+      display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+      box-shadow: 0 1px 2px rgba(16,24,40,.06);
+    }
+    .info-card p { color: var(--ink-700); font-size: .88rem; margin-bottom: .6rem; max-width: 78ch; }
+    .info-card p:last-child { margin-bottom: 0; }
+    .bg-soft-blue { background: var(--brand-50); }
+    .badge-status {
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      padding: 0.45rem 1rem;
+      border-radius: 40px;
+    }
+    .table-hover > tbody > tr {
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .table-hover > tbody > tr:hover { background-color: var(--brand-50) !important; }
+    .border-primary-light { border-color: var(--border-soft) !important; }
+    .btn { font-weight: 600; letter-spacing: -0.005em; }
+    .btn-primary-brand { background: var(--brand-500); border: 1px solid var(--brand-500); color: #fff; }
+    .btn-primary-brand:hover { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+    .btn-primary-soft {
+      background: var(--brand-50);
+      border: 1px solid var(--brand-100);
+      color: var(--brand-700);
+    }
+    .btn-primary-soft:hover { background: var(--brand-100); border-color: var(--brand-200); }
+    .form-label { font-size: .78rem; font-weight: 600; color: var(--ink-700); }
+    .tratativa-input {
+      background: var(--surface-1);
+      border: 1px solid var(--border-strong);
+    }
+    .tratativa-input:focus {
+      border-color: var(--brand-500);
+      box-shadow: 0 0 0 0.2rem var(--brand-50);
+    }
+    #alertLembrete {
+      border-left: 6px solid var(--brand-500);
+      background: var(--brand-50);
+    }
+    .btn-excel {
+      background: #1a7a4c;
+      border: 1px solid #1a7a4c;
+      color: white;
+    }
+    .btn-excel:hover { background: #15603c; border-color: #15603c; color: white; }
+    .modal-content {
+      border-radius: 1.25rem;
+      border: none;
+      box-shadow: 0 25px 50px -12px rgba(0, 40, 100, 0.25);
+    }
+    .modal-header {
+      border-bottom: 2px solid #e6f0ff;
+      background: #f8fcff;
+      border-radius: 1.25rem 1.25rem 0 0;
+    }
+    .modal-footer {
+      border-top: 1px solid #e6f0ff;
+      background: #f8fcff;
+      border-radius: 0 0 1.25rem 1.25rem;
+    }
+    .postit {
+      background: #fff9c4;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-left: 4px solid #fdd835;
+      transition: all 0.2s;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+    }
+    .postit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+    .postit .titulo { font-weight: 600; color: #0a3e7c; }
+    .postit .data { font-size: 0.75rem; color: #6c7a8a; }
+    .postit .acoes { font-size: 0.85rem; color: #2c3e50; }
+    .postit .status-badge { font-size: 0.7rem; padding: 0.2rem 0.6rem; }
+    .postit .postit-ferramentas { display: flex; align-items: center; gap: .35rem; }
+    .postit .btn-postit-icone {
+      background: rgba(0,0,0,.06); border: none; border-radius: 4px; width: 22px; height: 22px;
+      display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; color: #5c4a00;
+      flex-shrink: 0;
+    }
+    .postit .btn-postit-icone:hover { background: rgba(0,0,0,.14); }
+    .postit .btn-postit-excluir { color: #a71d2a; }
+    .postit .postit-resumo { font-size: .75rem; color: #6c7a8a; margin-top: .35rem; }
+    .postit .postit-resumo i { transition: transform .15s; }
+    .postit.expandido .postit-resumo i { transform: rotate(90deg); }
+    .postit .postit-detalhe { display: none; margin-top: .6rem; padding-top: .5rem; border-top: 1px dashed #e0d16a; }
+    .postit.expandido .postit-detalhe { display: block; }
+    .postit .postit-mapa-bloco {
+      background: rgba(255,255,255,.55); border: 1px solid #ecdd7a; border-radius: 6px;
+      padding: .5rem .6rem; margin-bottom: .4rem; font-size: .78rem;
+    }
+    .postit .postit-mapa-bloco .postit-mapa-cabecalho { display: flex; justify-content: space-between; align-items: center; gap: .4rem; font-weight: 600; color: #0a3e7c; }
+    .postit .postit-mapa-bloco .postit-mapa-problema { color: #2c3e50; margin-top: .25rem; white-space: pre-wrap; }
+    .postit .postit-mapa-bloco .postit-mapa-resolucao { color: #1a7a4c; margin-top: .25rem; }
+    .mapa-card-item {
+      background: #f0f7ff;
+      border-radius: 8px;
+      padding: 0.65rem;
+      margin-bottom: 0.5rem;
+      border-left: 3px solid #4d8cf0;
+      border: 1px solid #d6e6ff;
+    }
+    .btn-remove-mapa {
+      background: none;
+      border: none;
+      color: #dc3545;
+      font-size: 1rem;
+    }
+    .btn-remove-mapa:hover { color: #a71d2a; }
+    .toast-custom {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      max-width: 350px;
+      min-width: 250px;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .navbar-site {
+      background: var(--surface-0);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      margin-top: 1rem;
+    }
+    .navbar-site .navbar-brand { display: flex; align-items: center; gap: .55rem; }
+    .navbar-site .brand-mark {
+      width: 32px; height: 32px; border-radius: .55rem; background: var(--brand-500); color: #fff;
+      display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+    }
+    .navbar-site .brand-text { line-height: 1.05; }
+    .navbar-site .brand-text .sub { display: block; font-size: .66rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .05em; }
+    .navbar-site .nav-link {
+      color: var(--ink-700);
+      font-weight: 600;
+      font-size: .88rem;
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.85rem;
+      transition: background 0.15s, color .15s;
+    }
+    .navbar-site .nav-link:hover { background: var(--brand-50); color: var(--brand-700); }
+    .navbar-site .nav-link.active {
+      background: var(--brand-500);
+      color: #fff !important;
+    }
+    .navbar-site .nav-item.dropdown.section-active > .nav-link { background: var(--brand-50); color: var(--brand-700); }
+    .navbar-site .dropdown-menu { border: 1px solid var(--border-soft); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); padding: .4rem; margin-top: .4rem; }
+    .navbar-site .dropdown-item { border-radius: var(--radius-sm); font-size: .86rem; font-weight: 500; color: var(--ink-700); padding: .5rem .65rem; display: flex; align-items: center; gap: .55rem; }
+    .navbar-site .dropdown-item i { color: var(--brand-500); width: 1.1em; text-align: center; }
+    .navbar-site .dropdown-item:hover, .navbar-site .dropdown-item:focus { background: var(--brand-50); color: var(--brand-700); }
+    .navbar-site .dropdown-item.active { background: var(--brand-500); color: #fff; }
+    .navbar-site .dropdown-item.active i { color: #fff; }
+    @media (max-width: 576px) { .card-shadow { padding: 1rem !important; } }
+  </style>
+</head>
+<body>
+  <div class="container"><div id="navHost"></div></div>
+  <script>montarNavegacao('tratativas');</script>
+  <div class="container py-4">
+
+    <div class="page-header d-flex flex-wrap align-items-end justify-content-between gap-3">
+      <div>
+        <div class="breadcrumb-trail">Tratativas</div>
+        <h1 class="display-6 fw-semibold text-primary-dark mb-1">
+          <i class="bi bi-journal-richtext me-2" style="color: var(--brand-500);"></i>Diário de Tratativas
+        </h1>
+        <p class="small mb-0"><i class="bi bi-calendar3 me-1"></i> Clique em qualquer linha para editar</p>
+      </div>
+      <div>
+        <button class="btn btn-excel me-2" id="exportExcelBtn"><i class="bi bi-file-earmark-excel me-1"></i> .xlsx</button>
+        <button class="btn btn-primary-soft" id="limparExemploBtn"><i class="bi bi-arrow-counterclockwise me-1"></i> Exemplo</button>
+      </div>
+    </div>
+
+    <div id="alertLembrete" class="alert d-flex align-items-center mb-4 py-3 px-4 border border-primary-light" role="alert" style="display: none;">
+      <i class="bi bi-bell-fill me-3 fs-4" style="color: #1f68d6;"></i>
+      <div>
+        <strong class="me-1">🔔 Lembrete ativo:</strong> 
+        <span id="lembreteTexto">Você tem tratativas pendentes. Registre o andamento!</span>
+      </div>
+      <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    </div>
+
+    <div class="card card-shadow p-4 p-md-5 mb-5">
+      <div class="section-head">
+        <span class="icon-chip"><i class="bi bi-pencil-square"></i></span>
+        <div><h5 class="mb-0">Adicionar tratativa</h5></div>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold text-secondary">Data</label>
+          <input type="date" class="form-control tratativa-input" id="inputData">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold text-secondary">Revenda</label>
+          <select class="form-select tratativa-input" id="inputRevenda">
+            <option value="MGA">MGA</option>
+            <option value="GPA">GPA</option>
+            <option value="PG">PG</option>
+            <option value="NP">NP</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold text-secondary">Tipo de Ação</label>
+          <select class="form-select tratativa-input" id="inputTipoAcao">
+            <option value="On Time">On Time</option>
+            <option value="Dispersão de KM">Dispersão de KM</option>
+            <option value="Dispersão de Tempo">Dispersão de Tempo</option>
+            <option value="Atualização Coordenadas">Atualização Coordenadas</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold text-secondary">DT (%)</label>
+          <input type="text" class="form-control tratativa-input" id="inputDt" placeholder="30,86%">
+        </div>
+        <div class="col-md-12">
+          <label class="form-label small fw-semibold text-secondary">Observação geral <span class="text-secondary fw-normal">(opcional — o nome da tratativa já vem do Tipo de Ação)</span></label>
+          <input type="text" class="form-control tratativa-input" id="inputDescricao" placeholder="Ex: detalhe extra sobre esta tratativa (opcional)">
+        </div>
+        
+        <div class="col-md-12">
+          <label class="form-label small fw-semibold text-secondary"><i class="bi bi-layers me-1"></i> Itens da Tratativa <small class="text-secondary fw-normal" id="itensAjudaTexto"></small></label>
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <input type="text" class="form-control tratativa-input" id="inputMapa" placeholder="Nº do mapa (opcional)" style="max-width: 220px;">
+            <input type="text" class="form-control tratativa-input" id="inputCodPdvItem" placeholder="Cod PDV (opcional)" style="max-width: 220px;">
+            <button class="btn btn-outline-primary btn-sm" id="addMapaBtn" type="button">
+              <i class="bi bi-plus-circle me-1"></i> Adicionar Item
+            </button>
+          </div>
+          <div id="mapasContainer" class="mt-2"></div>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold text-secondary">Status</label>
+          <select class="form-select tratativa-input" id="inputStatus">
+            <option value="Pendente" selected>Pendente</option>
+            <option value="Em tratativa">Em tratativa</option>
+            <option value="Resolvido">Resolvido</option>
+            <option value="Arquivado">Arquivado</option>
+          </select>
+        </div>
+        <div class="col-md-12 d-flex gap-2 mt-3">
+          <button class="btn btn-primary" id="addBtn" type="button" style="background: #1f68d6; border: none;">
+            <i class="bi bi-plus-circle me-1"></i> Salvar Tratativa
+          </button>
+          <button class="btn btn-outline-secondary" id="limparMapasBtn" type="button">
+            <i class="bi bi-eraser me-1"></i> Limpar mapas
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <h5 class="fw-semibold text-primary-dark mb-3 d-flex align-items-center gap-2">
+        <span class="icon-chip"><i class="bi bi-sticky-fill"></i></span>Quadro de Ações <span class="fw-normal small">(pendentes)</span>
+      </h5>
+
+      <div class="card card-shadow p-3 mb-3">
+        <div class="row g-2">
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-shop me-1"></i>Revenda</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroQuadroRevenda">
+              <option value="">Todas</option>
+              <option value="MGA">MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-calendar3 me-1"></i>Data</label>
+            <input type="date" class="form-control form-control-sm tratativa-input" id="filtroQuadroData">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-search me-1"></i>Mapa ou Cod PDV</label>
+            <input type="text" class="form-control form-control-sm tratativa-input" id="filtroQuadroMapa" placeholder="ex: 51452 ou PDV">
+          </div>
+          <div class="col-5 col-md-2">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-funnel me-1"></i>Status</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroQuadroStatus">
+              <option value="">Todos</option>
+              <option value="Pendente">Pendente</option>
+              <option value="Em tratativa">Em tratativa</option>
+            </select>
+          </div>
+          <div class="col-1 d-flex align-items-end">
+            <button class="btn btn-outline-secondary btn-sm w-100" id="limparFiltroQuadroBtn" type="button" title="Limpar filtros">
+              <i class="bi bi-x-circle"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="quadroPostits" class="row g-3"></div>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+      <h5 class="fw-semibold text-primary-dark d-flex align-items-center gap-2 mb-0"><span class="icon-chip"><i class="bi bi-table"></i></span>Registros</h5>
+      <div>
+        <span class="badge bg-light text-dark border me-2 px-3 py-2" id="contadorTotal">0</span>
+        <button class="btn btn-outline-secondary btn-sm" id="filtrarPendentesBtn"><i class="bi bi-funnel me-1"></i> Pendentes</button>
+        <button class="btn btn-outline-secondary btn-sm ms-1" id="mostrarTodosBtn"><i class="bi bi-list-ul me-1"></i> Todos</button>
+      </div>
+    </div>
+
+    <div class="card card-shadow p-0 overflow-hidden">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="tabelaTratativas">
+          <thead class="bg-soft-blue" style="background: #dceaff;">
+            <tr>
+              <th>Data</th>
+              <th>Revenda</th>
+              <th>Tipo Ação</th>
+              <th>DT</th>
+              <th>Descrição</th>
+              <th>Mapas e Detalhes</th>
+              <th>Status</th>
+              <th style="min-width: 80px;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="corpoTabela"></tbody>
+        </table>
+      </div>
+      <div class="p-3 bg-white border-top border-primary-light" id="semRegistros" style="display: none;">
+        <p class="text-center text-secondary my-2"><i class="bi bi-inbox me-1"></i> Nenhuma tratativa cadastrada.</p>
+      </div>
+    </div>
+
+    <div class="mt-4 text-secondary small d-flex flex-wrap justify-content-between">
+      <span><i class="bi bi-clock-history me-1"></i> Lembrete: tratativas pendentes ou em tratativa aparecem no alerta.</span>
+      <span><i class="bi bi-cloud-check me-1"></i> dados salvos na nuvem (Supabase)</span>
+    </div>
+
+    <hr class="my-5" style="border-color: var(--border-soft);">
+
+    <div class="mb-5">
+      <h5 class="fw-semibold text-primary-dark mb-3 d-flex align-items-center gap-2"><span class="icon-chip"><i class="bi bi-bar-chart-fill"></i></span>Dashboard</h5>
+
+      <div class="text-secondary small fw-semibold mb-2 mt-2">Status geral das tratativas</div>
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="card card-shadow p-3 text-center">
+            <div class="text-secondary small">Pendentes</div>
+            <div class="fs-3 fw-bold" style="color:#dc3545;" id="cardPendente">0</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card card-shadow p-3 text-center">
+            <div class="text-secondary small">Em tratativa</div>
+            <div class="fs-3 fw-bold" style="color:#e0a800;" id="cardEmTratativa">0</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card card-shadow p-3 text-center">
+            <div class="text-secondary small">Resolvidos</div>
+            <div class="fs-3 fw-bold" style="color:#198754;" id="cardResolvido">0</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card card-shadow p-3 text-center">
+            <div class="text-secondary small">Arquivados</div>
+            <div class="fs-3 fw-bold text-secondary" id="cardArquivado">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="card card-shadow p-3">
+            <div class="text-secondary small fw-semibold mb-2">Tratativas por status</div>
+            <canvas id="chartStatus" height="220"></canvas>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card card-shadow p-3">
+            <div class="text-secondary small fw-semibold mb-2">Tratativas por revenda</div>
+            <canvas id="chartRevenda" height="220"></canvas>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card card-shadow p-3">
+            <div class="text-secondary small fw-semibold mb-2">Tratativas por tipo de ação</div>
+            <canvas id="chartTipoAcao" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-shadow p-3 mb-4">
+        <div class="text-secondary small fw-semibold mb-2"><i class="bi bi-table me-1"></i>Revenda × Motivo (contagem e DT médio)</div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-shop me-1"></i>Revenda</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroMatrizRevenda">
+              <option value="">Todas</option>
+              <option value="MGA">MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-calendar-week me-1"></i>Semana do mês</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroMatrizSemana">
+              <option value="">Total</option>
+              <option value="1">Semana 1</option>
+              <option value="2">Semana 2</option>
+              <option value="3">Semana 3</option>
+              <option value="4">Semana 4</option>
+              <option value="5">Semana 5</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-calendar3 me-1"></i>Mês</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroMatrizMes">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle mb-0" id="tabelaMatriz" style="font-size: 0.85rem;">
+            <thead class="bg-soft-blue" style="background: #dceaff;">
+              <tr id="matrizCabecalho"></tr>
+            </thead>
+            <tbody id="matrizCorpo"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card card-shadow p-3 mb-4">
+        <div class="text-secondary small fw-semibold mb-2"><i class="bi bi-calendar3-week me-1"></i>Motivo × Dia da Semana (contagem)</div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-shop me-1"></i>Revenda</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroDiaSemanaRevenda">
+              <option value="">Todas</option>
+              <option value="MGA">MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-calendar-week me-1"></i>Semana do mês</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroDiaSemanaSemana">
+              <option value="">Total</option>
+              <option value="1">Semana 1</option>
+              <option value="2">Semana 2</option>
+              <option value="3">Semana 3</option>
+              <option value="4">Semana 4</option>
+              <option value="5">Semana 5</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-calendar3 me-1"></i>Mês</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroDiaSemanaMes">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle mb-0" id="tabelaDiaSemana" style="font-size: 0.85rem;">
+            <thead class="bg-soft-blue" style="background: #dceaff;">
+              <tr id="diaSemanaCabecalho"></tr>
+            </thead>
+            <tbody id="diaSemanaCorpo"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="text-secondary small fw-semibold mb-2 mt-4">Status dos mapas</div>
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="card card-shadow p-3 text-center">
+            <div class="text-secondary small">Total de mapas</div>
+            <div class="fs-3 fw-bold text-primary-dark" id="cardMapaTotal">0</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card card-shadow p-3 text-center">
+            <div class="text-secondary small">Mapas pendentes</div>
+            <div class="fs-3 fw-bold" style="color:#dc3545;" id="cardMapaPendente">0</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card card-shadow p-3 text-center">
+            <div class="text-secondary small">Mapas resolvidos</div>
+            <div class="fs-3 fw-bold" style="color:#198754;" id="cardMapaResolvido">0</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card card-shadow p-3 text-center">
+            <div class="text-secondary small">Em tratativa</div>
+            <div class="fs-3 fw-bold" style="color:#e0a800;" id="cardMapaEmTratativa">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="card card-shadow p-3">
+            <div class="text-secondary small fw-semibold mb-2">Mapas por status</div>
+            <canvas id="chartStatusMapas" height="220"></canvas>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="card card-shadow p-3">
+            <div class="text-secondary small fw-semibold mb-2">Mapas por revenda</div>
+            <canvas id="chartMapasPorRevenda" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-shadow p-3 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="text-secondary small fw-semibold"><i class="bi bi-map me-1"></i>Lista de mapas</div>
+          <span class="badge bg-light text-dark border" id="contadorMapas">0</span>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-search me-1"></i>Mapa ou Cod PDV</label>
+            <input type="text" class="form-control form-control-sm tratativa-input" id="filtroMapaNumero" placeholder="ex: 51452 ou PDV">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-shop me-1"></i>Revenda</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroMapaRevenda">
+              <option value="">Todas</option>
+              <option value="MGA">MGA</option>
+              <option value="GPA">GPA</option>
+              <option value="PG">PG</option>
+              <option value="NP">NP</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-calendar3 me-1"></i>De</label>
+            <input type="date" class="form-control form-control-sm tratativa-input" id="filtroMapaDataDe">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-calendar3 me-1"></i>Até</label>
+            <input type="date" class="form-control form-control-sm tratativa-input" id="filtroMapaDataAte">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-funnel me-1"></i>Status</label>
+            <select class="form-select form-select-sm tratativa-input" id="filtroMapaStatus">
+              <option value="">Todos</option>
+              <option value="Pendente">Pendente</option>
+              <option value="Em tratativa">Em tratativa</option>
+              <option value="Resolvido">Resolvido</option>
+              <option value="Arquivado">Arquivado</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-1 d-flex align-items-end">
+            <button class="btn btn-outline-secondary btn-sm w-100" id="limparFiltroMapasBtn" type="button" title="Limpar filtros">
+              <i class="bi bi-x-circle"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+          <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <thead class="bg-soft-blue" style="background: #dceaff; position: sticky; top: 0;">
+              <tr>
+                <th>Mapa</th>
+                <th>Cod PDV</th>
+                <th>Revenda</th>
+                <th>Data</th>
+                <th>Tipo Ação</th>
+                <th>Problema</th>
+                <th>Resolução</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="corpoListaMapas"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mb-2 mt-4">
+        <div class="text-secondary small fw-semibold">Análise por Revenda, Mapa e Assunto — agrupado por dia</div>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Agrupamento de data">
+          <button type="button" class="btn btn-outline-primary active" id="btnAgrupSemana">Dia da Semana</button>
+          <button type="button" class="btn btn-outline-primary" id="btnAgrupMes">Dia do Mês</button>
+        </div>
+      </div>
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <div class="card card-shadow p-3">
+            <div class="text-secondary small fw-semibold mb-2">Tratativas por Revenda</div>
+            <canvas id="chartRevendaPorDia" height="110"></canvas>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="card card-shadow p-3">
+            <div class="text-secondary small fw-semibold mb-2">Mapas por Revenda</div>
+            <canvas id="chartMapasPorDia" height="110"></canvas>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="card card-shadow p-3">
+            <div class="text-secondary small fw-semibold mb-2">Tratativas por Assunto (Tipo de Ação)</div>
+            <canvas id="chartAssuntoPorDia" height="110"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-secondary small fw-semibold mb-2 mt-4">Tratativas por data</div>
+      <div class="card card-shadow p-3">
+        <canvas id="chartPorData" height="90"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Edição -->
+  <div class="modal fade" id="modalEditar" tabindex="-1" aria-labelledby="modalEditarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-semibold text-primary-dark" id="modalEditarLabel">
+            <i class="bi bi-pencil-square me-2"></i>Editar tratativa
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="editId">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary">Data</label>
+              <input type="date" class="form-control" id="editData">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary">Revenda</label>
+              <select class="form-select" id="editRevenda">
+                <option value="MGA">MGA</option>
+                <option value="GPA">GPA</option>
+                <option value="PG">PG</option>
+                <option value="NP">NP</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary">Tipo de Ação</label>
+              <select class="form-select" id="editTipoAcao">
+                <option value="On Time">On Time</option>
+                <option value="Dispersão de KM">Dispersão de KM</option>
+                <option value="Dispersão de Tempo">Dispersão de Tempo</option>
+                <option value="Atualização Coordenadas">Atualização Coordenadas</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary">DT (%)</label>
+              <input type="text" class="form-control" id="editDt">
+            </div>
+            <div class="col-md-12">
+              <label class="form-label small fw-semibold text-secondary">Observação geral <span class="text-secondary fw-normal">(opcional)</span></label>
+              <input type="text" class="form-control" id="editDescricao">
+            </div>
+            <div class="col-md-12">
+              <label class="form-label small fw-semibold text-secondary"><i class="bi bi-layers me-1"></i> Itens da Tratativa <small class="text-secondary fw-normal" id="editItensAjudaTexto"></small></label>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <input type="text" class="form-control form-control-sm" id="editNovoMapa" placeholder="Nº do mapa (opcional)" style="max-width: 220px;">
+                <input type="text" class="form-control form-control-sm" id="editNovoCodPdvItem" placeholder="Cod PDV (opcional)" style="max-width: 220px;">
+                <button class="btn btn-outline-primary btn-sm" id="editAddMapaBtn" type="button"><i class="bi bi-plus-circle me-1"></i> Adicionar Item</button>
+              </div>
+              <div id="editMapasContainer"></div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold text-secondary">Status</label>
+              <select class="form-select" id="editStatus">
+                <option value="Pendente">Pendente</option>
+                <option value="Em tratativa">Em tratativa</option>
+                <option value="Resolvido">Resolvido</option>
+                <option value="Arquivado">Arquivado</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancelar</button>
+          <button class="btn btn-primary" id="editSalvarBtn" type="button" style="background: #1f68d6; border: none;">
+            <i class="bi bi-save me-1"></i> Salvar alterações
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ============================================================
+      // 1. CONFIGURAÇÃO CORRETA DO SUPABASE
+      // ============================================================
+      // ⚠️ SUBSTITUA PELA SUA CHAVE ANÔNIMA (ANON KEY) DO SUPABASE
+      // A chave anônima começa com "eyJ..." - encontre em:
+      // Project Settings > API > Project API keys > anon public
+      const SUPABASE_URL = 'https://scbdlyfavqlzstbulrup.supabase.co';
+      const SUPABASE_ANON_KEY = 'sb_publishable_M55itc2oMAlK3bEFj9Le5Q_CeBsVBUV';
+      // ============================================================
+
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      // Variáveis globais
+      let tratativas = [];
+      let mapasTemp = [];
+      let editMapasTemp = [];
+      const postitsExpandidos = new Set(); // ids de tratativa expandida no Quadro de Ações — sobrevive a re-render, some se a tratativa some da lista
+
+      // Elementos DOM
+      const tbody = document.getElementById('corpoTabela');
+      const semRegistros = document.getElementById('semRegistros');
+      const contadorTotal = document.getElementById('contadorTotal');
+      const alertLembrete = document.getElementById('alertLembrete');
+      const lembreteTexto = document.getElementById('lembreteTexto');
+      const quadroPostits = document.getElementById('quadroPostits');
+
+      // Inputs
+      const inputData = document.getElementById('inputData');
+      const inputRevenda = document.getElementById('inputRevenda');
+      const inputTipoAcao = document.getElementById('inputTipoAcao');
+      const inputDt = document.getElementById('inputDt');
+      const inputDescricao = document.getElementById('inputDescricao');
+      const inputMapa = document.getElementById('inputMapa');
+      const inputCodPdvItem = document.getElementById('inputCodPdvItem');
+      const inputStatus = document.getElementById('inputStatus');
+      const mapasContainer = document.getElementById('mapasContainer');
+
+      // Modal
+      let modalEditar = null;
+      const modalElement = document.getElementById('modalEditar');
+      if (modalElement) {
+        modalEditar = new bootstrap.Modal(modalElement);
+      }
+
+      const editId = document.getElementById('editId');
+      const editData = document.getElementById('editData');
+      const editRevenda = document.getElementById('editRevenda');
+      const editTipoAcao = document.getElementById('editTipoAcao');
+      const editDt = document.getElementById('editDt');
+      const editDescricao = document.getElementById('editDescricao');
+      const editStatus = document.getElementById('editStatus');
+      const editMapasContainer = document.getElementById('editMapasContainer');
+      const editNovoMapa = document.getElementById('editNovoMapa');
+      const editNovoCodPdvItem = document.getElementById('editNovoCodPdvItem');
+
+      // ============================================================
+      // 2. FUNÇÕES AUXILIARES
+      // ============================================================
+      function gerarId() {
+        return Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+      }
+
+      function showToast(mensagem, tipo = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${tipo} toast-custom`;
+        toast.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+        toast.innerHTML = `<i class="bi ${tipo === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle'} me-2"></i> ${mensagem}`;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transition = 'opacity 0.3s';
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+
+      // ============================================================
+      // 3. FUNÇÕES DE UI (MAPAS)
+      // ============================================================
+      function badgeClassPorStatus(status) {
+        if (status === 'Pendente') return 'bg-danger';
+        if (status === 'Em tratativa') return 'bg-warning text-dark';
+        if (status === 'Resolvido') return 'bg-success';
+        if (status === 'Arquivado') return 'bg-secondary';
+        return 'bg-secondary';
+      }
+
+      function opcoesStatusMapa(selecionado) {
+        const opcoes = ['Pendente', 'Em tratativa', 'Resolvido', 'Arquivado'];
+        return opcoes.map(o => `<option value="${o}" ${o === (selecionado || 'Pendente') ? 'selected' : ''}>${o}</option>`).join('');
+      }
+
+      function normalizarPdv(p) {
+        if (typeof p === 'string') return { codigo: p, descricao: '', resolucao: '' };
+        return { codigo: p.codigo || '', descricao: p.descricao || '', resolucao: p.resolucao || '' };
+      }
+
+      function normalizarListaPdvs(pdvs) {
+        return (pdvs || []).map(normalizarPdv);
+      }
+
+      function badgeMapaStatusCurto(status) {
+        return `<span class="badge ${badgeClassPorStatus(status)}" style="font-size:0.65rem;">${status || 'Pendente'}</span>`;
+      }
+
+      function atualizarMapasUI() {
+        mapasContainer.innerHTML = '';
+        if (mapasTemp.length === 0) {
+          mapasContainer.innerHTML = '<span class="text-secondary small">Nenhum item adicionado (opcional)</span>';
+          return;
+        }
+        mapasTemp.forEach((itemMap, index) => {
+          const div = document.createElement('div');
+          div.className = 'mapa-card-item mapa-card-collapsible mb-2';
+          const aberto = !!itemMap.expanded;
+          const qtdPdv = (itemMap.pdvs || []).length;
+          div.innerHTML = `
+            <div class="mapa-card-header d-flex align-items-center justify-content-between" data-index="${index}" style="cursor:pointer;">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <i class="bi bi-map text-primary"></i>
+                <span class="fw-semibold text-primary-dark">${itemMap.numero || '<span class=\"text-secondary fst-italic\">sem mapa</span>'}</span>
+                ${qtdPdv ? `<span class="badge bg-light text-dark border">${qtdPdv} PDV${qtdPdv > 1 ? 's' : ''}</span>` : ''}
+                ${badgeMapaStatusCurto(itemMap.status)}
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <button class="btn-remove-mapa" data-index="${index}" type="button" title="Remover item"><i class="bi bi-x-circle-fill"></i></button>
+                <i class="bi ${aberto ? 'bi-chevron-up' : 'bi-chevron-down'} mapa-toggle-icon text-secondary" data-index="${index}"></i>
+              </div>
+            </div>
+            <div class="mapa-card-body" style="${aberto ? '' : 'display:none;'}">
+              <div class="row g-2 mt-2">
+                <div class="col-12 col-md-5">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Nº do mapa</label>
+                  <input type="text" class="form-control form-control-sm mapa-numero-input" data-index="${index}" value="${itemMap.numero || ''}" placeholder="Opcional">
+                </div>
+                <div class="col-12 col-md-7">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Status</label>
+                  <select class="form-select form-select-sm mapa-status-select" data-index="${index}">
+                    ${opcoesStatusMapa(itemMap.status)}
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Adicionar Cod PDV</label>
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control mapa-pdv-input" data-index="${index}" placeholder="Cod PDV">
+                    <button class="btn btn-outline-primary mapa-pdv-add" data-index="${index}" type="button" title="Adicionar Cod PDV"><i class="bi bi-plus-lg"></i></button>
+                  </div>
+                </div>
+              </div>
+              <div class="mapa-pdv-list mt-2">
+                ${(itemMap.pdvs || []).map((pdv, pidx) => `
+                  <div class="p-2 mb-2" style="background:#f4f7fb;border-radius:6px;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <span class="badge bg-light text-dark border flex-shrink-0">PDV ${pdv.codigo}</span>
+                      <i class="bi bi-x-circle-fill mapa-pdv-remove flex-shrink-0 ms-auto" data-index="${index}" data-pidx="${pidx}" style="cursor:pointer;" title="Remover PDV"></i>
+                    </div>
+                    <div class="row g-2">
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small fw-semibold text-secondary mb-1">Descrição do problema</label>
+                        <textarea class="form-control form-control-sm mapa-pdv-descricao-input" data-index="${index}" data-pidx="${pidx}" rows="2" placeholder="Descreva o problema deste PDV...">${pdv.descricao || ''}</textarea>
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small fw-semibold text-secondary mb-1">Descrição da resolução</label>
+                        <textarea class="form-control form-control-sm mapa-pdv-resolucao-input" data-index="${index}" data-pidx="${pidx}" rows="2" placeholder="Descreva como foi resolvido...">${pdv.resolucao || ''}</textarea>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="row g-2 mt-2">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Descrição do problema</label>
+                  <textarea class="form-control form-control-sm mapa-problema-input" data-index="${index}" rows="2" placeholder="Descreva o problema encontrado neste mapa...">${itemMap.problema || ''}</textarea>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Descrição da resolução</label>
+                  <textarea class="form-control form-control-sm mapa-resolucao-input" data-index="${index}" rows="2" placeholder="Descreva como o problema foi resolvido...">${itemMap.resolucao || ''}</textarea>
+                </div>
+              </div>
+            </div>
+          `;
+          mapasContainer.appendChild(div);
+        });
+
+        mapasContainer.querySelectorAll('.mapa-card-header').forEach(header => {
+          header.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-remove-mapa')) return;
+            const idx = parseInt(this.dataset.index);
+            mapasTemp[idx].expanded = !mapasTemp[idx].expanded;
+            atualizarMapasUI();
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-numero-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            mapasTemp[idx].numero = this.value.trim();
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-problema-input').forEach(input => {
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            mapasTemp[idx].problema = this.value;
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-resolucao-input').forEach(input => {
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            mapasTemp[idx].resolucao = this.value;
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-status-select').forEach(sel => {
+          sel.addEventListener('click', e => e.stopPropagation());
+          sel.addEventListener('change', function() {
+            const idx = parseInt(this.dataset.index);
+            mapasTemp[idx].status = this.value;
+          });
+        });
+
+        mapasContainer.querySelectorAll('.btn-remove-mapa').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const idx = parseInt(this.dataset.index);
+            mapasTemp.splice(idx, 1);
+            atualizarMapasUI();
+          });
+        });
+
+        function adicionarPdv(idx) {
+          const input = document.querySelector(`.mapa-pdv-input[data-index="${idx}"]`);
+          const pdv = input.value.trim();
+          if (!pdv) return;
+          if (!mapasTemp[idx].pdvs) mapasTemp[idx].pdvs = [];
+          mapasTemp[idx].pdvs.push({ codigo: pdv, descricao: '' });
+          atualizarMapasUI();
+          // mantém o card aberto e foca na descrição do PDV recém-adicionado
+          setTimeout(() => {
+            const novoInput = document.querySelector(`.mapa-pdv-descricao-input[data-index="${idx}"][data-pidx="${mapasTemp[idx].pdvs.length - 1}"]`);
+            if (novoInput) novoInput.focus();
+          }, 0);
+        }
+
+        mapasContainer.querySelectorAll('.mapa-pdv-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+        });
+
+        mapasContainer.querySelectorAll('.mapa-pdv-add').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            adicionarPdv(parseInt(this.dataset.index));
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-pdv-input').forEach(input => {
+          input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              adicionarPdv(parseInt(this.dataset.index));
+            }
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-pdv-descricao-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            const pidx = parseInt(this.dataset.pidx);
+            mapasTemp[idx].pdvs[pidx].descricao = this.value;
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-pdv-resolucao-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            const pidx = parseInt(this.dataset.pidx);
+            mapasTemp[idx].pdvs[pidx].resolucao = this.value;
+          });
+        });
+
+        mapasContainer.querySelectorAll('.mapa-pdv-remove').forEach(icon => {
+          icon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const idx = parseInt(this.dataset.index);
+            const pidx = parseInt(this.dataset.pidx);
+            mapasTemp[idx].pdvs.splice(pidx, 1);
+            atualizarMapasUI();
+          });
+        });
+      }
+
+      function atualizarEditMapasUI() {
+        editMapasContainer.innerHTML = '';
+        if (editMapasTemp.length === 0) {
+          editMapasContainer.innerHTML = '<span class="text-secondary small">Nenhum item adicionado (opcional)</span>';
+          return;
+        }
+        editMapasTemp.forEach((itemMap, index) => {
+          const div = document.createElement('div');
+          div.className = 'mapa-card-item mapa-card-collapsible mb-2';
+          const aberto = !!itemMap.expanded;
+          const qtdPdv = (itemMap.pdvs || []).length;
+          div.innerHTML = `
+            <div class="mapa-card-header d-flex align-items-center justify-content-between" data-index="${index}" style="cursor:pointer;">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <i class="bi bi-map text-primary"></i>
+                <span class="fw-semibold text-primary-dark">${itemMap.numero || '<span class=\"text-secondary fst-italic\">sem mapa</span>'}</span>
+                ${qtdPdv ? `<span class="badge bg-light text-dark border">${qtdPdv} PDV${qtdPdv > 1 ? 's' : ''}</span>` : ''}
+                ${badgeMapaStatusCurto(itemMap.status)}
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <button class="btn-remove-mapa edit-remove-mapa" data-index="${index}" type="button" title="Remover item"><i class="bi bi-x-circle-fill"></i></button>
+                <i class="bi ${aberto ? 'bi-chevron-up' : 'bi-chevron-down'} mapa-toggle-icon text-secondary" data-index="${index}"></i>
+              </div>
+            </div>
+            <div class="mapa-card-body" style="${aberto ? '' : 'display:none;'}">
+              <div class="row g-2 mt-2">
+                <div class="col-12 col-md-5">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Nº do mapa</label>
+                  <input type="text" class="form-control form-control-sm edit-mapa-numero-input" data-index="${index}" value="${itemMap.numero || ''}" placeholder="Opcional">
+                </div>
+                <div class="col-12 col-md-7">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Status</label>
+                  <select class="form-select form-select-sm edit-mapa-status-select" data-index="${index}">
+                    ${opcoesStatusMapa(itemMap.status)}
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Adicionar Cod PDV</label>
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control edit-mapa-pdv-input" data-index="${index}" placeholder="Cod PDV">
+                    <button class="btn btn-outline-primary edit-mapa-pdv-add" data-index="${index}" type="button" title="Adicionar Cod PDV"><i class="bi bi-plus-lg"></i></button>
+                  </div>
+                </div>
+              </div>
+              <div class="mapa-pdv-list mt-2">
+                ${(itemMap.pdvs || []).map((pdv, pidx) => `
+                  <div class="p-2 mb-2" style="background:#f4f7fb;border-radius:6px;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <span class="badge bg-light text-dark border flex-shrink-0">PDV ${pdv.codigo}</span>
+                      <i class="bi bi-x-circle-fill edit-mapa-pdv-remove flex-shrink-0 ms-auto" data-index="${index}" data-pidx="${pidx}" style="cursor:pointer;" title="Remover PDV"></i>
+                    </div>
+                    <div class="row g-2">
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small fw-semibold text-secondary mb-1">Descrição do problema</label>
+                        <textarea class="form-control form-control-sm edit-mapa-pdv-descricao-input" data-index="${index}" data-pidx="${pidx}" rows="2" placeholder="Descreva o problema deste PDV...">${pdv.descricao || ''}</textarea>
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small fw-semibold text-secondary mb-1">Descrição da resolução</label>
+                        <textarea class="form-control form-control-sm edit-mapa-pdv-resolucao-input" data-index="${index}" data-pidx="${pidx}" rows="2" placeholder="Descreva como foi resolvido...">${pdv.resolucao || ''}</textarea>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="row g-2 mt-2">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Descrição do problema</label>
+                  <textarea class="form-control form-control-sm edit-mapa-problema-input" data-index="${index}" rows="2" placeholder="Descreva o problema encontrado neste mapa...">${itemMap.problema || ''}</textarea>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-semibold text-secondary mb-1">Descrição da resolução</label>
+                  <textarea class="form-control form-control-sm edit-mapa-resolucao-input" data-index="${index}" rows="2" placeholder="Descreva como o problema foi resolvido...">${itemMap.resolucao || ''}</textarea>
+                </div>
+              </div>
+            </div>
+          `;
+          editMapasContainer.appendChild(div);
+        });
+
+        editMapasContainer.querySelectorAll('.mapa-card-header').forEach(header => {
+          header.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-remove-mapa')) return;
+            const idx = parseInt(this.dataset.index);
+            editMapasTemp[idx].expanded = !editMapasTemp[idx].expanded;
+            atualizarEditMapasUI();
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-numero-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            editMapasTemp[idx].numero = this.value.trim();
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-problema-input').forEach(input => {
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            editMapasTemp[idx].problema = this.value;
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-resolucao-input').forEach(input => {
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            editMapasTemp[idx].resolucao = this.value;
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-status-select').forEach(sel => {
+          sel.addEventListener('click', e => e.stopPropagation());
+          sel.addEventListener('change', function() {
+            const idx = parseInt(this.dataset.index);
+            editMapasTemp[idx].status = this.value;
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-remove-mapa').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const idx = parseInt(this.dataset.index);
+            editMapasTemp.splice(idx, 1);
+            atualizarEditMapasUI();
+          });
+        });
+
+        function adicionarPdvEdit(idx) {
+          const input = document.querySelector(`.edit-mapa-pdv-input[data-index="${idx}"]`);
+          const pdv = input.value.trim();
+          if (!pdv) return;
+          if (!editMapasTemp[idx].pdvs) editMapasTemp[idx].pdvs = [];
+          editMapasTemp[idx].pdvs.push({ codigo: pdv, descricao: '' });
+          atualizarEditMapasUI();
+          setTimeout(() => {
+            const novoInput = document.querySelector(`.edit-mapa-pdv-descricao-input[data-index="${idx}"][data-pidx="${editMapasTemp[idx].pdvs.length - 1}"]`);
+            if (novoInput) novoInput.focus();
+          }, 0);
+        }
+
+        editMapasContainer.querySelectorAll('.edit-mapa-pdv-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-pdv-add').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            adicionarPdvEdit(parseInt(this.dataset.index));
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-pdv-input').forEach(input => {
+          input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              adicionarPdvEdit(parseInt(this.dataset.index));
+            }
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-pdv-descricao-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            const pidx = parseInt(this.dataset.pidx);
+            editMapasTemp[idx].pdvs[pidx].descricao = this.value;
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-pdv-resolucao-input').forEach(input => {
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.index);
+            const pidx = parseInt(this.dataset.pidx);
+            editMapasTemp[idx].pdvs[pidx].resolucao = this.value;
+          });
+        });
+
+        editMapasContainer.querySelectorAll('.edit-mapa-pdv-remove').forEach(icon => {
+          icon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const idx = parseInt(this.dataset.index);
+            const pidx = parseInt(this.dataset.pidx);
+            editMapasTemp[idx].pdvs.splice(pidx, 1);
+            atualizarEditMapasUI();
+          });
+        });
+      }
+      // ============================================================
+      function renderizarTabela(lista) {
+        if (!lista) lista = tratativas;
+        tbody.innerHTML = '';
+        if (lista.length === 0) {
+          semRegistros.style.display = 'block';
+          contadorTotal.textContent = '0';
+          return;
+        }
+        semRegistros.style.display = 'none';
+        contadorTotal.textContent = lista.length;
+
+        lista.forEach((item) => {
+          const tr = document.createElement('tr');
+          tr.dataset.id = item.id;
+
+          const badgeClass = badgeClassPorStatus(item.status);
+
+          let mapasHtml = '-';
+          if (item.mapas && item.mapas.length > 0) {
+            mapasHtml = item.mapas.map(m => {
+              const pdvsNorm = normalizarListaPdvs(m.pdvs);
+              const pdvsStr = pdvsNorm.length ? ` <span class="text-secondary">[${pdvsNorm.map(p => `PDV ${p.codigo}${p.descricao ? ': ' + p.descricao : ''}${p.resolucao ? ' → ' + p.resolucao : ''}`).join(' • ')}]</span>` : '';
+              const problema = m.problema || m.obs || '';
+              const resolucaoStr = m.resolucao ? ` <span class="text-success">| Resolução: ${m.resolucao}</span>` : '';
+              return `<div class="mb-1"><strong>${m.numero}</strong>${pdvsStr}${problema ? ': ' + problema : ''}${resolucaoStr} <span class="badge ${badgeClassPorStatus(m.status)}" style="font-size: 0.6rem;">${m.status || 'Pendente'}</span></div>`;
+            }).join('');
+          }
+
+          tr.innerHTML = `
+            <td>${item.data || ''}</td>
+            <td><span class="badge bg-info">${item.revenda || ''}</span></td>
+            <td>${item.tipoAcao || ''}</td>
+            <td>${item.dt || ''}</td>
+            <td class="text-break" style="max-width: 150px;">${item.descricao || ''}</td>
+            <td style="font-size: 0.85rem;">${mapasHtml}</td>
+            <td><span class="badge ${badgeClass} badge-status">${item.status || 'Pendente'}</span></td>
+            <td>
+              <button class="btn btn-outline-danger btn-sm btn-excluir" data-id="${item.id}" type="button" onclick="event.stopPropagation();">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        document.querySelectorAll('#corpoTabela tr').forEach(row => {
+          row.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-excluir')) return;
+            const id = this.dataset.id;
+            abrirEdicao(id);
+          });
+        });
+
+        document.querySelectorAll('.btn-excluir').forEach(btn => {
+          btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            if (confirm('Remover esta tratativa?')) {
+              const id = this.dataset.id;
+              await deletarTratativaNoSupabase(id);
+              tratativas = tratativas.filter(t => t.id !== id);
+              renderizarTudo();
+            }
+          });
+        });
+      }
+
+      function aplicarFiltrosQuadro(lista) {
+        const revenda = document.getElementById('filtroQuadroRevenda')?.value || '';
+        const data = document.getElementById('filtroQuadroData')?.value || '';
+        const status = document.getElementById('filtroQuadroStatus')?.value || '';
+        const mapa = (document.getElementById('filtroQuadroMapa')?.value || '').trim().toLowerCase();
+
+        return lista.filter(item => {
+          if (revenda && item.revenda !== revenda) return false;
+          if (data && item.data !== data) return false;
+          if (status && item.status !== status) return false;
+          if (mapa) {
+            const temMapa = (item.mapas || []).some(m => {
+              const noNumero = String(m.numero).toLowerCase().includes(mapa);
+              const noPdv = normalizarListaPdvs(m.pdvs).some(pdv => pdv.codigo.toLowerCase().includes(mapa) || (pdv.descricao || '').toLowerCase().includes(mapa));
+              return noNumero || noPdv;
+            });
+            if (!temMapa) return false;
+          }
+          return true;
+        });
+      }
+
+      function limparFiltrosQuadro() {
+        const revenda = document.getElementById('filtroQuadroRevenda');
+        const data = document.getElementById('filtroQuadroData');
+        const status = document.getElementById('filtroQuadroStatus');
+        const mapa = document.getElementById('filtroQuadroMapa');
+        if (revenda) revenda.value = '';
+        if (data) data.value = '';
+        if (status) status.value = '';
+        if (mapa) mapa.value = '';
+        renderizarPostits();
+      }
+
+      function escapeHtmlQuadro(texto) {
+        return String(texto ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      }
+
+      function renderizarPostits() {
+        const pendentes = aplicarFiltrosQuadro(tratativas.filter(t => t.status === 'Pendente' || t.status === 'Em tratativa'));
+        quadroPostits.innerHTML = '';
+        if (pendentes.length === 0) {
+          quadroPostits.innerHTML = `
+            <div class="col-12">
+              <div class="text-center text-secondary py-4">
+                <i class="bi bi-check-circle fs-2 text-success"></i>
+                <p class="mt-2">Nenhuma ação pendente encontrada para os filtros selecionados! 🎉</p>
+              </div>
+            </div>
+          `;
+          return;
+        }
+        pendentes.forEach(item => {
+          const expandido = postitsExpandidos.has(item.id);
+          const col = document.createElement('div');
+          col.className = expandido ? 'col-12 col-lg-6' : 'col-md-4 col-lg-3';
+
+          const qtdMapas = (item.mapas || []).length;
+          const blocosMapas = (item.mapas || []).map(m => {
+            const pdvsNorm = normalizarListaPdvs(m.pdvs);
+            const pdvsStr = pdvsNorm.length ? pdvsNorm.map(p => escapeHtmlQuadro(p.codigo)).join(', ') : '-';
+            const problema = m.problema || m.obs || '';
+            return `
+              <div class="postit-mapa-bloco">
+                <div class="postit-mapa-cabecalho">
+                  <span><i class="bi bi-signpost-split me-1"></i>Mapa ${escapeHtmlQuadro(m.numero)}</span>
+                  ${badgeMapaStatusCurto(m.status)}
+                </div>
+                <div class="small text-secondary mt-1"><strong>PDVs:</strong> ${pdvsStr}</div>
+                ${problema ? `<div class="postit-mapa-problema">${escapeHtmlQuadro(problema)}</div>` : ''}
+                ${m.resolucao ? `<div class="postit-mapa-resolucao"><i class="bi bi-check2-circle me-1"></i>${escapeHtmlQuadro(m.resolucao)}</div>` : ''}
+              </div>`;
+          }).join('');
+
+          col.innerHTML = `
+            <div class="postit${expandido ? ' expandido' : ''}" data-id="${item.id}">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <span class="titulo">${escapeHtmlQuadro(item.revenda || '')}</span>
+                <div class="postit-ferramentas">
+                  <span class="badge ${item.status === 'Pendente' ? 'bg-danger' : 'bg-warning text-dark'} status-badge">${escapeHtmlQuadro(item.status)}</span>
+                  <button type="button" class="btn-postit-icone btn-postit-editar" data-id="${item.id}" title="Editar"><i class="bi bi-pencil-fill"></i></button>
+                  <button type="button" class="btn-postit-icone btn-postit-excluir" data-id="${item.id}" title="Excluir"><i class="bi bi-trash3-fill"></i></button>
+                </div>
+              </div>
+              <div class="data">${escapeHtmlQuadro(item.data || '')} · ${escapeHtmlQuadro(item.tipoAcao || '')}</div>
+              <div class="acoes mt-1"><strong>${escapeHtmlQuadro(item.descricao || '')}</strong></div>
+              <div class="small text-primary mt-1">DT: ${escapeHtmlQuadro(item.dt || '')}</div>
+              <div class="postit-resumo" data-toggle-expandir="${item.id}">
+                <i class="bi bi-chevron-right me-1"></i>${qtdMapas} mapa(s) — clique pra ${expandido ? 'recolher' : 'detalhar'}
+              </div>
+              <div class="postit-detalhe">${blocosMapas || '<p class="small text-secondary mb-0">Sem Mapa vinculado.</p>'}</div>
+            </div>
+          `;
+          quadroPostits.appendChild(col);
+        });
+
+        document.querySelectorAll('.postit').forEach(el => {
+          el.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-postit-icone')) return; // editar/excluir tratam o próprio clique
+            const id = this.dataset.id;
+            if (postitsExpandidos.has(id)) postitsExpandidos.delete(id); else postitsExpandidos.add(id);
+            renderizarPostits();
+          });
+        });
+        document.querySelectorAll('.btn-postit-editar').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            abrirEdicao(this.dataset.id);
+          });
+        });
+        document.querySelectorAll('.btn-postit-excluir').forEach(btn => {
+          btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const id = this.dataset.id;
+            if (!confirm('Remover esta tratativa?')) return;
+            await deletarTratativaNoSupabase(id);
+            tratativas = tratativas.filter(t => t.id !== id);
+            postitsExpandidos.delete(id);
+            renderizarTudo();
+          });
+        });
+      }
+
+      // ============================================================
+      // 4b. FUNÇÕES DE DASHBOARD (GRÁFICOS)
+      // ============================================================
+      let chartStatus = null;
+      let chartRevenda = null;
+      let chartTipoAcao = null;
+
+      const CORES_STATUS = {
+        'Pendente': '#dc3545',
+        'Em tratativa': '#ffc107',
+        'Resolvido': '#198754',
+        'Arquivado': '#6c757d'
+      };
+      const CORES_PALETA = ['#2b7af0', '#4d8cf0', '#7fb0f5', '#1f68d6', '#0a3e7c', '#b8d4ff'];
+      const REVENDAS_LISTA = ['MGA', 'GPA', 'PG', 'NP'];
+      const TIPOS_ACAO_LISTA = ['On Time', 'Dispersão de KM', 'Dispersão de Tempo', 'Atualização Coordenadas'];
+      const CORES_REVENDA = { 'MGA': '#2b7af0', 'GPA': '#20c997', 'PG': '#fd7e14', 'NP': '#6f42c1' };
+      const CORES_TIPO_ACAO = { 'On Time': '#2b7af0', 'Dispersão de KM': '#fd7e14', 'Dispersão de Tempo': '#20c997', 'Atualização Coordenadas': '#e83e8c' };
+      // Configuração de campos por Tipo de Ação: todos usam Mapa + Cod PDV (cascata mantém os mesmos campos para os 4 tipos)
+      const CAMPOS_POR_TIPO_ACAO = {
+        'On Time': { mapa: true, codPdv: true },
+        'Dispersão de KM': { mapa: true, codPdv: true },
+        'Dispersão de Tempo': { mapa: true, codPdv: true },
+        'Atualização Coordenadas': { mapa: true, codPdv: true }
+      };
+      function camposDoTipoAcao(tipo) {
+        return CAMPOS_POR_TIPO_ACAO[tipo] || { mapa: true, codPdv: true };
+      }
+
+      // Ajusta os campos de Mapa / Cod PDV do "Adicionar Item" conforme o Tipo de Ação escolhido (cascata)
+      function aplicarCascataTipoAcao(tipo, mapaInputEl, codPdvInputEl, ajudaEl) {
+        const campos = camposDoTipoAcao(tipo);
+        if (mapaInputEl) mapaInputEl.style.display = campos.mapa ? '' : 'none';
+        if (codPdvInputEl) codPdvInputEl.style.display = campos.codPdv ? '' : 'none';
+        if (ajudaEl) {
+          if (campos.mapa && campos.codPdv) ajudaEl.textContent = '(Mapa e/ou Cod PDV, conforme "' + tipo + '")';
+          else if (campos.mapa) ajudaEl.textContent = '(apenas Mapa para "' + tipo + '")';
+          else if (campos.codPdv) ajudaEl.textContent = '(apenas Cod PDV para "' + tipo + '")';
+          else ajudaEl.textContent = '(não requer mapa nem Cod PDV para "' + tipo + '")';
+        }
+      }
+      const DIAS_SEMANA_ORDEM = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+      const DIAS_SEMANA_JS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+      let agrupamentoData = 'semana'; // 'semana' | 'mes'
+
+      function chaveAgrupamentoData(dataStr) {
+        if (!dataStr) return null;
+        if (agrupamentoData === 'semana') {
+          const d = new Date(dataStr + 'T00:00:00');
+          if (isNaN(d.getTime())) return null;
+          return DIAS_SEMANA_JS[d.getDay()];
+        }
+        const dia = String(dataStr).slice(8, 10);
+        return dia || null;
+      }
+
+      function rotulosAgrupamentoData() {
+        if (agrupamentoData === 'semana') return DIAS_SEMANA_ORDEM;
+        const dias = [];
+        for (let i = 1; i <= 31; i++) dias.push(String(i).padStart(2, '0'));
+        return dias;
+      }
+
+      if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+        Chart.register(ChartDataLabels);
+      }
+
+      function contarPor(lista, campo) {
+        const contagem = {};
+        lista.forEach(item => {
+          const chave = item[campo] || 'Não informado';
+          contagem[chave] = (contagem[chave] || 0) + 1;
+        });
+        return contagem;
+      }
+
+      function atualizarDashboard() {
+        // Cards de totais
+        document.getElementById('cardPendente').textContent = tratativas.filter(t => t.status === 'Pendente').length;
+        document.getElementById('cardEmTratativa').textContent = tratativas.filter(t => t.status === 'Em tratativa').length;
+        document.getElementById('cardResolvido').textContent = tratativas.filter(t => t.status === 'Resolvido').length;
+        document.getElementById('cardArquivado').textContent = tratativas.filter(t => t.status === 'Arquivado').length;
+
+        atualizarMatrizRevendaMotivo();
+        atualizarMatrizDiaSemana();
+        atualizarDashboardMapas();
+        atualizarListaMapas();
+
+        if (typeof Chart === 'undefined') return;
+
+        // Gráfico por status (doughnut)
+        const porStatus = contarPor(tratativas, 'status');
+        const labelsStatus = Object.keys(porStatus);
+        const dadosStatus = Object.values(porStatus);
+        const coresStatus = labelsStatus.map(l => CORES_STATUS[l] || '#adb5bd');
+
+        if (chartStatus) chartStatus.destroy();
+        chartStatus = new Chart(document.getElementById('chartStatus'), {
+          type: 'doughnut',
+          data: {
+            labels: labelsStatus,
+            datasets: [{ data: dadosStatus, backgroundColor: coresStatus, borderWidth: 2, borderColor: '#fff' }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+              datalabels: {
+                color: '#fff',
+                font: { weight: 'bold', size: 12 },
+                formatter: (value) => value > 0 ? value : ''
+              }
+            }
+          }
+        });
+
+        // Gráfico por revenda (barra)
+        const porRevenda = contarPor(tratativas, 'revenda');
+        const labelsRevenda = Object.keys(porRevenda);
+        const dadosRevenda = Object.values(porRevenda);
+
+        if (chartRevenda) chartRevenda.destroy();
+        chartRevenda = new Chart(document.getElementById('chartRevenda'), {
+          type: 'bar',
+          data: {
+            labels: labelsRevenda,
+            datasets: [{ label: 'Tratativas', data: dadosRevenda, backgroundColor: CORES_PALETA[0], borderRadius: 6 }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              datalabels: {
+                anchor: 'end',
+                align: 'top',
+                color: '#0a3e7c',
+                font: { weight: 'bold', size: 12 },
+                formatter: (value) => value > 0 ? value : ''
+              }
+            },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+
+        // Gráfico por tipo de ação (barra horizontal)
+        const porTipoAcao = contarPor(tratativas, 'tipoAcao');
+        const labelsTipo = Object.keys(porTipoAcao);
+        const dadosTipo = Object.values(porTipoAcao);
+
+        if (chartTipoAcao) chartTipoAcao.destroy();
+        chartTipoAcao = new Chart(document.getElementById('chartTipoAcao'), {
+          type: 'bar',
+          data: {
+            labels: labelsTipo,
+            datasets: [{ label: 'Tratativas', data: dadosTipo, backgroundColor: CORES_PALETA.slice(1), borderRadius: 6 }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              datalabels: {
+                anchor: 'end',
+                align: 'right',
+                color: '#0a3e7c',
+                font: { weight: 'bold', size: 12 },
+                formatter: (value) => value > 0 ? value : ''
+              }
+            },
+            scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+      }
+
+      function parseDtValor(valor) {
+        if (!valor) return null;
+        const n = parseFloat(String(valor).replace('%', '').replace(',', '.'));
+        return isNaN(n) ? null : n;
+      }
+
+      function semanaDoMes(dataStr) {
+        if (!dataStr) return null;
+        const dia = parseInt(String(dataStr).slice(8, 10), 10);
+        if (isNaN(dia)) return null;
+        if (dia <= 7) return 1;
+        if (dia <= 14) return 2;
+        if (dia <= 21) return 3;
+        if (dia <= 28) return 4;
+        return 5;
+      }
+
+      function mesDoData(dataStr) {
+        if (!dataStr) return null;
+        return String(dataStr).slice(0, 7); // 'YYYY-MM'
+      }
+
+      function nomeDiaSemana(dataStr) {
+        if (!dataStr) return null;
+        const d = new Date(dataStr + 'T00:00:00');
+        if (isNaN(d.getTime())) return null;
+        return DIAS_SEMANA_JS[d.getDay()];
+      }
+
+      const NOMES_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+      function popularSelectMes(selectId) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        const valorAtual = select.value;
+        const mesesPresentes = Array.from(new Set(tratativas.map(t => mesDoData(t.data)).filter(Boolean))).sort();
+        select.innerHTML = '<option value="">Todos</option>' + mesesPresentes.map(m => {
+          const [ano, mm] = m.split('-');
+          const label = `${NOMES_MESES[parseInt(mm, 10) - 1]}/${ano}`;
+          return `<option value="${m}">${label}</option>`;
+        }).join('');
+        if (mesesPresentes.includes(valorAtual)) select.value = valorAtual;
+      }
+
+      function tratativasFiltradas(prefixo) {
+        const revenda = document.getElementById(`filtro${prefixo}Revenda`)?.value || '';
+        const semana = document.getElementById(`filtro${prefixo}Semana`)?.value || '';
+        const mes = document.getElementById(`filtro${prefixo}Mes`)?.value || '';
+        return tratativas.filter(t => {
+          if (revenda && t.revenda !== revenda) return false;
+          if (semana && String(semanaDoMes(t.data)) !== semana) return false;
+          if (mes && mesDoData(t.data) !== mes) return false;
+          return true;
+        });
+      }
+
+      function atualizarMatrizRevendaMotivo() {
+        const cabecalho = document.getElementById('matrizCabecalho');
+        const corpo = document.getElementById('matrizCorpo');
+        if (!cabecalho || !corpo) return;
+
+        popularSelectMes('filtroMatrizMes');
+
+        const revendaSel = document.getElementById('filtroMatrizRevenda')?.value || '';
+        const REVENDAS = revendaSel ? [revendaSel] : REVENDAS_LISTA;
+        const MOTIVOS = TIPOS_ACAO_LISTA;
+        const lista = tratativasFiltradas('Matriz');
+
+        // Cabeçalho: Motivo | revendas | Total
+        cabecalho.innerHTML = '<th>Motivo</th>' + REVENDAS.map(r => `<th class="text-center">${r}</th>`).join('') + '<th class="text-center">Total</th>';
+
+        corpo.innerHTML = '';
+        const totalPorRevenda = {};
+        REVENDAS.forEach(r => totalPorRevenda[r] = 0);
+        let totalGeral = 0;
+
+        MOTIVOS.forEach(motivo => {
+          const tr = document.createElement('tr');
+          let linhaHtml = `<td class="fw-semibold text-primary-dark">${motivo}</td>`;
+          let totalLinha = 0;
+          REVENDAS.forEach(revenda => {
+            const itens = lista.filter(t => t.tipoAcao === motivo && t.revenda === revenda);
+            const qtd = itens.length;
+            totalLinha += qtd;
+            totalPorRevenda[revenda] += qtd;
+            const dts = itens.map(t => parseDtValor(t.dt)).filter(v => v !== null);
+            const media = dts.length > 0 ? (dts.reduce((a, b) => a + b, 0) / dts.length).toFixed(1).replace('.', ',') + '%' : '-';
+            linhaHtml += `<td class="text-center">${qtd > 0 ? `<strong>${qtd}</strong><div class="text-secondary" style="font-size:0.7rem;">DT méd: ${media}</div>` : '-'}</td>`;
+          });
+          totalGeral += totalLinha;
+          linhaHtml += `<td class="text-center fw-bold">${totalLinha}</td>`;
+          tr.innerHTML = linhaHtml;
+          corpo.appendChild(tr);
+        });
+
+        // Linha de totais por revenda
+        const trTotal = document.createElement('tr');
+        trTotal.className = 'bg-soft-blue fw-bold';
+        trTotal.style.background = '#eaf3ff';
+        let totalHtml = '<td>Total</td>';
+        REVENDAS.forEach(r => totalHtml += `<td class="text-center">${totalPorRevenda[r]}</td>`);
+        totalHtml += `<td class="text-center">${totalGeral}</td>`;
+        trTotal.innerHTML = totalHtml;
+        corpo.appendChild(trTotal);
+      }
+
+      function atualizarMatrizDiaSemana() {
+        const cabecalho = document.getElementById('diaSemanaCabecalho');
+        const corpo = document.getElementById('diaSemanaCorpo');
+        if (!cabecalho || !corpo) return;
+
+        popularSelectMes('filtroDiaSemanaMes');
+
+        const DIAS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const MOTIVOS = TIPOS_ACAO_LISTA;
+        const lista = tratativasFiltradas('DiaSemana');
+
+        cabecalho.innerHTML = '<th>Motivo</th>' + DIAS.map(d => `<th class="text-center">${d}</th>`).join('') + '<th class="text-center">Total</th>';
+
+        corpo.innerHTML = '';
+        const totalPorDia = {};
+        DIAS.forEach(d => totalPorDia[d] = 0);
+        let totalGeral = 0;
+
+        MOTIVOS.forEach(motivo => {
+          const tr = document.createElement('tr');
+          let linhaHtml = `<td class="fw-semibold text-primary-dark">${motivo}</td>`;
+          let totalLinha = 0;
+          DIAS.forEach(dia => {
+            const qtd = lista.filter(t => t.tipoAcao === motivo && nomeDiaSemana(t.data) === dia).length;
+            totalLinha += qtd;
+            totalPorDia[dia] += qtd;
+            linhaHtml += `<td class="text-center">${qtd > 0 ? qtd : '-'}</td>`;
+          });
+          totalGeral += totalLinha;
+          linhaHtml += `<td class="text-center fw-bold">${totalLinha}</td>`;
+          tr.innerHTML = linhaHtml;
+          corpo.appendChild(tr);
+        });
+
+        const trTotal = document.createElement('tr');
+        trTotal.className = 'bg-soft-blue fw-bold';
+        trTotal.style.background = '#eaf3ff';
+        let totalHtml = '<td>Total</td>';
+        DIAS.forEach(d => totalHtml += `<td class="text-center">${totalPorDia[d]}</td>`);
+        totalHtml += `<td class="text-center">${totalGeral}</td>`;
+        trTotal.innerHTML = totalHtml;
+        corpo.appendChild(trTotal);
+      }
+
+      let chartStatusMapas = null;
+      let chartMapasPorRevenda = null;
+      let chartPorData = null;
+
+      function todosOsMapas() {
+        const lista = [];
+        tratativas.forEach(t => {
+          (t.mapas || []).forEach(m => {
+            lista.push({
+              numero: m.numero,
+              problema: m.problema || m.obs || '',
+              resolucao: m.resolucao || '',
+              status: m.status || 'Pendente',
+              pdvs: normalizarListaPdvs(m.pdvs),
+              revenda: t.revenda || '',
+              data: t.data || '',
+              tipoAcao: t.tipoAcao || ''
+            });
+          });
+        });
+        return lista;
+      }
+
+      function atualizarDashboardMapas() {
+        const mapas = todosOsMapas();
+
+        document.getElementById('cardMapaTotal').textContent = mapas.length;
+        document.getElementById('cardMapaPendente').textContent = mapas.filter(m => m.status === 'Pendente').length;
+        document.getElementById('cardMapaResolvido').textContent = mapas.filter(m => m.status === 'Resolvido').length;
+        document.getElementById('cardMapaEmTratativa').textContent = mapas.filter(m => m.status === 'Em tratativa').length;
+
+        if (typeof Chart === 'undefined') return;
+
+        // Gráfico: mapas por status (doughnut)
+        const porStatus = contarPor(mapas, 'status');
+        const labelsStatus = Object.keys(porStatus);
+        const dadosStatus = Object.values(porStatus);
+        const coresStatus = labelsStatus.map(l => CORES_STATUS[l] || '#adb5bd');
+
+        if (chartStatusMapas) chartStatusMapas.destroy();
+        chartStatusMapas = new Chart(document.getElementById('chartStatusMapas'), {
+          type: 'doughnut',
+          data: { labels: labelsStatus, datasets: [{ data: dadosStatus, backgroundColor: coresStatus, borderWidth: 2, borderColor: '#fff' }] },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+              datalabels: { color: '#fff', font: { weight: 'bold', size: 12 }, formatter: (v) => v > 0 ? v : '' }
+            }
+          }
+        });
+
+        // Gráfico: mapas por revenda, empilhado por status
+        const REVENDAS = ['MGA', 'GPA', 'PG', 'NP'];
+        const STATUSES = ['Pendente', 'Em tratativa', 'Resolvido', 'Arquivado'];
+        const datasets = STATUSES.map(status => ({
+          label: status,
+          data: REVENDAS.map(r => mapas.filter(m => m.revenda === r && m.status === status).length),
+          backgroundColor: CORES_STATUS[status]
+        }));
+
+        if (chartMapasPorRevenda) chartMapasPorRevenda.destroy();
+        chartMapasPorRevenda = new Chart(document.getElementById('chartMapasPorRevenda'), {
+          type: 'bar',
+          data: { labels: REVENDAS, datasets: datasets },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+              datalabels: { color: '#fff', font: { weight: 'bold', size: 11 }, formatter: (v) => v > 0 ? v : '' }
+            },
+            scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+      }
+
+      function aplicarFiltrosMapas(lista) {
+        const numero = (document.getElementById('filtroMapaNumero')?.value || '').trim().toLowerCase();
+        const revenda = document.getElementById('filtroMapaRevenda')?.value || '';
+        const status = document.getElementById('filtroMapaStatus')?.value || '';
+        const dataDe = document.getElementById('filtroMapaDataDe')?.value || '';
+        const dataAte = document.getElementById('filtroMapaDataAte')?.value || '';
+
+        return lista.filter(m => {
+          if (numero) {
+            const noNumero = String(m.numero).toLowerCase().includes(numero);
+            const noPdv = (m.pdvs || []).some(pdv => pdv.codigo.toLowerCase().includes(numero) || (pdv.descricao || '').toLowerCase().includes(numero));
+            if (!noNumero && !noPdv) return false;
+          }
+          if (revenda && m.revenda !== revenda) return false;
+          if (status && m.status !== status) return false;
+          if (dataDe && (!m.data || m.data < dataDe)) return false;
+          if (dataAte && (!m.data || m.data > dataAte)) return false;
+          return true;
+        });
+      }
+
+      function limparFiltrosMapas() {
+        const numero = document.getElementById('filtroMapaNumero');
+        const revenda = document.getElementById('filtroMapaRevenda');
+        const status = document.getElementById('filtroMapaStatus');
+        const dataDe = document.getElementById('filtroMapaDataDe');
+        const dataAte = document.getElementById('filtroMapaDataAte');
+        if (numero) numero.value = '';
+        if (revenda) revenda.value = '';
+        if (status) status.value = '';
+        if (dataDe) dataDe.value = '';
+        if (dataAte) dataAte.value = '';
+        atualizarListaMapas();
+      }
+
+      function atualizarListaMapas() {
+        const corpo = document.getElementById('corpoListaMapas');
+        const contador = document.getElementById('contadorMapas');
+        if (!corpo) return;
+
+        const todos = todosOsMapas().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+        const mapas = aplicarFiltrosMapas(todos);
+        contador.textContent = `${mapas.length} / ${todos.length}`;
+
+        if (mapas.length === 0) {
+          corpo.innerHTML = '<tr><td colspan="8" class="text-center text-secondary py-3">Nenhum mapa encontrado para os filtros selecionados.</td></tr>';
+          return;
+        }
+
+        corpo.innerHTML = mapas.map(m => `
+          <tr>
+            <td class="fw-semibold text-primary-dark">${m.numero || '-'}</td>
+            <td>${(m.pdvs && m.pdvs.length) ? m.pdvs.map(p => `<span class="badge bg-light text-dark border me-1" title="${[p.descricao, p.resolucao].filter(Boolean).join(' → ')}">${p.codigo}${p.descricao ? ' - ' + p.descricao : ''}${p.resolucao ? ' → ' + p.resolucao : ''}</span>`).join('') : '-'}</td>
+            <td><span class="badge bg-info">${m.revenda}</span></td>
+            <td>${m.data}</td>
+            <td>${m.tipoAcao}</td>
+            <td class="text-break">${m.problema || '-'}</td>
+            <td class="text-break">${m.resolucao || '-'}</td>
+            <td><span class="badge ${badgeClassPorStatus(m.status)}">${m.status}</span></td>
+          </tr>
+        `).join('');
+      }
+
+      function atualizarChartPorData() {
+        if (typeof Chart === 'undefined') return;
+
+        const porData = {};
+        tratativas.forEach(t => {
+          const d = t.data || 'Sem data';
+          porData[d] = (porData[d] || 0) + 1;
+        });
+        const datasOrdenadas = Object.keys(porData).sort();
+        const dadosOrdenados = datasOrdenadas.map(d => porData[d]);
+
+        if (chartPorData) chartPorData.destroy();
+        chartPorData = new Chart(document.getElementById('chartPorData'), {
+          type: 'line',
+          data: {
+            labels: datasOrdenadas,
+            datasets: [{
+              label: 'Tratativas registradas',
+              data: dadosOrdenados,
+              borderColor: '#2b7af0',
+              backgroundColor: 'rgba(43, 122, 240, 0.15)',
+              fill: true,
+              tension: 0.25,
+              pointBackgroundColor: '#1f68d6',
+              pointRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              datalabels: { color: '#0a3e7c', font: { weight: 'bold', size: 11 }, align: 'top', formatter: (v) => v > 0 ? v : '' }
+            },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+      }
+
+      let chartRevendaPorDia = null;
+      let chartMapasPorDia = null;
+      let chartAssuntoPorDia = null;
+
+      function montarDatasetsEmpilhados(categorias, coresPorCategoria, contarFn) {
+        const labels = rotulosAgrupamentoData();
+        return {
+          labels,
+          datasets: categorias.map(cat => ({
+            label: cat,
+            data: labels.map(lbl => contarFn(cat, lbl)),
+            backgroundColor: coresPorCategoria[cat] || '#2b7af0',
+            borderRadius: 3
+          }))
+        };
+      }
+
+      function opcoesBarraEmpilhada() {
+        return {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+            datalabels: { display: false }
+          },
+          scales: {
+            x: { stacked: true },
+            y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+          }
+        };
+      }
+
+      function atualizarChartsPorDia() {
+        if (typeof Chart === 'undefined') return;
+
+        // Tratativas por Revenda, agrupadas por dia
+        const dadosRevenda = montarDatasetsEmpilhados(REVENDAS_LISTA, CORES_REVENDA, (revenda, lbl) => {
+          return tratativas.filter(t => t.revenda === revenda && chaveAgrupamentoData(t.data) === lbl).length;
+        });
+        if (chartRevendaPorDia) chartRevendaPorDia.destroy();
+        chartRevendaPorDia = new Chart(document.getElementById('chartRevendaPorDia'), {
+          type: 'bar',
+          data: dadosRevenda,
+          options: opcoesBarraEmpilhada()
+        });
+
+        // Mapas por Revenda, agrupados por dia (conta cada mapa individualmente)
+        const mapas = todosOsMapas();
+        const dadosMapas = montarDatasetsEmpilhados(REVENDAS_LISTA, CORES_REVENDA, (revenda, lbl) => {
+          return mapas.filter(m => m.revenda === revenda && chaveAgrupamentoData(m.data) === lbl).length;
+        });
+        if (chartMapasPorDia) chartMapasPorDia.destroy();
+        chartMapasPorDia = new Chart(document.getElementById('chartMapasPorDia'), {
+          type: 'bar',
+          data: dadosMapas,
+          options: opcoesBarraEmpilhada()
+        });
+
+        // Tratativas por Assunto (Tipo de Ação), agrupadas por dia
+        const dadosAssunto = montarDatasetsEmpilhados(TIPOS_ACAO_LISTA, CORES_TIPO_ACAO, (tipo, lbl) => {
+          return tratativas.filter(t => t.tipoAcao === tipo && chaveAgrupamentoData(t.data) === lbl).length;
+        });
+        if (chartAssuntoPorDia) chartAssuntoPorDia.destroy();
+        chartAssuntoPorDia = new Chart(document.getElementById('chartAssuntoPorDia'), {
+          type: 'bar',
+          data: dadosAssunto,
+          options: opcoesBarraEmpilhada()
+        });
+      }
+
+      function renderizarTudo() {
+        renderizarTabela(tratativas);
+        renderizarPostits();
+        atualizarLembrete();
+        atualizarDashboard();
+        atualizarChartPorData();
+        atualizarChartsPorDia();
+      }
+
+      function atualizarLembrete() {
+        const pendentes = tratativas.filter(t => t.status === 'Pendente' || t.status === 'Em tratativa');
+        if (pendentes.length > 0) {
+          alertLembrete.style.display = 'flex';
+          const nomes = pendentes.map(t => `"${t.revenda} - ${t.descricao?.substring(0, 20) || ''}"`).join(', ');
+          lembreteTexto.textContent = `${pendentes.length} ação(ões) pendente(s): ${nomes}`;
+        } else {
+          alertLembrete.style.display = 'none';
+        }
+      }
+
+      // ============================================================
+      // 5. FUNÇÕES SUPABASE (CORRIGIDAS)
+      // ============================================================
+      
+      // Função para verificar e criar a tabela se não existir
+      async function verificarTabela() {
+        try {
+          // Tenta fazer uma consulta simples para verificar se a tabela existe
+          const { error } = await supabaseClient.from('tratativas').select('id').limit(1);
+          if (error && error.code === '42P01') {
+            // Tabela não existe - vamos criá-la via SQL
+            showToast('Criando tabela "tratativas" no banco...', 'warning');
+            
+            // Executar SQL para criar a tabela
+            const sql = `
+              CREATE TABLE IF NOT EXISTS public.tratativas (
+                id TEXT PRIMARY KEY,
+                data_registro TEXT,
+                revenda TEXT,
+                tipoAcao TEXT,
+                dt TEXT,
+                descricao TEXT,
+                mapas JSONB,
+                status TEXT,
+                created_at TIMESTAMP DEFAULT NOW()
+              );
+            `;
+            
+            // Usando a API REST para executar SQL (requer permissões)
+            // Alternativa: criar a tabela manualmente no dashboard do Supabase
+            showToast('⚠️ A tabela "tratativas" não existe. Crie-a manualmente no Supabase com o SQL:', 'danger');
+            console.error('SQL para criar a tabela:', sql);
+            return false;
+          }
+          return true;
+        } catch (e) {
+          console.error('Erro ao verificar tabela:', e);
+          return false;
+        }
+      }
+
+      async function carregarDados() {
+        try {
+          // Verifica se a tabela existe
+          const tabelaExiste = await verificarTabela();
+          if (!tabelaExiste) {
+            showToast('⚠️ Tabela "tratativas" não encontrada! Crie-a no Supabase.', 'danger');
+            tratativas = [];
+            renderizarTudo();
+            return;
+          }
+
+          const { data, error } = await supabaseClient
+            .from('tratativas')
+            .select('*')
+            .order('data_registro', { ascending: false });
+
+          if (error) throw error;
+          
+          tratativas = (data || []).map(t => ({
+            ...t,
+            data: t.data_registro || t.data || '',
+            tipoAcao: t.tipoacao || t.tipoAcao || '',
+            mapas: t.mapas && Array.isArray(t.mapas) 
+              ? t.mapas.map(m => typeof m === 'string' ? { numero: m, obs: '', status: 'Pendente' } : { ...m, status: m.status || 'Pendente', pdvs: normalizarListaPdvs(m.pdvs) }) 
+              : []
+          }));
+          
+          showToast(`Dados carregados! ${tratativas.length} registros.`);
+        } catch (e) {
+          console.error('Erro ao carregar do Supabase:', e);
+          showToast('Erro ao carregar dados: ' + e.message, 'danger');
+          tratativas = [];
+        }
+        
+        renderizarTudo();
+        if (!inputData.value) {
+          const hoje = new Date().toISOString().slice(0,10);
+          inputData.value = hoje;
+        }
+      }
+
+      async function salvarTratativaNoSupabase(nova) {
+        try {
+          const payload = {
+            id: nova.id,
+            data_registro: nova.data,
+            revenda: nova.revenda,
+            tipoacao: nova.tipoAcao,
+            dt: nova.dt,
+            descricao: nova.descricao,
+            mapas: nova.mapas,
+            status: nova.status
+          };
+
+          const { error } = await supabaseClient.from('tratativas').insert([payload]);
+          if (error) throw error;
+          showToast('✅ Tratativa salva na nuvem!');
+        } catch (e) {
+          console.error('Erro ao inserir:', e);
+          showToast('❌ Erro ao salvar: ' + e.message, 'danger');
+        }
+      }
+
+      async function atualizarTratativaNoSupabase(item) {
+        try {
+          const payload = {
+            data_registro: item.data,
+            revenda: item.revenda,
+            tipoacao: item.tipoAcao,
+            dt: item.dt,
+            descricao: item.descricao,
+            mapas: item.mapas,
+            status: item.status
+          };
+
+          const { error } = await supabaseClient
+            .from('tratativas')
+            .update(payload)
+            .eq('id', item.id);
+            
+          if (error) throw error;
+          showToast('✅ Alterações salvas na nuvem!');
+        } catch (e) {
+          console.error('Erro ao atualizar:', e);
+          showToast('❌ Erro ao atualizar: ' + e.message, 'danger');
+        }
+      }
+
+      async function deletarTratativaNoSupabase(id) {
+        try {
+          const { error } = await supabaseClient
+            .from('tratativas')
+            .delete()
+            .eq('id', id);
+            
+          if (error) throw error;
+          showToast('✅ Tratativa removida da nuvem!');
+        } catch (e) {
+          console.error('Erro ao deletar:', e);
+          showToast('❌ Erro ao remover: ' + e.message, 'danger');
+        }
+      }
+
+      // ============================================================
+      // 6. FUNÇÕES DE NEGÓCIO
+      // ============================================================
+      async function adicionarTratativa() {
+        const data = inputData.value.trim();
+        const revenda = inputRevenda.value;
+        const tipoAcao = inputTipoAcao.value;
+        const dt = inputDt.value.trim() || '-';
+        const descricao = inputDescricao.value.trim();
+        const status = inputStatus.value;
+
+        const nova = {
+          id: gerarId(),
+          data: data || new Date().toISOString().slice(0,10),
+          revenda: revenda,
+          tipoAcao: tipoAcao,
+          dt: dt,
+          descricao: descricao || tipoAcao,
+          mapas: mapasTemp.map(m => ({ numero: m.numero, pdvs: m.pdvs || [], problema: m.problema || '', resolucao: m.resolucao || '', status: m.status || 'Pendente' })),
+          status: status
+        };
+
+        tratativas.unshift(nova);
+        renderizarTudo();
+        await salvarTratativaNoSupabase(nova);
+
+        inputDescricao.value = '';
+        inputDt.value = '';
+        mapasTemp = [];
+        atualizarMapasUI();
+        inputMapa.value = '';
+        inputCodPdvItem.value = '';
+      }
+
+      function abrirEdicao(id) {
+        const item = tratativas.find(t => t.id === id);
+        if (!item) {
+          showToast('Tratativa não encontrada!', 'danger');
+          return;
+        }
+        editId.value = id;
+        editData.value = item.data || '';
+        editRevenda.value = item.revenda || 'MGA';
+        editTipoAcao.value = item.tipoAcao || 'On Time';
+        editDt.value = item.dt || '';
+        editDescricao.value = (item.descricao && item.descricao !== item.tipoAcao) ? item.descricao : '';
+        editStatus.value = item.status || 'Pendente';
+        editMapasTemp = (item.mapas || []).map(m => ({
+          numero: m.numero,
+          pdvs: normalizarListaPdvs(m.pdvs),
+          problema: m.problema !== undefined ? m.problema : (m.obs || ''),
+          resolucao: m.resolucao || '',
+          status: m.status || 'Pendente',
+          expanded: false
+        }));
+        atualizarEditMapasUI();
+        editNovoMapa.value = '';
+        editNovoCodPdvItem.value = '';
+        aplicarCascataTipoAcao(editTipoAcao.value, editNovoMapa, editNovoCodPdvItem, document.getElementById('editItensAjudaTexto'));
+        if (modalEditar) modalEditar.show();
+      }
+
+      async function salvarEdicao() {
+        const id = editId.value;
+        const item = tratativas.find(t => t.id === id);
+        if (!item) {
+          showToast('Erro ao salvar!', 'danger');
+          return;
+        }
+
+        item.data = editData.value;
+        item.revenda = editRevenda.value;
+        item.tipoAcao = editTipoAcao.value;
+        item.dt = editDt.value || '-';
+        item.descricao = editDescricao.value.trim() || editTipoAcao.value;
+        item.mapas = editMapasTemp.map(m => ({ numero: m.numero, pdvs: m.pdvs || [], problema: m.problema || '', resolucao: m.resolucao || '', status: m.status || 'Pendente' }));
+        item.status = editStatus.value;
+
+        renderizarTudo();
+        if (modalEditar) modalEditar.hide();
+        await atualizarTratativaNoSupabase(item);
+      }
+
+      // ============================================================
+      // 7. FUNÇÕES DE UTILITÁRIOS (EXCEL, FILTROS, EXEMPLO)
+      // ============================================================
+      function exportarExcel() {
+        if (tratativas.length === 0) {
+          showToast('Não há registros para exportar.', 'warning');
+          return;
+        }
+        const dados = [];
+        tratativas.forEach(t => {
+          const mapas = (t.mapas && t.mapas.length) ? t.mapas : [null];
+          mapas.forEach(m => {
+            const problema = m ? (m.problema || m.obs || 'sem descrição') : '';
+            const resolucao = m ? (m.resolucao || '') : '';
+            const detalheBase = m ? `Problema: ${problema}${resolucao ? ' | Resolução: ' + resolucao : ''}` : (t.descricao || '');
+            const pdvs = m ? normalizarListaPdvs(m.pdvs) : [];
+            const listaPdvs = pdvs.length ? pdvs : [null];
+            listaPdvs.forEach(pdv => {
+              const pdvInfo = pdv ? [pdv.descricao ? `Problema: ${pdv.descricao}` : '', pdv.resolucao ? `Resolução: ${pdv.resolucao}` : ''].filter(Boolean).join(' | ') : '';
+              const detalhe = pdvInfo ? `${detalheBase} | PDV ${pdv.codigo} (${pdvInfo})` : detalheBase;
+              dados.push({
+                'Data': t.data || '',
+                'Revenda': t.revenda || '',
+                'Tipo de Ação': t.tipoAcao || '',
+                'Mapa': m ? m.numero : '-',
+                'Cod PDV': pdv ? pdv.codigo : '-',
+                'Detalhe': detalhe,
+                'Status': m ? (m.status || 'Pendente') : (t.status || '')
+              });
+            });
+          });
+        });
+        try {
+          const wb = XLSX.utils.book_new();
+          const ws = XLSX.utils.json_to_sheet(dados);
+          XLSX.utils.book_append_sheet(wb, ws, 'Tratativas');
+          XLSX.writeFile(wb, `diario_tratativas_${new Date().toISOString().slice(0,10)}.xlsx`);
+          showToast('Arquivo exportado com sucesso!');
+        } catch (e) {
+          showToast('Erro ao exportar: ' + e.message, 'danger');
+        }
+      }
+
+      function filtrarPendentes() {
+        const pendentes = tratativas.filter(t => t.status === 'Pendente' || t.status === 'Em tratativa');
+        renderizarTabela(pendentes);
+        showToast(`Exibindo ${pendentes.length} pendentes`);
+      }
+
+      function mostrarTodos() {
+        renderizarTabela(tratativas);
+        showToast(`Exibindo todos (${tratativas.length})`);
+      }
+
+      async function carregarExemplo() {
+        const exemplos = [
+          { 
+            id: gerarId(), 
+            data: '2026-08-04', 
+            revenda: 'GPA', 
+            tipoAcao: 'On Time', 
+            dt: '30,86%', 
+            descricao: 'Ajustes gerais de rota - exemplo', 
+            mapas: [
+              {numero: '22822', obs: 'Atraso na saída'}, 
+              {numero: '22820', obs: 'Desvio de percurso'}
+            ], 
+            status: 'Pendente' 
+          },
+          { 
+            id: gerarId(), 
+            data: '2026-08-05', 
+            revenda: 'MGA', 
+            tipoAcao: 'Dispersão de KM', 
+            dt: '17,62%', 
+            descricao: 'Revisão de quilometragem', 
+            mapas: [
+              {numero: '51367', obs: 'KM excedido'}
+            ], 
+            status: 'Em tratativa' 
+          }
+        ];
+
+        for (const ex of exemplos) {
+          const payload = {
+            id: ex.id,
+            data_registro: ex.data,
+            revenda: ex.revenda,
+            tipoacao: ex.tipoAcao,
+            dt: ex.dt,
+            descricao: ex.descricao,
+            mapas: ex.mapas,
+            status: ex.status
+          };
+          await supabaseClient.from('tratativas').insert([payload]);
+        }
+        await carregarDados();
+        showToast('Exemplos carregados na nuvem!');
+      }
+
+      // ============================================================
+      // 8. EVENTOS
+      // ============================================================
+      document.getElementById('addBtn').addEventListener('click', adicionarTratativa);
+      
+      document.getElementById('addMapaBtn').addEventListener('click', function() {
+        const mapa = inputMapa.value.trim();
+        const codPdv = inputCodPdvItem.value.trim();
+        if (!mapa && !codPdv) {
+          showToast('Informe o nº do mapa e/ou o Cod PDV.', 'warning');
+          return;
+        }
+        mapasTemp.push({
+          numero: mapa,
+          pdvs: codPdv ? [{ codigo: codPdv, descricao: '', resolucao: '' }] : [],
+          problema: '', resolucao: '', status: 'Pendente', expanded: true
+        });
+        atualizarMapasUI();
+        inputMapa.value = '';
+        inputCodPdvItem.value = '';
+        inputMapa.focus();
+      });
+
+      document.getElementById('limparMapasBtn').addEventListener('click', function() {
+        mapasTemp = [];
+        atualizarMapasUI();
+      });
+
+      document.getElementById('filtroQuadroRevenda').addEventListener('change', renderizarPostits);
+      document.getElementById('filtroQuadroData').addEventListener('change', renderizarPostits);
+      document.getElementById('filtroQuadroStatus').addEventListener('change', renderizarPostits);
+      document.getElementById('filtroQuadroMapa').addEventListener('input', renderizarPostits);
+      document.getElementById('limparFiltroQuadroBtn').addEventListener('click', limparFiltrosQuadro);
+
+      ['filtroMatrizRevenda', 'filtroMatrizSemana', 'filtroMatrizMes'].forEach(id => {
+        document.getElementById(id).addEventListener('change', atualizarMatrizRevendaMotivo);
+      });
+      ['filtroDiaSemanaRevenda', 'filtroDiaSemanaSemana', 'filtroDiaSemanaMes'].forEach(id => {
+        document.getElementById(id).addEventListener('change', atualizarMatrizDiaSemana);
+      });
+
+      document.getElementById('btnAgrupSemana').addEventListener('click', function() {
+        agrupamentoData = 'semana';
+        this.classList.add('active');
+        document.getElementById('btnAgrupMes').classList.remove('active');
+        atualizarChartsPorDia();
+      });
+      document.getElementById('btnAgrupMes').addEventListener('click', function() {
+        agrupamentoData = 'mes';
+        this.classList.add('active');
+        document.getElementById('btnAgrupSemana').classList.remove('active');
+        atualizarChartsPorDia();
+      });
+
+      document.getElementById('filtroMapaNumero').addEventListener('input', atualizarListaMapas);
+      document.getElementById('filtroMapaRevenda').addEventListener('change', atualizarListaMapas);
+      document.getElementById('filtroMapaStatus').addEventListener('change', atualizarListaMapas);
+      document.getElementById('filtroMapaDataDe').addEventListener('change', atualizarListaMapas);
+      document.getElementById('filtroMapaDataAte').addEventListener('change', atualizarListaMapas);
+      document.getElementById('limparFiltroMapasBtn').addEventListener('click', limparFiltrosMapas);
+
+      document.getElementById('exportExcelBtn').addEventListener('click', exportarExcel);
+      document.getElementById('filtrarPendentesBtn').addEventListener('click', filtrarPendentes);
+      document.getElementById('mostrarTodosBtn').addEventListener('click', mostrarTodos);
+      document.getElementById('limparExemploBtn').addEventListener('click', carregarExemplo);
+      document.getElementById('editSalvarBtn').addEventListener('click', salvarEdicao);
+      
+      document.getElementById('editAddMapaBtn').addEventListener('click', function() {
+        const mapa = editNovoMapa.value.trim();
+        const codPdv = editNovoCodPdvItem.value.trim();
+        if (!mapa && !codPdv) {
+          showToast('Informe o nº do mapa e/ou o Cod PDV.', 'warning');
+          return;
+        }
+        editMapasTemp.push({
+          numero: mapa,
+          pdvs: codPdv ? [{ codigo: codPdv, descricao: '', resolucao: '' }] : [],
+          problema: '', resolucao: '', status: 'Pendente', expanded: true
+        });
+        atualizarEditMapasUI();
+        editNovoMapa.value = '';
+        editNovoCodPdvItem.value = '';
+        editNovoMapa.focus();
+      });
+
+      inputMapa.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('addMapaBtn').click();
+        }
+      });
+      inputCodPdvItem.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('addMapaBtn').click();
+        }
+      });
+      editNovoMapa.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('editAddMapaBtn').click();
+        }
+      });
+      editNovoCodPdvItem.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('editAddMapaBtn').click();
+        }
+      });
+
+      // ============================================================
+      // 9. INICIALIZAÇÃO
+      // ============================================================
+      // Preenche a data atual
+      if (!inputData.value) {
+        const hoje = new Date().toISOString().slice(0,10);
+        inputData.value = hoje;
+      }
+
+      inputTipoAcao.addEventListener('change', function() {
+        aplicarCascataTipoAcao(this.value, inputMapa, inputCodPdvItem, document.getElementById('itensAjudaTexto'));
+      });
+      editTipoAcao.addEventListener('change', function() {
+        aplicarCascataTipoAcao(this.value, editNovoMapa, editNovoCodPdvItem, document.getElementById('editItensAjudaTexto'));
+      });
+      aplicarCascataTipoAcao(inputTipoAcao.value, inputMapa, inputCodPdvItem, document.getElementById('itensAjudaTexto'));
+
+      // Carrega os dados
+      carregarDados();
+
+    })();
+  </script>
+</body>
+</html>

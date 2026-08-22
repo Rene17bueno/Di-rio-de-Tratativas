@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análise Diária - Painel OT</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="estado-sessao.js"></script>
+<style>
+  :root {
+    --brand-50:  #eef4ff; --brand-100: #dce8ff; --brand-200: #b3ceff;
+    --brand-500: #245bc7; --brand-600: #1c4aa8; --brand-700: #163a85;
+    --ink-900: #101828; --ink-700: #344054; --ink-500: #667085; --ink-400: #98a2b3;
+    --surface-0: #ffffff; --surface-1: #e9edf4; --surface-2: #eef2f8;
+    --border-soft: #e3e8f0; --border-strong: #c9d3e0;
+    --success: #0f9d58; --success-bg: #e6f7ee; --danger: #c0362c; --danger-bg: #fbeae8;
+    --radius-lg: 1rem; --radius-md: 0.7rem; --radius-sm: 0.5rem;
+    --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+    --shadow-pop: 0 4px 10px rgba(16,24,40,.10), 0 12px 32px rgba(16,24,40,.10);
+    --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem;
+    --space-5: 1.5rem; --space-6: 2rem; --space-7: 2.5rem;
+  }
+  * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  html { -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--surface-1); color: var(--ink-700); padding-bottom: 4rem; overflow-x: hidden; }
+  h1, h2, h3, h4, h5, h6 { color: var(--ink-900); letter-spacing: -0.01em; }
+  .text-primary-dark { color: var(--brand-700) !important; }
+  .text-muted-ink { color: var(--ink-500) !important; }
+  small, .small { color: var(--ink-500); }
+
+  .card-shadow {
+    box-shadow: var(--shadow-card); border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg); background: var(--surface-0);
+  }
+  .section-head { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-4); }
+  .section-head > div { min-width: 0; }
+  .section-head .icon-chip {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    background: var(--brand-50); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; flex-shrink: 0;
+  }
+  .section-head h5 { font-weight: 700; font-size: 1.05rem; margin-bottom: .1rem; }
+  .section-head p { margin-bottom: 0; font-size: .84rem; color: var(--ink-500); max-width: 68ch; }
+
+  .btn { font-weight: 600; letter-spacing: -0.005em; }
+  .btn-primary-brand { background: var(--brand-500); border: 1px solid var(--brand-500); color: #fff; }
+  .btn-primary-brand:hover { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+  .btn-primary-brand:disabled { background: var(--brand-200); border-color: var(--brand-200); opacity: .7; }
+  .btn-primary-soft { background: var(--brand-50); border: 1px solid var(--brand-100); color: var(--brand-700); }
+  .btn-primary-soft:hover { background: var(--brand-100); border-color: var(--brand-200); color: var(--brand-700); }
+  .btn-primary-soft:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-outline-secondary { border-color: var(--border-strong); color: var(--ink-700); }
+
+  .form-label { font-size: .78rem; font-weight: 600; color: var(--ink-700); }
+  .form-control, .form-select { border-color: var(--border-strong); font-size: .88rem; }
+  .form-control:focus, .form-select:focus { border-color: var(--brand-500); box-shadow: 0 0 0 .2rem var(--brand-50); }
+
+  .stat-box { background: var(--surface-1); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: .9rem 1.1rem; }
+  .stat-box .stat-label { font-size: .74rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .03em; }
+  .stat-box .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+  .stat-box.stat-danger .stat-value { color: var(--danger); }
+
+  .badge-confirmado { background: var(--danger-bg); color: var(--danger); border: 1px solid #f2c6c2; font-weight: 700; }
+  .badge-provavel { background: #fff4e0; color: #a4650a; border: 1px solid #f2dcaa; font-weight: 700; }
+  .badge-possivel { background: var(--brand-50); color: var(--brand-700); border: 1px solid var(--brand-100); font-weight: 700; }
+  .badge-semevidencia { background: var(--surface-2); color: var(--ink-500); border: 1px solid var(--border-soft); font-weight: 700; }
+
+  .mapa-card { border: 1px solid var(--border-soft); border-radius: var(--radius-md); background: var(--surface-1); padding: 1rem; margin-bottom: .75rem; }
+  .mapa-card .metrica { font-size: .78rem; color: var(--ink-500); }
+  .mapa-card .metrica strong { color: var(--ink-900); font-variant-numeric: tabular-nums; }
+  .tabela-pareto { font-size: .78rem; width: 100%; }
+  .tabela-pareto th { text-align: left; color: var(--ink-500); font-weight: 600; text-transform: uppercase; font-size: .68rem; letter-spacing: .03em; border-bottom: 1px solid var(--border-soft); padding: .3rem .4rem; }
+  .tabela-pareto td { padding: .3rem .4rem; border-bottom: 1px solid var(--border-soft); }
+
+  .toast-custom {
+    position: fixed; top: 20px; right: 20px; z-index: 9999;
+    max-width: 350px; min-width: 250px; animation: slideIn 0.3s ease;
+    box-shadow: var(--shadow-pop);
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  .navbar-site { background: var(--surface-0); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); margin-top: 1rem; }
+  .navbar-site .navbar-brand { display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .brand-mark {
+    width: 32px; height: 32px; border-radius: .55rem; background: var(--brand-500); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .navbar-site .brand-text { line-height: 1.05; }
+  .navbar-site .brand-text .sub { display: block; font-size: .66rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .05em; }
+  .navbar-site .nav-link { color: var(--ink-700); font-weight: 600; font-size: .88rem; border-radius: var(--radius-sm); padding: .5rem .85rem; transition: background 0.15s, color .15s; }
+  .navbar-site .nav-link:hover { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .nav-link.active { background: var(--brand-500); color: #fff !important; }
+  .navbar-site .nav-item.dropdown.section-active > .nav-link { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-menu { border: 1px solid var(--border-soft); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); padding: .4rem; margin-top: .4rem; }
+  .navbar-site .dropdown-item { border-radius: var(--radius-sm); font-size: .86rem; font-weight: 500; color: var(--ink-700); padding: .5rem .65rem; display: flex; align-items: center; gap: .55rem; }
+  .navbar-site .dropdown-item i { color: var(--brand-500); width: 1.1em; text-align: center; }
+  .navbar-site .dropdown-item:hover, .navbar-site .dropdown-item:focus { background: var(--brand-50); color: var(--brand-700); }
+  .navbar-site .dropdown-item.active { background: var(--brand-500); color: #fff; }
+  .navbar-site .dropdown-item.active i { color: #fff; }
+
+  .breadcrumb-trail { font-size: .78rem; color: var(--ink-500); margin-bottom: .35rem; }
+  .breadcrumb-trail i { font-size: .65rem; vertical-align: middle; margin: 0 .3rem; }
+  .page-header { margin-bottom: var(--space-4); }
+  .page-header h3 { font-weight: 700; font-size: 1.5rem; }
+
+  .info-card {
+    display: flex; gap: var(--space-3); align-items: flex-start;
+    background: var(--brand-50); border: 1px solid var(--brand-100);
+    border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+  }
+  .info-card .info-card-icon {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--surface-0); color: var(--brand-600);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+    box-shadow: 0 1px 2px rgba(16,24,40,.06);
+  }
+  .info-card p { color: var(--ink-700); font-size: .88rem; margin-bottom: .6rem; max-width: 78ch; }
+  .info-card p:last-child { margin-bottom: 0; }
+  .info-card .info-card-ref {
+    display: flex; gap: .5rem; align-items: flex-start;
+    background: var(--surface-0); border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+    padding: .55rem .75rem; font-size: .78rem; color: var(--ink-500); max-width: 78ch;
+  }
+  .info-card .info-card-ref i { color: var(--brand-500); margin-top: .15rem; flex-shrink: 0; }
+  .info-card .info-card-ref strong { color: var(--ink-700); }
+</style>
+<script src="nav-shared.js"></script>
+</head>
+<body>
+  <div class="container"><div id="navHost"></div></div>
+  <script>montarNavegacao('consultas', 'diaria');</script>
+  <div class="container"><div id="subNavHost"></div></div>
+  <script>montarSubNav('consultas', 'diaria');</script>
+
+<div class="container py-4" style="max-width: 1400px;">
+
+  <div class="page-header">
+    <div class="breadcrumb-trail">Consultas &amp; Análises <i class="bi bi-chevron-right"></i> Análise Diária</div>
+    <h3 class="text-primary-dark mb-0"><i class="bi bi-clipboard2-pulse-fill me-2"></i>Análise Diária — Investigação Cruzada</h3>
+  </div>
+
+  <div class="info-card mb-4">
+    <span class="info-card-icon"><i class="bi bi-info-circle-fill"></i></span>
+    <div>
+      <p>
+        Só entram na análise Mapas com <strong>Saída real entre 07:00–12:00</strong> (mesma janela do Lacre) —
+        Mapas fora dessa janela são descartados mesmo que <code>mapa_valido_hr</code> diga "Sim". Pega os piores
+        Mapas do dia (por Dispersão de Tempo, em <code>atendimentos_2art</code>) e investiga cada um
+        cruzando com os Clientes do Mapa (<code>atendimentos</code>, regra de Pareto 80/20), a sequência real de
+        visita reconstruída por <code>Chegou_em</code> × coordenadas do cliente (distância entre paradas), o peso e
+        o Tipo de Cliente (TRAVA/S5 pesam mais e estouram mais por natureza, não anomalia), o histórico de estouro
+        de cada Cliente (mesma lógica do Ranking de Estouro) e o status de Lacre/Km do carregamento
+        (<code>carregamento_analise</code>) — tudo pela Chave <code>Revenda-Mapa</code>.
+      </p>
+      <div class="info-card-ref">
+        <i class="bi bi-file-earmark-text-fill"></i>
+        <span>
+          Metodologia detalhada em <strong>docs/agente-inteligencia-logistica.md</strong>. Cada achado é
+          classificado como <strong>Confirmado</strong>, <strong>Provável</strong>, <strong>Possível</strong> ou
+          <strong>Sem evidência suficiente</strong> — nunca afirma causa sem evidência nos dados. As tratativas
+          geradas aqui sempre entram como <strong>Pendente</strong> no Diário — ninguém é fechado automaticamente.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="card card-shadow p-4 mb-4">
+    <div class="section-head">
+      <span class="icon-chip"><i class="bi bi-sliders"></i></span>
+      <div>
+        <h5 class="mb-0">Parâmetros da Análise</h5>
+        <p>Escolha a Revenda (ou todas), a data de referência e quantos dos piores Mapas investigar por Revenda.</p>
+      </div>
+    </div>
+    <div class="row g-3 align-items-end">
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Revenda</label>
+        <select class="form-select form-select-sm" id="analiseRevenda">
+          <option value="">Todas</option>
+          <option value="MGA">MGA</option>
+          <option value="GPA">GPA</option>
+          <option value="PG">PG</option>
+          <option value="NP">NP</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Data de referência (Mapa)</label>
+        <input type="date" class="form-control form-control-sm" id="analiseData">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label mb-1">Piores por Revenda</label>
+        <input type="number" class="form-control form-control-sm" id="analiseTopN" value="3" min="1" max="20">
+      </div>
+      <div class="col-6 col-md-2">
+        <button class="btn btn-sm btn-primary-brand w-100" id="btnGerarAnalise"><i class="bi bi-search me-1"></i>Gerar Análise</button>
+      </div>
+    </div>
+    <div class="mt-2"><span id="statusAnaliseDiaria" class="small"></span></div>
+  </div>
+
+  <!-- RESUMO -->
+  <div class="card card-shadow p-4 mb-4 d-none" id="cardResumoAnalise">
+    <div class="section-head">
+      <span class="icon-chip"><i class="bi bi-clipboard-data-fill"></i></span>
+      <div><h5 class="mb-0">Resumo Executivo</h5></div>
+    </div>
+    <div class="row g-3">
+      <div class="col-6 col-md-2">
+        <div class="stat-box"><div class="stat-label">Mapas investigados</div><div class="stat-value" id="statMapasInvestigados">0</div></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="stat-box stat-danger"><div class="stat-label">Causa confirmada</div><div class="stat-value" id="statCausaConfirmada">0</div></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="stat-box"><div class="stat-label">Causa provável</div><div class="stat-value" id="statCausaProvavel">0</div></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="stat-box"><div class="stat-label">Sem evidência</div><div class="stat-value" id="statSemEvidencia">0</div></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="stat-box"><div class="stat-label">Possível lacre</div><div class="stat-value" id="statLacreEncontrado">0</div></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="stat-box"><div class="stat-label">Km com problema</div><div class="stat-value" id="statKmProblema">0</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTADOS POR REVENDA -->
+  <div id="resultadoAnaliseDiaria"></div>
+
+  <!-- GERAR TRATATIVAS -->
+  <div class="card card-shadow p-4 mt-4 d-none" id="cardGerarTratativas">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="section-head mb-0">
+        <span class="icon-chip"><i class="bi bi-journal-plus"></i></span>
+        <div>
+          <h5 class="mb-0">Tratativas Sugeridas</h5>
+          <p>Revise o texto de cada tratativa antes de salvar — todas entram como "Pendente" no Diário de Tratativas.</p>
+        </div>
+      </div>
+      <button class="btn btn-primary-brand" id="btnSalvarTratativas"><i class="bi bi-save me-1"></i>Salvar no Diário de Tratativas</button>
+    </div>
+    <div id="listaTratativasSugeridas"></div>
+    <div class="mt-2"><span id="statusSalvarTratativas" class="small"></span></div>
+  </div>
+
+  <!-- RELATÓRIO DE PRIORIZAÇÃO — CLIENTES E CIDADES -->
+  <div class="card card-shadow p-4 mt-4" id="cardPriorizacao">
+    <div class="section-head">
+      <span class="icon-chip"><i class="bi bi-bullseye"></i></span>
+      <div>
+        <h5 class="mb-0">Relatório de Priorização — Clientes e Cidades</h5>
+        <p>Independente da data de referência acima — usa o mesmo cálculo de "Clientes com Maior Estouro" e "Top 10
+        Cidades" do Ranking de Estouro (últimas 10 tours por cliente), pra achar os 3 clientes que mais precisam de
+        ajuste no Tempo Estimado e as cidades onde agir traz o maior ganho de Dispersão de Tempo, detalhado por dia
+        da semana e semana do mês corrente.</p>
+      </div>
+    </div>
+    <div class="row g-3 align-items-end mb-2">
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Revenda</label>
+        <select class="form-select form-select-sm" id="priorizacaoRevenda">
+          <option value="">Todas</option>
+          <option value="MGA">MGA</option>
+          <option value="GPA">GPA</option>
+          <option value="PG">PG</option>
+          <option value="NP">NP</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label mb-1">Mín. apontamentos válidos</label>
+        <input type="number" class="form-control form-control-sm" id="priorizacaoMinApontamentos" value="5" min="1">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label mb-1">Qtd. cidades</label>
+        <input type="number" class="form-control form-control-sm" id="priorizacaoQtdCidades" value="3" min="1" max="20">
+      </div>
+      <div class="col-12 col-md-2">
+        <button class="btn btn-sm btn-primary-brand w-100" id="btnGerarPriorizacao"><i class="bi bi-search me-1"></i>Gerar Relatório</button>
+      </div>
+    </div>
+    <div class="mb-2"><span id="statusPriorizacao" class="small"></span></div>
+    <div id="resultadoPriorizacao"></div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// -1. CONFIGURAÇÃO DO BANCO DE DADOS (Supabase — mesmo projeto das outras páginas)
+// ============================================================
+const SUPABASE_URL = 'https://scbdlyfavqlzstbulrup.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_M55itc2oMAlK3bEFj9Le5Q_CeBsVBUV';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================================
+// 0. CONSTANTES
+// ============================================================
+const REVENDAS = ['MGA', 'GPA', 'PG', 'NP'];
+const QTD_TOURS_RECORRENCIA = 10; // mesma janela do ranking-estouro.html
+
+// ============================================================
+// 1. UTILITÁRIOS DE PARSE
+// ============================================================
+// "HH:MM:SS" (com "-" opcional) -> segundos, com sinal. Mesma regra de ranking-estouro.html.
+function horaParaSegundos(str) {
+  if (!str) return null;
+  const negativo = str.startsWith('-');
+  const limpo = negativo ? str.slice(1) : str;
+  const partes = limpo.split(':').map(Number);
+  if (partes.length !== 3 || partes.some(isNaN)) return null;
+  const segundos = partes[0] * 3600 + partes[1] * 60 + partes[2];
+  return negativo ? -segundos : segundos;
+}
+
+// "15,30%" / "-8,50%" -> fração numérica (0.1530 / -0.0850). Formato salvo por
+// tratamento-2art.html em dispersao_tempo_pct/dispersao_km_pct (string pt-BR).
+function percentualStringParaFracao(texto) {
+  const limpo = String(texto ?? '').trim().replace('%', '').replace(/\./g, '').replace(',', '.');
+  if (limpo === '') return null;
+  const numero = Number(limpo);
+  return isNaN(numero) ? null : numero / 100;
+}
+
+function formatarPercentualFracao(fracao) {
+  if (fracao === null || fracao === undefined || isNaN(fracao)) return '-';
+  return `${(fracao >= 0 ? '+' : '')}${(fracao * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+}
+
+function segundosParaHora(segundos) {
+  if (segundos === null || segundos === undefined || isNaN(segundos)) return '-';
+  const sinal = segundos < 0 ? '-' : '';
+  const abs = Math.round(Math.abs(segundos));
+  const pad = n => String(n).padStart(2, '0');
+  return `${sinal}${pad(Math.floor(abs / 3600))}:${pad(Math.floor((abs % 3600) / 60))}:${pad(abs % 60)}`;
+}
+
+function escapeHtmlAnalise(texto) {
+  return String(texto ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function media(numeros) {
+  const validos = numeros.filter(n => n !== null && n !== undefined && !isNaN(n));
+  return validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : null;
+}
+
+const DIAS_SEMANA = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+const DIAS_SEMANA_UTEIS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB']; // sem domingo — não há operação nesse dia
+
+function diaDaSemana(dataISO) {
+  if (!dataISO) return null;
+  const d = new Date(`${dataISO}T00:00:00`);
+  if (isNaN(d)) return null;
+  return DIAS_SEMANA[d.getDay()];
+}
+
+// Semana 1 = dias 1-7 do mês corrente, semana 2 = 8-14, ... semana 5 = 29-31.
+function semanaDoMes(dataISO) {
+  const match = String(dataISO ?? '').match(/^\d{4}-\d{2}-(\d{2})/);
+  if (!match) return null;
+  return Math.min(5, Math.ceil(Number(match[1]) / 7));
+}
+
+(function preencherDataHoje() {
+  document.getElementById('analiseData').value = new Date().toISOString().slice(0, 10);
+})();
+
+// Permite chegar aqui já com Revenda/Data preenchidos e a análise disparada
+// (usado pelo link "Investigar" da Visão Geral) — só preenche os mesmos campos
+// que a pessoa preencheria na mão, não muda nenhuma conta.
+(function aplicarParametrosUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const revenda = params.get('revenda');
+  const data = params.get('data');
+  if (revenda) document.getElementById('analiseRevenda').value = revenda;
+  if (data) document.getElementById('analiseData').value = data;
+  if (revenda || data) setTimeout(() => gerarAnaliseDiaria(), 0);
+})();
+
+// ============================================================
+// 2. ETAPA 1 — TOP N PIORES MAPAS POR REVENDA (atendimentos_2art)
+// ============================================================
+async function buscarMapasDoDia(revendaFiltro, data) {
+  let query = supabaseClient
+    .from('atendimentos_2art')
+    .select('chave,revenda,mapa,data,dispersao_tempo,dispersao_tempo_pct,dispersao_km_pct,mapa_valido_hr,mapa_valido_km,tr,tml,jl,hr_sai,hr_entr,km_prev,km_real,km_sai,km_entr,dispersao_km,ocup,nu_entregador,cx_carreg,entregas,placa,frota')
+    .eq('data', data)
+    .eq('mapa_valido_hr', 'Sim');
+  if (revendaFiltro) query = query.eq('revenda', revendaFiltro);
+  const { data: linhas, error } = await query;
+  if (error) throw error;
+  return linhas || [];
+}
+
+// Janela de saída 07:00–12:00 — mesma regra do Lacre (tratamento-carregamento.html,
+// JANELA_SAIDA_INICIO_MIN/FIM_MIN) e da seção 5/12 do docs/agente-inteligencia-logistica.md.
+// "hr_sai" vem como "HH:MM" (sem segundos, confirmado 2026-08-22 — formato
+// diferente de chegou_em/finalizada_em, que vêm "HH:MM:SS").
+const JANELA_SAIDA_INICIO_MIN = 7 * 60;
+const JANELA_SAIDA_FIM_MIN = 12 * 60;
+
+function horaParaMinutos(str) {
+  if (!str) return null;
+  const partes = String(str).split(':').map(Number);
+  if (partes.length < 2 || partes.slice(0, 2).some(isNaN)) return null;
+  return partes[0] * 60 + partes[1];
+}
+
+function saidaDentroDaJanela(hrSai) {
+  const min = horaParaMinutos(hrSai);
+  return min !== null && min >= JANELA_SAIDA_INICIO_MIN && min <= JANELA_SAIDA_FIM_MIN;
+}
+
+// mapa_valido_hr já vem calculado no arquivo importado (não recalculado
+// aqui) — verificado com dado real (2026-08-22, Mapa GPA-51866) que ele pode
+// dizer "Sim" pra um hr_sai de 23:10, bem fora da janela. Por isso o filtro
+// real usa hr_sai diretamente, não confia só na flag (mesmo alerta já
+// registrado na seção 5 do documento).
+function topPioresPorRevenda(mapas, topN) {
+  let excluidosForaDaJanela = 0;
+  const porRevenda = new Map();
+  mapas.forEach(m => {
+    if (!saidaDentroDaJanela(m.hr_sai)) { excluidosForaDaJanela++; return; }
+    const fracao = percentualStringParaFracao(m.dispersao_tempo_pct);
+    if (fracao === null) return;
+    if (!porRevenda.has(m.revenda)) porRevenda.set(m.revenda, []);
+    porRevenda.get(m.revenda).push({ ...m, dispersaoTempoFracao: fracao, dispersaoKmFracao: percentualStringParaFracao(m.dispersao_km_pct) });
+  });
+
+  const resultado = new Map();
+  porRevenda.forEach((lista, revenda) => {
+    lista.sort((a, b) => Math.abs(b.dispersaoTempoFracao) - Math.abs(a.dispersaoTempoFracao));
+    resultado.set(revenda, lista.slice(0, topN));
+  });
+  resultado.excluidosForaDaJanela = excluidosForaDaJanela;
+  return resultado;
+}
+
+// ============================================================
+// 3. ETAPA 2 — CLIENTES DO MAPA + REGRA 80/20 (atendimentos)
+// ============================================================
+// Filtra por revenda+mapa, não por chave_mapa — verificado em 2026-08-22 que
+// chave_mapa só está preenchido em ~14% das linhas de atendimentos (upstream
+// não grava esse campo pra maioria dos registros). Filtrar por ele perde a
+// maioria dos Mapas silenciosamente (a busca não dá erro, só volta vazia).
+// revenda+mapa está sempre preenchido — mesmo padrão defensivo já usado em
+// consulta-mapa.html.
+//
+// Ordena por chegou_em (sequência real de visita, não ordem de importação) e
+// traz peso_total_kg — ver docs/agente-inteligencia-logistica.md, seções 7.1/7.2.
+async function buscarClientesDoMapa(revenda, mapa) {
+  const { data, error } = await supabaseClient
+    .from('atendimentos')
+    .select('cod_cliente,tempo_atendimento,tempo_estimado_atendimento,status,dentro_do_raio,chegou_em,finalizada_em,peso_total_kg,data')
+    .eq('revenda', revenda)
+    .eq('mapa', mapa)
+    .order('data', { ascending: true })
+    .order('chegou_em', { ascending: true, nullsFirst: false });
+  if (error) throw error;
+  return data || [];
+}
+
+// Busca tipo_cliente/latitude/longitude na tabela clientes (chave = Revenda-Cod_cliente)
+// e anexa em cada linha — mesmo padrão de consulta-mapa.html/anexarNomeECidade.
+async function anexarDadosClientes(linhas, revenda) {
+  const codigos = Array.from(new Set(linhas.map(l => l.cod_cliente).filter(v => v != null)));
+  if (!codigos.length) return;
+  const chaves = codigos.map(c => `${revenda}-${c}`);
+  try {
+    const { data, error } = await supabaseClient
+      .from('clientes')
+      .select('chave, tipo_cliente, latitude, longitude, cidade')
+      .in('chave', chaves);
+    if (error) throw error;
+    const porChave = new Map((data || []).map(c => [c.chave, c]));
+    linhas.forEach(l => {
+      const c = porChave.get(`${revenda}-${l.cod_cliente}`);
+      l.tipo_cliente = c ? c.tipo_cliente : null;
+      l.latitude = c ? c.latitude : null;
+      l.longitude = c ? c.longitude : null;
+      l.cidade = c ? c.cidade : null;
+    });
+  } catch (erro) {
+    console.warn('Não deu pra buscar tipo_cliente/coordenadas na tabela "clientes":', erro.message);
+  }
+}
+
+// Distância em linha reta entre 2 coordenadas (haversine, km).
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const toRad = g => g * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Reconstrói a distância/intervalo entre paradas consecutivas do mesmo dia
+// (linhas já vêm ordenadas por chegou_em) e aponta o maior gap fora do padrão
+// do Mapa — método da seção 7.1 do docs/agente-inteligencia-logistica.md.
+const LIMIAR_GAP_ALERTA = 1.8;
+
+function analisarSequenciaGeografica(linhas) {
+  const validas = linhas.filter(l => l.chegou_em);
+  const pares = [];
+  for (let i = 1; i < validas.length; i++) {
+    const a = validas[i - 1], b = validas[i];
+    if (a.data !== b.data) continue;
+    if (a.latitude == null || a.longitude == null || b.latitude == null || b.longitude == null) continue;
+    const distanciaKm = haversineKm(a.latitude, a.longitude, b.latitude, b.longitude);
+    let gapMin = null;
+    if (a.finalizada_em && b.chegou_em) {
+      const segFinal = horaParaSegundos(a.finalizada_em);
+      const segChegada = horaParaSegundos(b.chegou_em);
+      if (segFinal !== null && segChegada !== null) gapMin = (segChegada - segFinal) / 60;
+    }
+    pares.push({ de: a.cod_cliente, para: b.cod_cliente, distanciaKm, gapMin });
+  }
+  if (!pares.length) return null;
+  const mediaKm = pares.reduce((s, p) => s + p.distanciaKm, 0) / pares.length;
+  const piores = pares.filter(p => p.distanciaKm > mediaKm * LIMIAR_GAP_ALERTA).sort((x, y) => y.distanciaKm - x.distanciaKm);
+  return { pares, mediaKm, piorGap: piores[0] || null };
+}
+
+// Tipo de cliente cuja natureza do atendimento já é mais lenta por padrão
+// (ver docs/agente-inteligencia-logistica.md, seção 7.2 — validado com dado
+// real: TRAVA/S5 estoura 2,5x mais e pesa 3,2x mais que FLEX em média).
+const TIPO_CLIENTE_ESTRUTURAL = /TRAVA|S5/i;
+
+function ehVerdadeiro(valor) {
+  if (valor === true) return true;
+  if (typeof valor === 'number') return valor === 1;
+  if (typeof valor === 'string') {
+    const v = valor.trim().toLowerCase();
+    return v === 'true' || v === 'verdadeiro' || v === 'sim' || v === '1';
+  }
+  return false;
+}
+
+// Agrupa por Cod_cliente, soma o estouro (Real - Estimado) de cada apontamento
+// válido (Concluído + Dentro_do_raio), e aplica Pareto 80/20 sobre os estouros
+// POSITIVOS (só quem atrasou entra na conta — adiantamento não é "problema").
+function calcularParetoClientes(linhasAtendimento) {
+  const porCliente = new Map();
+  linhasAtendimento.forEach(r => {
+    if (r.status !== 'Concluído' || !ehVerdadeiro(r.dentro_do_raio)) return;
+    const segReal = horaParaSegundos(r.tempo_atendimento);
+    const segPlan = horaParaSegundos(r.tempo_estimado_atendimento);
+    if (segReal === null || segPlan === null) return;
+    const estouro = segReal - segPlan;
+    if (!porCliente.has(r.cod_cliente)) porCliente.set(r.cod_cliente, { codCliente: r.cod_cliente, somaEstouro: 0, qtd: 0 });
+    const acc = porCliente.get(r.cod_cliente);
+    acc.somaEstouro += estouro;
+    acc.qtd += 1;
+  });
+
+  const lista = Array.from(porCliente.values()).filter(c => c.somaEstouro > 0);
+  lista.sort((a, b) => b.somaEstouro - a.somaEstouro);
+  const totalPositivo = lista.reduce((s, c) => s + c.somaEstouro, 0);
+
+  // Peso médio, tipo_cliente e Status/Dentro_do_raio deste Mapa por cliente
+  // (Status/Dentro_do_raio aqui sempre vem "Concluído"/verdadeiro porque só
+  // linha com esses dois valores entra no Pareto acima — ver
+  // listarAtendimentosSuspeitos pros clientes que ficaram de fora por causa
+  // disso, ex. Devolução ou GPS fora do raio).
+  const pesoPorCliente = new Map(), tipoPorCliente = new Map(), statusPorCliente = new Map();
+  linhasAtendimento.forEach(r => {
+    if (r.peso_total_kg !== null && r.peso_total_kg !== undefined && !isNaN(r.peso_total_kg)) {
+      if (!pesoPorCliente.has(r.cod_cliente)) pesoPorCliente.set(r.cod_cliente, []);
+      pesoPorCliente.get(r.cod_cliente).push(Number(r.peso_total_kg));
+    }
+    if (r.tipo_cliente) tipoPorCliente.set(r.cod_cliente, r.tipo_cliente);
+    statusPorCliente.set(r.cod_cliente, { status: r.status || '-', dentroDoRaio: ehVerdadeiro(r.dentro_do_raio) });
+  });
+
+  let acumulado = 0;
+  return lista.map(c => {
+    acumulado += c.somaEstouro;
+    const pesos = pesoPorCliente.get(c.codCliente) || [];
+    const statusInfo = statusPorCliente.get(c.codCliente);
+    return {
+      ...c,
+      pctDoTotal: totalPositivo ? c.somaEstouro / totalPositivo : 0,
+      dentroDoParetoOitentaPct: totalPositivo ? (acumulado / totalPositivo) <= 0.8 || acumulado === lista[0].somaEstouro : false,
+      pesoMedioKg: pesos.length ? pesos.reduce((a, b) => a + b, 0) / pesos.length : null,
+      tipoCliente: tipoPorCliente.get(c.codCliente) || null,
+      statusAtendimento: statusInfo ? statusInfo.status : '-',
+      dentroDoRaioAtendimento: statusInfo ? statusInfo.dentroDoRaio : null
+    };
+  });
+}
+
+// Atendimentos deste Mapa que ficaram FORA do Pareto acima porque o dado não
+// é confiável pra medir estouro (Devolução, Não Iniciado, GPS fora do raio)
+// — não é bug, é o próprio dado sinalizando isso (seção 4 do documento: não
+// esconder dado suspeito, só não usar ele pra calcular estouro).
+function listarAtendimentosSuspeitos(linhasAtendimento) {
+  return linhasAtendimento
+    .filter(r => r.status !== 'Concluído' || !ehVerdadeiro(r.dentro_do_raio))
+    .map(r => ({ codCliente: r.cod_cliente, status: r.status || '-', dentroDoRaio: ehVerdadeiro(r.dentro_do_raio) }));
+}
+
+// ============================================================
+// 4. ETAPA 3 — RECORRÊNCIA DO CLIENTE (mesma janela do ranking-estouro.html)
+// ============================================================
+async function calcularRecorrenciaCliente(revenda, codCliente) {
+  const { data, error } = await supabaseClient
+    .from('atendimentos')
+    .select('status,dentro_do_raio,tempo_atendimento,tempo_estimado_atendimento')
+    .eq('revenda', revenda)
+    .eq('cod_cliente', codCliente)
+    .order('data', { ascending: false })
+    .limit(QTD_TOURS_RECORRENCIA);
+  if (error) throw error;
+
+  const ultimasDez = data || [];
+  const validas = ultimasDez.filter(r => r.status === 'Concluído' && ehVerdadeiro(r.dentro_do_raio));
+  let qtdEstouros = 0;
+  const temposReais = [], temposPlan = [];
+  validas.forEach(r => {
+    const segReal = horaParaSegundos(r.tempo_atendimento);
+    const segPlan = horaParaSegundos(r.tempo_estimado_atendimento);
+    if (segReal === null || segPlan === null) return;
+    temposReais.push(segReal);
+    temposPlan.push(segPlan);
+    if (segReal > segPlan) qtdEstouros++;
+  });
+
+  let nivel = 'Evento isolado';
+  if (qtdEstouros >= 5) nivel = 'Crítica';
+  else if (qtdEstouros >= 2) nivel = 'Moderada';
+
+  const media = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+  const tempoMedioRealSeg = media(temposReais);
+  const tempoMedioPlanSeg = media(temposPlan);
+
+  // Ajuste de cadastro só faz sentido quando o padrão é consistente (Crítica,
+  // >=5 das últimas 10) — evento isolado ou moderado é variação normal, não
+  // justifica mudar o Tempo Estimado. Pergunta do usuário: "se sim, se não,
+  // responda não" — por isso é sempre Sim/Não explícito, nunca omitido.
+  const ajusteNecessario = nivel === 'Crítica';
+  const ajusteTexto = ajusteNecessario
+    ? `Sim — Tempo Estimado cadastrado (${segundosParaHora(tempoMedioPlanSeg)}) está defasado frente ao real médio (${segundosParaHora(tempoMedioRealSeg)}); sugestão: atualizar pra ~${segundosParaHora(tempoMedioRealSeg)}.`
+    : 'Não';
+
+  return { nivel, qtdEstouros, totalApontamentos: validas.length, tempoMedioRealSeg, tempoMedioPlanSeg, ajusteNecessario, ajusteTexto };
+}
+
+// ============================================================
+// 5. ETAPA 4 — LACRE E KM DO CARREGAMENTO (carregamento_analise)
+// ============================================================
+async function buscarAnaliseCarregamento(chaveMapa) {
+  const { data, error } = await supabaseClient
+    .from('carregamento_analise')
+    .select('status_lacre,status_km,data_saida,data_entrada,km_percorrido,dispersao_km_pct')
+    .eq('chave', chaveMapa)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+// ============================================================
+// 5.1 RECORRÊNCIA DA ROTA — mesmos clientes atendidos sob números de Mapa
+// diferentes (Mapa é um ID sequencial por viagem, verificado 2026-08-22 que
+// NUNCA se repete entre datas — "mesma rota" só dá pra achar comparando quem
+// foi atendido, não o número do Mapa).
+// ============================================================
+const DIAS_JANELA_ROTA = 60;
+const LIMIAR_SIMILARIDADE_ROTA = 0.5; // >=50% dos clientes em comum = provável mesma rota
+// Sem isso, um Mapa histórico pequeno (2-3 paradas) bate >=50% com só 1 cliente
+// em comum por pura coincidência — verificado em 2026-08-22 com dado real
+// (Mapa de 2 clientes "batendo" 50% com 1 cliente em comum, falso positivo).
+const MINIMO_CLIENTES_COMUNS_ROTA = 3;
+
+// Busca, pra Revenda, todos os pares (mapa, cod_cliente) dos últimos
+// DIAS_JANELA_ROTA dias antes da data investigada — usado só como universo de
+// comparação, não como filtro de causa (por isso não checa status/dentro_do_raio).
+//
+// Pagina em blocos de 1000 — verificado em 2026-08-22 que o Supabase deste
+// projeto corta em 1000 linhas por página independente do .limit() pedido
+// (uma janela de 60 dias de 1 revenda passa fácil de 5000 linhas); sem
+// paginar, a busca de Mapas semelhantes perderia ~80% do histórico calada.
+async function buscarHistoricoClientesPorMapa(revenda, dataReferencia) {
+  const limite = new Date(`${dataReferencia}T00:00:00`);
+  limite.setDate(limite.getDate() - DIAS_JANELA_ROTA);
+  const dataLimiteStr = limite.toISOString().slice(0, 10);
+
+  const TAMANHO_PAGINA = 1000;
+  const MAX_PAGINAS = 20; // trava de segurança, 20k linhas é bem mais que suficiente pra 60 dias
+  const porMapa = new Map();
+
+  for (let pagina = 0; pagina < MAX_PAGINAS; pagina++) {
+    const de = pagina * TAMANHO_PAGINA;
+    const { data, error } = await supabaseClient
+      .from('atendimentos')
+      .select('mapa, cod_cliente')
+      .eq('revenda', revenda)
+      .gte('data', dataLimiteStr)
+      .lt('data', dataReferencia)
+      .range(de, de + TAMANHO_PAGINA - 1);
+    if (error) throw error;
+    (data || []).forEach(r => {
+      if (r.mapa == null || r.cod_cliente == null) return;
+      if (!porMapa.has(r.mapa)) porMapa.set(r.mapa, new Set());
+      porMapa.get(r.mapa).add(r.cod_cliente);
+    });
+    if (!data || data.length < TAMANHO_PAGINA) break;
+  }
+  return porMapa;
+}
+
+// Cobertura = interseção ÷ menor dos dois conjuntos (mais tolerante que
+// Jaccard — um Mapa com 2 paradas a mais/menos que o outro ainda conta como
+// mesma rota se o núcleo de clientes bater).
+function encontrarMapasSemelhantes(mapaAtual, clientesAtuaisSet, historicoPorMapa) {
+  const semelhantes = [];
+  historicoPorMapa.forEach((setClientes, mapa) => {
+    if (String(mapa) === String(mapaAtual) || !setClientes.size || !clientesAtuaisSet.size) return;
+    let intersecao = 0;
+    clientesAtuaisSet.forEach(c => { if (setClientes.has(c)) intersecao++; });
+    const cobertura = intersecao / Math.min(clientesAtuaisSet.size, setClientes.size);
+    if (cobertura >= LIMIAR_SIMILARIDADE_ROTA && intersecao >= MINIMO_CLIENTES_COMUNS_ROTA) semelhantes.push({ mapa, cobertura, qtdClientesComuns: intersecao });
+  });
+  return semelhantes.sort((a, b) => b.cobertura - a.cobertura);
+}
+
+async function checarDispersaoDosMapas(revenda, mapas) {
+  if (!mapas.length) return [];
+  const { data, error } = await supabaseClient
+    .from('atendimentos_2art')
+    .select('mapa,data,dispersao_tempo_pct,mapa_valido_hr')
+    .eq('revenda', revenda)
+    .in('mapa', mapas);
+  if (error) throw error;
+  return data || [];
+}
+
+// Junta similaridade de clientes + histórico de dispersão dos Mapas
+// semelhantes, classifica a recorrência da ROTA (não do cliente — seção 9) e
+// monta texto de problemas/soluções quando o padrão é crônico.
+//
+// cacheHistorico (opcional): Map<revenda, Promise<Map>> — todos os Mapas
+// investigados numa mesma geração de análise compartilham a mesma data de
+// referência, então o histórico de 60 dias de uma Revenda é o mesmo pra
+// qualquer Mapa dela; sem cache, buscaríamos o mesmo bloco de ~5000 linhas
+// de novo pra cada Mapa investigado da Revenda (ver gerarAnaliseDiaria).
+async function analisarRecorrenciaRota(revenda, mapaAtual, clientesAtuaisSet, dataReferencia, cacheHistorico) {
+  let promessaHistorico;
+  if (cacheHistorico) {
+    if (!cacheHistorico.has(revenda)) cacheHistorico.set(revenda, buscarHistoricoClientesPorMapa(revenda, dataReferencia));
+    promessaHistorico = cacheHistorico.get(revenda);
+  } else {
+    promessaHistorico = buscarHistoricoClientesPorMapa(revenda, dataReferencia);
+  }
+  const historicoPorMapa = await promessaHistorico;
+  const semelhantes = encontrarMapasSemelhantes(mapaAtual, clientesAtuaisSet, historicoPorMapa);
+  if (!semelhantes.length) {
+    return { nivel: 'Sem histórico de rota semelhante', ocorrencias: [], qtdComEstouro: 0, totalOcorrencias: 0 };
+  }
+
+  const dispersoes = await checarDispersaoDosMapas(revenda, semelhantes.map(s => s.mapa));
+  const porMapaDispersao = new Map(dispersoes.map(d => [String(d.mapa), d]));
+
+  const ocorrencias = semelhantes.slice(0, QTD_TOURS_RECORRENCIA).map(s => {
+    const d = porMapaDispersao.get(String(s.mapa));
+    const fracao = d ? percentualStringParaFracao(d.dispersao_tempo_pct) : null;
+    return { mapa: s.mapa, data: d ? d.data : null, cobertura: s.cobertura, dispersaoFracao: fracao };
+  }).filter(o => o.dispersaoFracao !== null);
+
+  const comEstouro = ocorrencias.filter(o => o.dispersaoFracao > 0);
+  let nivel = 'Evento isolado';
+  if (comEstouro.length >= 5) nivel = 'Crítica';
+  else if (comEstouro.length >= 2) nivel = 'Moderada';
+
+  return { nivel, ocorrencias, qtdComEstouro: comEstouro.length, totalOcorrencias: ocorrencias.length };
+}
+
+// ============================================================
+// 6. CLASSIFICAÇÃO DA CAUSA (seção 13 do docs/agente-inteligencia-logistica.md)
+// ============================================================
+const STATUS_KM_PROBLEMATICO = ['Dispersão Alta', 'Km Retrocedeu (erro)', 'Sequência do Veículo Quebrada'];
+
+function classificarCausa(mapaInfo, paretoClientes, analiseCarreg, analiseGeografica) {
+  if (analiseCarreg && analiseCarreg.status_lacre === 'Possível Lacre') {
+    return {
+      nivel: 'Confirmado',
+      texto: `O Mapa não foi concluído no mesmo dia (Saída ${analiseCarreg.data_saida || '-'}, Entrada ${analiseCarreg.data_entrada || '-'}) — possível lacre é a causa mais provável da dispersão de tempo.`,
+      tipoacao: 'Dispersão de KM'
+    };
+  }
+  if (analiseCarreg && STATUS_KM_PROBLEMATICO.includes(analiseCarreg.status_km)) {
+    return {
+      nivel: 'Confirmado',
+      texto: `O Km registrado no carregamento apresenta problema ("${analiseCarreg.status_km}") — possível causa da dispersão de Km do Mapa, ou erro de digitação do conferente.`,
+      tipoacao: 'Dispersão de KM'
+    };
+  }
+
+  // Seção 7.1: parada com deslocamento muito acima do padrão do próprio Mapa,
+  // cruzada com Dispersão de Km ruim — candidato forte a causa geográfica
+  // (rota fora de sequência lógica), não só recorrência de cliente.
+  if (analiseGeografica && analiseGeografica.piorGap && Math.abs(mapaInfo.dispersaoKmFracao || 0) >= 0.15) {
+    const g = analiseGeografica.piorGap;
+    return {
+      nivel: 'Provável',
+      texto: `Deslocamento do cliente ${g.de} pro cliente ${g.para} foi de ${g.distanciaKm.toFixed(2)} km` +
+        (g.gapMin !== null ? ` em ${g.gapMin.toFixed(0)} min` : '') +
+        ` — bem acima da média do Mapa (${analiseGeografica.mediaKm.toFixed(2)} km), e o Mapa também tem Dispersão de Km de ${formatarPercentualFracao(mapaInfo.dispersaoKmFracao)}. Indício de deslocamento fora da sequência geográfica lógica da rota.`,
+      tipoacao: 'Dispersão de KM'
+    };
+  }
+
+  const criticos = paretoClientes.filter(c => c.recorrencia && c.recorrencia.nivel === 'Crítica');
+  const pctCriticos = criticos.reduce((s, c) => s + c.pctDoTotal, 0);
+  if (criticos.length && pctCriticos >= 0.6) {
+    // Seção 7.2: se TODOS os clientes críticos são de tipo estrutural
+    // (TRAVA/S5, historicamente 2,5x mais propenso a estouro e 3,2x mais
+    // pesado que FLEX), o estouro pode ser esperado pela natureza do
+    // atendimento, não anomalia — rebaixa pra Possível e sinaliza isso.
+    const todosEstruturais = criticos.every(c => c.tipoCliente && TIPO_CLIENTE_ESTRUTURAL.test(c.tipoCliente));
+    if (todosEstruturais) {
+      return {
+        nivel: 'Possível',
+        texto: `Estouro concentrado em cliente(s) recorrente(s) (Cod_cliente ${criticos.map(c => c.codCliente).join(', ')}), responsáveis por ${formatarPercentualFracao(pctCriticos)} — mas todos são tipo TRAVA/S5 (peso médio ${criticos.map(c => c.pesoMedioKg ? c.pesoMedioKg.toFixed(0) + 'kg' : '-').join(', ')}), perfil historicamente mais lento. Pode ser estrutural, não anomalia — verificar se o Tempo Estimado cadastrado já reflete esse perfil de cliente antes de tratar como problema operacional.`,
+        tipoacao: 'Dispersão de Tempo'
+      };
+    }
+    return {
+      nivel: 'Provável',
+      texto: `Causa concentrada em cliente(s) com estouro recorrente (Cod_cliente ${criticos.map(c => c.codCliente).join(', ')}), responsáveis por ${formatarPercentualFracao(pctCriticos)} do estouro do Mapa.`,
+      tipoacao: 'Dispersão de Tempo'
+    };
+  }
+  if (paretoClientes.length) {
+    return {
+      nivel: 'Possível',
+      texto: `Estouro concentrado em poucos clientes (Cod_cliente ${paretoClientes.slice(0, 3).map(c => c.codCliente).join(', ')}), mas sem recorrência histórica confirmada — pode ser evento pontual desses atendimentos.`,
+      tipoacao: 'Dispersão de Tempo'
+    };
+  }
+  return {
+    nivel: 'Sem evidência suficiente',
+    texto: 'Não foi possível concentrar a causa em clientes específicos, lacre ou Km do carregamento — recomenda-se investigação manual adicional.',
+    tipoacao: 'Dispersão de Tempo'
+  };
+}
+
+// ============================================================
+// 7. ORQUESTRAÇÃO — GERAR ANÁLISE
+// ============================================================
+let mapasInvestigadosAtual = [];
+
+document.getElementById('btnGerarAnalise').addEventListener('click', gerarAnaliseDiaria);
+
+async function investigarMapa(mapaInfo, cacheHistoricoRota) {
+  const linhasAtendimento = await buscarClientesDoMapa(mapaInfo.revenda, mapaInfo.mapa);
+  await anexarDadosClientes(linhasAtendimento, mapaInfo.revenda);
+  const paretoClientes = calcularParetoClientes(linhasAtendimento);
+  const analiseGeografica = analisarSequenciaGeografica(linhasAtendimento);
+  const atendimentosSuspeitos = listarAtendimentosSuspeitos(linhasAtendimento);
+
+  // Cidades atendidas pelo Mapa (via clientes.cidade, já anexado acima).
+  const cidadesAtendidas = Array.from(new Set(linhasAtendimento.map(l => l.cidade).filter(Boolean)));
+
+  // Recorrência só pros clientes que de fato entram no Pareto 80/20 (limita
+  // requisições e mantém o foco nos "poucos vitais").
+  const clientesPareto = paretoClientes.filter(c => c.dentroDoParetoOitentaPct).slice(0, 8);
+  for (const c of clientesPareto) {
+    c.recorrencia = await calcularRecorrenciaCliente(mapaInfo.revenda, c.codCliente);
+  }
+
+  const analiseCarreg = await buscarAnaliseCarregamento(mapaInfo.chave);
+
+  // Recorrência da rota: mapas semelhantes (mesmo conjunto de clientes, número
+  // de Mapa diferente) e se a rota como um todo costuma estourar (seção 5.1).
+  const clientesAtuaisSet = new Set(linhasAtendimento.map(l => l.cod_cliente).filter(v => v != null));
+  const recorrenciaRota = await analisarRecorrenciaRota(mapaInfo.revenda, mapaInfo.mapa, clientesAtuaisSet, mapaInfo.data, cacheHistoricoRota);
+
+  const causa = classificarCausa(mapaInfo, clientesPareto, analiseCarreg, analiseGeografica);
+
+  return { ...mapaInfo, clientesPareto, totalClientesComEstouro: paretoClientes.length, analiseCarreg, analiseGeografica, cidadesAtendidas, recorrenciaRota, atendimentosSuspeitos, causa };
+}
+
+async function gerarAnaliseDiaria() {
+  const revendaFiltro = document.getElementById('analiseRevenda').value;
+  const data = document.getElementById('analiseData').value;
+  const topN = Math.max(1, Number(document.getElementById('analiseTopN').value) || 3);
+
+  if (!data) { mostrarToastAnalise('⚠️ Escolha a data de referência.', 'warning'); return; }
+
+  const statusEl = document.getElementById('statusAnaliseDiaria');
+  const btn = document.getElementById('btnGerarAnalise');
+  btn.disabled = true;
+  statusEl.textContent = 'Buscando Mapas do dia...';
+  document.getElementById('cardGerarTratativas').classList.add('d-none');
+
+  try {
+    const mapasDoDia = await buscarMapasDoDia(revendaFiltro, data);
+    const piorPorRevenda = topPioresPorRevenda(mapasDoDia, topN);
+
+    const todosOsPiores = [];
+    piorPorRevenda.forEach(lista => todosOsPiores.push(...lista));
+
+    mapasInvestigadosAtual = [];
+    const cacheHistoricoRota = new Map(); // 1 busca de histórico por Revenda, reaproveitada entre os Mapas dela
+    for (let i = 0; i < todosOsPiores.length; i++) {
+      statusEl.textContent = `Investigando Mapa ${i + 1} de ${todosOsPiores.length}...`;
+      await new Promise(r => setTimeout(r, 0));
+      const resultado = await investigarMapa(todosOsPiores[i], cacheHistoricoRota);
+      mapasInvestigadosAtual.push(resultado);
+    }
+
+    renderizarResumoAnalise();
+    renderizarResultadosPorRevenda();
+    renderizarTratativasSugeridas();
+
+    document.getElementById('cardResumoAnalise').classList.remove('d-none');
+    document.getElementById('cardGerarTratativas').classList.remove('d-none');
+    const excluidos = piorPorRevenda.excluidosForaDaJanela || 0;
+    statusEl.textContent = `${mapasInvestigadosAtual.length} Mapa(s) investigado(s) em ${piorPorRevenda.size} Revenda(s).` +
+      (excluidos ? ` ${excluidos} Mapa(s) com Saída fora de 07:00–12:00 foram descartados da análise.` : '');
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToastAnalise('❌ Erro ao gerar a análise: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
+// 8. RENDERIZAÇÃO — RESUMO
+// ============================================================
+function renderizarResumoAnalise() {
+  document.getElementById('statMapasInvestigados').textContent = mapasInvestigadosAtual.length;
+  document.getElementById('statCausaConfirmada').textContent = mapasInvestigadosAtual.filter(m => m.causa.nivel === 'Confirmado').length;
+  document.getElementById('statCausaProvavel').textContent = mapasInvestigadosAtual.filter(m => m.causa.nivel === 'Provável').length;
+  document.getElementById('statSemEvidencia').textContent = mapasInvestigadosAtual.filter(m => m.causa.nivel === 'Sem evidência suficiente').length;
+  document.getElementById('statLacreEncontrado').textContent = mapasInvestigadosAtual.filter(m => m.analiseCarreg && m.analiseCarreg.status_lacre === 'Possível Lacre').length;
+  document.getElementById('statKmProblema').textContent = mapasInvestigadosAtual.filter(m => m.analiseCarreg && STATUS_KM_PROBLEMATICO.includes(m.analiseCarreg.status_km)).length;
+}
+
+// ============================================================
+// 9. RENDERIZAÇÃO — RESULTADOS POR REVENDA
+// ============================================================
+function badgeCausa(nivel) {
+  const classes = { 'Confirmado': 'badge-confirmado', 'Provável': 'badge-provavel', 'Possível': 'badge-possivel', 'Sem evidência suficiente': 'badge-semevidencia' };
+  return `<span class="badge ${classes[nivel] || 'badge-semevidencia'}">${escapeHtmlAnalise(nivel)}</span>`;
+}
+
+// Recorrência da rota (problemas + soluções) só quando o padrão é
+// Crítico/Moderado — evento isolado ou sem histórico não gera recomendação,
+// só mostra o dado bruto (mesma filosofia da seção 13: nunca afirmar causa
+// sem evidência suficiente).
+function textoRecorrenciaRota(m) {
+  const r = m.recorrenciaRota;
+  if (!r || r.nivel === 'Sem histórico de rota semelhante') {
+    return { badge: 'Sem histórico de rota semelhante', problemas: null, solucoes: null };
+  }
+  const resumo = `${r.qtdComEstouro} de ${r.totalOcorrencias} viagem(ns) parecida(s) com essa rota (mesmos clientes, Mapa diferente) também estouraram o tempo.`;
+  if (r.nivel === 'Evento isolado') {
+    return { badge: `${r.nivel} — ${resumo}`, problemas: null, solucoes: null };
+  }
+  const datas = r.ocorrencias.filter(o => o.dispersaoFracao > 0).map(o => o.data).filter(Boolean).join(', ');
+  const problemas = `Rota ${r.nivel === 'Crítica' ? 'estoura de forma crônica' : 'estoura com frequência'}: ${resumo}${datas ? ` Datas com estouro: ${datas}.` : ''}`;
+  const solucoes = r.nivel === 'Crítica'
+    ? 'Revisar o planejamento dessa rota (ordem das paradas, Tempo Estimado por cliente e janela de saída) — o problema se repete em Mapas diferentes, não é um evento pontual de um dia específico.'
+    : 'Acompanhar as próximas viagens dessa rota — o padrão ainda não é crônico, mas já se repetiu mais de uma vez.';
+  return { badge: `${r.nivel} — ${resumo}`, problemas, solucoes };
+}
+
+function renderizarCardMapa(m) {
+  const linhasPareto = m.clientesPareto.map(c => `
+    <tr>
+      <td>${escapeHtmlAnalise(c.codCliente)}</td>
+      <td>${c.tipoCliente ? escapeHtmlAnalise(c.tipoCliente) : '-'}</td>
+      <td>${c.pesoMedioKg !== null ? c.pesoMedioKg.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' kg' : '-'}</td>
+      <td>${c.recorrencia && c.recorrencia.tempoMedioPlanSeg !== null ? segundosParaHora(c.recorrencia.tempoMedioPlanSeg) : '-'}</td>
+      <td>${c.recorrencia && c.recorrencia.tempoMedioRealSeg !== null ? segundosParaHora(c.recorrencia.tempoMedioRealSeg) : '-'}</td>
+      <td>${segundosParaHora(c.somaEstouro)}</td>
+      <td>${formatarPercentualFracao(c.pctDoTotal)}</td>
+      <td>${c.recorrencia ? escapeHtmlAnalise(c.recorrencia.nivel) + ` (${c.recorrencia.qtdEstouros}/${c.recorrencia.totalApontamentos})` : '-'}</td>
+      <td>${escapeHtmlAnalise(c.statusAtendimento)}</td>
+      <td>${c.dentroDoRaioAtendimento === null ? '-' : (c.dentroDoRaioAtendimento ? 'Verdadeiro' : 'Falso')}</td>
+      <td>${c.recorrencia ? escapeHtmlAnalise(c.recorrencia.ajusteTexto) : 'Não'}</td>
+    </tr>`).join('');
+
+  const g = m.analiseGeografica && m.analiseGeografica.piorGap;
+  const rotaTexto = g
+    ? `${g.de} → ${g.para}: ${g.distanciaKm.toFixed(2)} km${g.gapMin !== null ? ` / ${g.gapMin.toFixed(0)} min` : ''}`
+    : (m.analiseGeografica ? 'dentro do padrão' : 'sem coordenada suficiente');
+
+  const cidadesTexto = m.cidadesAtendidas.length
+    ? m.cidadesAtendidas.join(', ') + (m.cidadesAtendidas.length > 1 ? ` (${m.cidadesAtendidas.length} cidades)` : '')
+    : 'sem cidade cadastrada';
+
+  const rotaInfo = textoRecorrenciaRota(m);
+
+  return `
+    <div class="mapa-card">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+        <div class="fw-semibold text-primary-dark">Mapa ${escapeHtmlAnalise(m.mapa)} <span class="text-muted-ink fw-normal">(${escapeHtmlAnalise(m.chave)})</span></div>
+        <div class="d-flex align-items-center gap-2">
+          ${badgeCausa(m.causa.nivel)}
+          <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-excluir-mapa="${escapeHtmlAnalise(m.chave)}" title="Excluir este Mapa da análise e das tratativas sugeridas">
+            <i class="bi bi-x-lg"></i> Excluir
+          </button>
+        </div>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-6 col-md-3 metrica">Saída → Entrada <br><strong>${escapeHtmlAnalise(m.hr_sai || '-')} → ${escapeHtmlAnalise(m.hr_entr || '-')}</strong></div>
+        <div class="col-6 col-md-3 metrica">TR <br><strong>${escapeHtmlAnalise(m.tr || '-')}</strong></div>
+        <div class="col-6 col-md-3 metrica">JL <br><strong>${escapeHtmlAnalise(m.jl || '-')}</strong></div>
+        <div class="col-6 col-md-3 metrica">Dispersão Tempo (h) <br><strong>${escapeHtmlAnalise(m.dispersao_tempo || '-')}</strong></div>
+        <div class="col-6 col-md-3 metrica">Dispersão Tempo (%) <br><strong>${formatarPercentualFracao(m.dispersaoTempoFracao)}</strong></div>
+        <div class="col-6 col-md-3 metrica">Km Inicial → Final <br><strong>${m.km_sai != null ? Number(m.km_sai).toLocaleString('pt-BR') : '-'} → ${m.km_entr != null ? Number(m.km_entr).toLocaleString('pt-BR') : '-'}</strong></div>
+        <div class="col-6 col-md-3 metrica">Km Real <br><strong>${m.km_real != null ? Number(m.km_real).toLocaleString('pt-BR') : '-'}</strong></div>
+        <div class="col-6 col-md-3 metrica">Dispersão Km (nº) <br><strong>${m.dispersao_km != null ? Number(m.dispersao_km).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</strong></div>
+        <div class="col-6 col-md-3 metrica">Dispersão Km (%) <br><strong>${formatarPercentualFracao(m.dispersaoKmFracao)}</strong></div>
+        <div class="col-6 col-md-3 metrica">Cidade(s) Atendida(s) <br><strong>${escapeHtmlAnalise(cidadesTexto)}</strong></div>
+        <div class="col-6 col-md-3 metrica">Placa <br><strong>${escapeHtmlAnalise(m.placa || '-')}</strong></div>
+        <div class="col-6 col-md-3 metrica">Frota <br><strong>${escapeHtmlAnalise(m.frota || '-')}</strong></div>
+        <div class="col-6 col-md-3 metrica">Entregas <br><strong>${m.entregas != null ? Number(m.entregas).toLocaleString('pt-BR') : '-'}</strong></div>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-6 col-md-3 metrica">Status Lacre <br><strong>${m.analiseCarreg ? escapeHtmlAnalise(m.analiseCarreg.status_lacre) : 'sem registro'}</strong></div>
+        <div class="col-6 col-md-3 metrica">Status Km Carreg. <br><strong>${m.analiseCarreg ? escapeHtmlAnalise(m.analiseCarreg.status_km) : 'sem registro'}</strong></div>
+        <div class="col-12 col-md-6 metrica">Maior deslocamento fora do padrão (sequência × coordenadas) <br><strong>${escapeHtmlAnalise(rotaTexto)}</strong></div>
+      </div>
+      ${m.clientesPareto.length ? `
+        <table class="tabela-pareto mb-2">
+          <thead><tr><th>Cod_cliente</th><th>Tipo</th><th>Peso médio</th><th>Tempo Estimado</th><th>Tempo Real Médio</th><th>Estouro</th><th>% do Mapa</th><th>Recorrência (últimas 10)</th><th>Status</th><th>Dentro_do_raio</th><th>Ajuste Necessário</th></tr></thead>
+          <tbody>${linhasPareto}</tbody>
+        </table>` : '<p class="small text-muted-ink mb-2">Nenhum cliente com estouro positivo encontrado neste Mapa.</p>'}
+      ${m.atendimentosSuspeitos.length ? `
+        <p class="small mb-1"><strong>Atendimentos com dado suspeito neste Mapa</strong> (fora do cálculo de estouro acima — Devolução, Não Iniciado ou GPS fora do raio):</p>
+        <table class="tabela-pareto mb-2">
+          <thead><tr><th>Cod_cliente</th><th>Status</th><th>Dentro_do_raio</th></tr></thead>
+          <tbody>${m.atendimentosSuspeitos.map(s => `<tr><td>${escapeHtmlAnalise(s.codCliente)}</td><td>${escapeHtmlAnalise(s.status)}</td><td>${s.dentroDoRaio ? 'Verdadeiro' : 'Falso'}</td></tr>`).join('')}</tbody>
+        </table>` : ''}
+      <p class="small mb-1"><strong>Causa (${escapeHtmlAnalise(m.causa.nivel)}):</strong> ${escapeHtmlAnalise(m.causa.texto)}</p>
+      <p class="small mb-0"><strong>Recorrência da Rota:</strong> ${escapeHtmlAnalise(rotaInfo.badge)}</p>
+      ${rotaInfo.problemas ? `<p class="small mb-0"><strong>Problema:</strong> ${escapeHtmlAnalise(rotaInfo.problemas)}</p>` : ''}
+      ${rotaInfo.solucoes ? `<p class="small mb-0"><strong>Solução sugerida:</strong> ${escapeHtmlAnalise(rotaInfo.solucoes)}</p>` : ''}
+    </div>`;
+}
+
+function renderizarResultadosPorRevenda() {
+  const container = document.getElementById('resultadoAnaliseDiaria');
+  const porRevenda = new Map();
+  mapasInvestigadosAtual.forEach(m => {
+    if (!porRevenda.has(m.revenda)) porRevenda.set(m.revenda, []);
+    porRevenda.get(m.revenda).push(m);
+  });
+
+  if (!porRevenda.size) {
+    container.innerHTML = '<div class="card card-shadow p-4"><p class="text-secondary small mb-0">Nenhum Mapa válido encontrado pra essa data/revenda.</p></div>';
+    return;
+  }
+
+  container.innerHTML = Array.from(porRevenda.entries()).map(([revenda, mapas]) => `
+    <div class="card card-shadow p-4 mb-4">
+      <div class="section-head">
+        <span class="icon-chip"><i class="bi bi-signpost-split-fill"></i></span>
+        <div><h5 class="mb-0">${escapeHtmlAnalise(revenda)} — Piores Mapas do Dia</h5></div>
+      </div>
+      ${mapas.map(renderizarCardMapa).join('')}
+    </div>
+  `).join('');
+}
+
+// Excluir um Mapa da análise (não mexe no banco, só tira ele da lista local
+// antes de gerar/salvar tratativas) — some do resumo, dos cards e da lista de
+// tratativas sugeridas, porque todos os três são derivados de
+// mapasInvestigadosAtual em cada render.
+document.getElementById('resultadoAnaliseDiaria').addEventListener('click', evento => {
+  const botao = evento.target.closest('[data-excluir-mapa]');
+  if (!botao) return;
+  const chave = botao.getAttribute('data-excluir-mapa');
+  mapasInvestigadosAtual = mapasInvestigadosAtual.filter(m => m.chave !== chave);
+
+  renderizarResumoAnalise();
+  renderizarResultadosPorRevenda();
+  renderizarTratativasSugeridas();
+
+  if (!mapasInvestigadosAtual.length) {
+    document.getElementById('cardResumoAnalise').classList.add('d-none');
+    document.getElementById('cardGerarTratativas').classList.add('d-none');
+  }
+  mostrarToastAnalise(`Mapa ${chave} excluído da análise.`, 'success');
+});
+
+// ============================================================
+// 10. TRATATIVAS SUGERIDAS — sempre "Pendente", nunca fecha sozinho
+// ============================================================
+function montarProblemaCompleto(m) {
+  const partes = [
+    `Mapa ${m.mapa} (${m.revenda}) — Dispersão de Tempo ${formatarPercentualFracao(m.dispersaoTempoFracao)}, Dispersão de Km ${formatarPercentualFracao(m.dispersaoKmFracao)}. Saída ${m.hr_sai || '-'} → Entrada ${m.hr_entr || '-'}. Cidade(s): ${m.cidadesAtendidas.length ? m.cidadesAtendidas.join(', ') : 'sem cidade cadastrada'}.`,
+    m.causa.texto
+  ];
+  if (m.clientesPareto.length) {
+    partes.push(`Clientes prioritários (Pareto 80/20): ${m.clientesPareto.map(c => `${c.codCliente} (${formatarPercentualFracao(c.pctDoTotal)})`).join(', ')}.`);
+  }
+  const rotaInfo = textoRecorrenciaRota(m);
+  if (rotaInfo.problemas) partes.push(`Recorrência da rota: ${rotaInfo.problemas} ${rotaInfo.solucoes}`);
+  return partes.join(' ');
+}
+
+function renderizarTratativasSugeridas() {
+  const container = document.getElementById('listaTratativasSugeridas');
+  if (!mapasInvestigadosAtual.length) { container.innerHTML = ''; return; }
+
+  container.innerHTML = mapasInvestigadosAtual.map((m, i) => `
+    <div class="border rounded-3 p-3 mb-2" data-indice="${i}">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <span class="fw-semibold">${escapeHtmlAnalise(m.revenda)} · Mapa ${escapeHtmlAnalise(m.mapa)}</span>
+        <span class="badge bg-secondary-subtle text-secondary-emphasis">Tipo de Ação: ${escapeHtmlAnalise(m.causa.tipoacao)}</span>
+        ${badgeCausa(m.causa.nivel)}
+      </div>
+      <textarea class="form-control form-control-sm" rows="3" data-campo-problema>${escapeHtmlAnalise(montarProblemaCompleto(m))}</textarea>
+    </div>
+  `).join('');
+}
+
+document.getElementById('btnSalvarTratativas').addEventListener('click', salvarTratativasSugeridas);
+
+async function salvarTratativasSugeridas() {
+  if (!mapasInvestigadosAtual.length) return;
+  const statusEl = document.getElementById('statusSalvarTratativas');
+  const btn = document.getElementById('btnSalvarTratativas');
+  btn.disabled = true;
+  statusEl.textContent = 'Salvando tratativas...';
+
+  const confirmado = confirm(`Isso vai criar ${mapasInvestigadosAtual.length} tratativa(s) nova(s) como "Pendente" no Diário de Tratativas. Confirma?`);
+  if (!confirmado) { btn.disabled = false; statusEl.textContent = ''; return; }
+
+  try {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const container = document.getElementById('listaTratativasSugeridas');
+
+    const payloads = mapasInvestigadosAtual.map((m, i) => {
+      const bloco = container.querySelector(`[data-indice="${i}"]`);
+      const problema = bloco ? bloco.querySelector('[data-campo-problema]').value : montarProblemaCompleto(m);
+      return {
+        id: gerarIdTratativaAnalise(),
+        data_registro: hoje,
+        revenda: m.revenda,
+        tipoacao: m.causa.tipoacao,
+        dt: '-',
+        descricao: '',
+        mapas: [{
+          numero: String(m.mapa),
+          // Resolução do PDV já vem pré-preenchida com a sugestão de ajuste
+          // (seção 9 do documento: só quando a recorrência é Crítica, ≥5 de
+          // 10 tours) — texto editável, tratativa continua entrando como
+          // Pendente, ninguém fecha sozinho.
+          pdvs: m.clientesPareto.map(c => ({
+            codigo: String(c.codCliente),
+            descricao: `Estouro ${segundosParaHora(c.somaEstouro)} (${formatarPercentualFracao(c.pctDoTotal)} do Mapa)`,
+            resolucao: (c.recorrencia && c.recorrencia.ajusteNecessario)
+              ? `Atualizar Tempo Estimado de ${segundosParaHora(c.recorrencia.tempoMedioPlanSeg)} para o tempo real de ${segundosParaHora(c.recorrencia.tempoMedioRealSeg)}.`
+              : ''
+          })),
+          problema,
+          resolucao: '',
+          status: 'Pendente'
+        }],
+        status: 'Pendente'
+      };
+    });
+
+    const { error } = await supabaseClient.from('tratativas').insert(payloads);
+    if (error) throw error;
+
+    statusEl.textContent = `${payloads.length} tratativa(s) criada(s) com sucesso.`;
+    mostrarToastAnalise(`✅ ${payloads.length} tratativa(s) salvas como Pendente no Diário de Tratativas.`, 'success');
+    document.getElementById('btnSalvarTratativas').disabled = true;
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToastAnalise('❌ Erro ao salvar as tratativas: ' + erro.message, 'danger');
+    btn.disabled = false;
+  }
+}
+
+function gerarIdTratativaAnalise() {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+}
+
+// ============================================================
+// 11. RELATÓRIO DE PRIORIZAÇÃO — TOP CLIENTES PRA AJUSTE + CIDADE PRIORITÁRIA
+// Reaproveita a mesma lógica de "Clientes com Maior Estouro" e "Top 10
+// Cidades" do ranking-estouro.html, mas roda direto aqui — não depende da
+// data de referência da análise por Mapa acima, é sobre padrão histórico
+// (últimas 10 tours por cliente) e o mês corrente (por dia da semana/semana).
+// ============================================================
+const TAMANHO_PAGINA_PRIORIZACAO = 1000;
+const LIMITE_ATENDIMENTOS_PRIORIZACAO = 20000;
+
+async function buscarTodosAtendimentosRevendaPriorizacao(revenda) {
+  let todasLinhas = [];
+  let pagina = 0;
+  while (true) {
+    const { data, error } = await supabaseClient
+      .from('atendimentos')
+      .select('cod_cliente,data,status,dentro_do_raio,tempo_atendimento,tempo_estimado_atendimento')
+      .eq('revenda', revenda)
+      .not('cod_cliente', 'is', null)
+      .order('cod_cliente', { ascending: true })
+      .order('data', { ascending: false })
+      .range(pagina * TAMANHO_PAGINA_PRIORIZACAO, pagina * TAMANHO_PAGINA_PRIORIZACAO + TAMANHO_PAGINA_PRIORIZACAO - 1);
+    if (error) throw error;
+    todasLinhas = todasLinhas.concat(data || []);
+    if (!data || data.length < TAMANHO_PAGINA_PRIORIZACAO) break;
+    if (todasLinhas.length >= LIMITE_ATENDIMENTOS_PRIORIZACAO) break;
+    pagina++;
+  }
+  return todasLinhas.slice(0, LIMITE_ATENDIMENTOS_PRIORIZACAO);
+}
+
+async function buscarTodosClientesRevendaPriorizacao(revenda) {
+  const mapa = new Map();
+  let pagina = 0;
+  while (true) {
+    const { data, error } = await supabaseClient
+      .from('clientes')
+      .select('codigo_cliente, nome_cliente, cidade, tipo_cliente')
+      .eq('revenda', revenda)
+      .range(pagina * TAMANHO_PAGINA_PRIORIZACAO, pagina * TAMANHO_PAGINA_PRIORIZACAO + TAMANHO_PAGINA_PRIORIZACAO - 1);
+    if (error) throw error;
+    (data || []).forEach(c => mapa.set(String(c.codigo_cliente).trim(), c));
+    if (!data || data.length < TAMANHO_PAGINA_PRIORIZACAO) break;
+    pagina++;
+  }
+  return mapa;
+}
+
+// Mesma regra de "Clientes com Maior Estouro" (ranking-estouro.html): últimas
+// 10 tours "Concluído"+"Dentro_do_raio" por cliente. Só entra no relatório
+// quem tem recorrência Crítica (>=5 de 10 tours com estouro real) — mesma
+// regra de "ajuste necessário" já usada na seção 9 do documento do agente.
+function calcularClientesParaAjuste(atendimentos, mapaClientes, minApontamentos) {
+  const porCliente = new Map();
+  atendimentos.forEach(a => {
+    const chave = String(a.cod_cliente);
+    if (!porCliente.has(chave)) porCliente.set(chave, []);
+    porCliente.get(chave).push(a);
+  });
+
+  const linhas = [];
+  porCliente.forEach((registros, codCliente) => {
+    const ultimasDez = registros.slice(0, QTD_TOURS_RECORRENCIA);
+    const validas = ultimasDez.filter(r => r.status === 'Concluído' && ehVerdadeiro(r.dentro_do_raio));
+    const segundosReal = validas.map(r => horaParaSegundos(r.tempo_atendimento)).filter(v => v !== null);
+    const segundosPlan = validas.map(r => horaParaSegundos(r.tempo_estimado_atendimento)).filter(v => v !== null);
+    if (Math.min(segundosReal.length, segundosPlan.length) < minApontamentos) return;
+
+    let qtdEstouros = 0;
+    validas.forEach(r => {
+      const segReal = horaParaSegundos(r.tempo_atendimento);
+      const segPlan = horaParaSegundos(r.tempo_estimado_atendimento);
+      if (segReal !== null && segPlan !== null && segReal > segPlan) qtdEstouros++;
+    });
+    if (qtdEstouros < 5) return; // só recorrência Crítica entra no relatório
+
+    const mediaReal = media(segundosReal);
+    const mediaPlan = media(segundosPlan);
+    const cliente = mapaClientes.get(codCliente);
+
+    linhas.push({
+      codCliente, nomeCliente: cliente ? (cliente.nome_cliente || '') : '', cidade: cliente ? (cliente.cidade || '') : '',
+      tipoCliente: cliente ? cliente.tipo_cliente : null,
+      mediaReal, mediaPlan, estouroSegundos: mediaReal - mediaPlan,
+      qtdEstouros, totalApontamentos: validas.length
+    });
+  });
+
+  linhas.sort((a, b) => b.estouroSegundos - a.estouroSegundos);
+  return linhas;
+}
+
+// Cidade só qualifica como prioritária com volume mínimo — sem isso, 1
+// cliente com poucos apontamentos e má sorte pode ter razão altíssima e
+// "ganhar" do ranking sem representar ganho real (achado com dado real:
+// cidade com só 7 apontamentos somados virando #1 por puro acaso estatístico).
+// O objetivo do usuário é achar onde agir traz o MAIOR resultado — isso exige
+// volume, não só proporção.
+const MINIMO_CLIENTES_CIDADE = 2;
+const MINIMO_APONTAMENTOS_CIDADE = 10;
+
+// Mesma regra de "Top 10 Cidades" do ranking-estouro.html (últimas 10 tours
+// por cliente, agregado por cidade) — ordena pela razão com/sem estouro
+// (mesma métrica já usada no gráfico de barras de lá) e devolve a lista
+// ordenada, a #1 é a cidade prioritária.
+function calcularCidadePrioritaria(atendimentos, mapaClientes, minApontamentos) {
+  const porCliente = new Map();
+  atendimentos.forEach(a => {
+    const chave = String(a.cod_cliente);
+    if (!porCliente.has(chave)) porCliente.set(chave, []);
+    porCliente.get(chave).push(a);
+  });
+
+  const porCidade = new Map();
+  porCliente.forEach((registros, codCliente) => {
+    const ultimasDez = registros.slice(0, QTD_TOURS_RECORRENCIA);
+    const validas = ultimasDez.filter(r => r.status === 'Concluído' && ehVerdadeiro(r.dentro_do_raio));
+    let qtdEstourosCliente = 0, qtdValidas = 0;
+    validas.forEach(r => {
+      const segReal = horaParaSegundos(r.tempo_atendimento);
+      const segPlan = horaParaSegundos(r.tempo_estimado_atendimento);
+      if (segReal === null || segPlan === null) return;
+      qtdValidas++;
+      if (segReal > segPlan) qtdEstourosCliente++;
+    });
+    if (qtdValidas < minApontamentos) return;
+
+    const cliente = mapaClientes.get(codCliente);
+    const cidade = cliente ? (cliente.cidade || '').trim() : '';
+    if (!cidade) return;
+
+    if (!porCidade.has(cidade)) porCidade.set(cidade, { qtdEstouros: 0, qtdSemEstouro: 0, qtdClientes: 0 });
+    const acc = porCidade.get(cidade);
+    acc.qtdEstouros += qtdEstourosCliente;
+    acc.qtdSemEstouro += (qtdValidas - qtdEstourosCliente);
+    acc.qtdClientes += 1;
+  });
+
+  const cidades = Array.from(porCidade.entries())
+    .filter(([, acc]) => acc.qtdClientes >= MINIMO_CLIENTES_CIDADE && (acc.qtdEstouros + acc.qtdSemEstouro) >= MINIMO_APONTAMENTOS_CIDADE)
+    .map(([cidade, acc]) => ({
+      cidade,
+      razao: acc.qtdSemEstouro ? acc.qtdEstouros / acc.qtdSemEstouro : (acc.qtdEstouros ? Infinity : 0),
+      qtdEstouros: acc.qtdEstouros, qtdSemEstouro: acc.qtdSemEstouro, qtdClientes: acc.qtdClientes
+    }));
+  cidades.sort((a, b) => b.razao - a.razao);
+  return cidades;
+}
+
+// Detalha a cidade prioritária por dia da semana e semana do mês CORRENTE
+// (não últimas 10 tours — aqui é todo o histórico do mês, pra achar padrão
+// de calendário). "Semana do mês" = dias 1-7 semana 1, 8-14 semana 2, etc.
+function detalharCidadePorCalendario(atendimentos, mapaClientes, cidadeAlvo) {
+  const anoMesAtual = new Date().toISOString().slice(0, 7);
+  const codigosCidade = new Set();
+  mapaClientes.forEach((c, cod) => { if ((c.cidade || '').trim() === cidadeAlvo) codigosCidade.add(cod); });
+
+  const porDia = {}; DIAS_SEMANA_UTEIS.forEach(d => { porDia[d] = { qtd: 0, qtdEstouro: 0 }; });
+  const porSemana = {}; [1, 2, 3, 4, 5].forEach(s => { porSemana[s] = { qtd: 0, qtdEstouro: 0 }; });
+
+  atendimentos.forEach(a => {
+    if (!codigosCidade.has(String(a.cod_cliente))) return;
+    if (!String(a.data).startsWith(anoMesAtual)) return;
+    if (a.status !== 'Concluído' || !ehVerdadeiro(a.dentro_do_raio)) return;
+    const segReal = horaParaSegundos(a.tempo_atendimento);
+    const segPlan = horaParaSegundos(a.tempo_estimado_atendimento);
+    if (segReal === null || segPlan === null) return;
+    const estourou = segReal > segPlan;
+
+    const dia = diaDaSemana(a.data);
+    if (dia && porDia[dia]) { porDia[dia].qtd++; if (estourou) porDia[dia].qtdEstouro++; }
+    const sem = semanaDoMes(a.data);
+    if (sem && porSemana[sem]) { porSemana[sem].qtd++; if (estourou) porSemana[sem].qtdEstouro++; }
+  });
+
+  // Só aponta "pior dia/semana" quando há pelo menos 3 apontamentos —
+  // 1 estouro em 1 apontamento não é padrão, é ruído (mesma filosofia da
+  // seção 13 do documento: não afirmar sem evidência suficiente).
+  const piorDia = Object.entries(porDia).filter(([, v]) => v.qtd >= 3).sort((a, b) => (b[1].qtdEstouro / b[1].qtd) - (a[1].qtdEstouro / a[1].qtd))[0] || null;
+  const piorSemana = Object.entries(porSemana).filter(([, v]) => v.qtd >= 3).sort((a, b) => (b[1].qtdEstouro / b[1].qtd) - (a[1].qtdEstouro / a[1].qtd))[0] || null;
+
+  return { porDia, porSemana, piorDia, piorSemana, anoMesAtual };
+}
+
+document.getElementById('btnGerarPriorizacao').addEventListener('click', gerarPriorizacao);
+
+async function gerarPriorizacao() {
+  const revendaFiltro = document.getElementById('priorizacaoRevenda').value;
+  const minApontamentos = Math.max(1, Number(document.getElementById('priorizacaoMinApontamentos').value) || 1);
+  const qtdCidades = Math.max(1, Number(document.getElementById('priorizacaoQtdCidades').value) || 3);
+  const revendasAlvo = revendaFiltro ? [revendaFiltro] : REVENDAS;
+
+  const statusEl = document.getElementById('statusPriorizacao');
+  const btn = document.getElementById('btnGerarPriorizacao');
+  btn.disabled = true;
+  document.getElementById('resultadoPriorizacao').innerHTML = '';
+
+  try {
+    const resultados = [];
+    for (const revenda of revendasAlvo) {
+      statusEl.textContent = `Buscando apontamentos de ${revenda}...`;
+      await new Promise(r => setTimeout(r, 0));
+      const [atendimentos, mapaClientes] = await Promise.all([
+        buscarTodosAtendimentosRevendaPriorizacao(revenda),
+        buscarTodosClientesRevendaPriorizacao(revenda)
+      ]);
+      if (!atendimentos.length) continue;
+
+      const clientesAjuste = calcularClientesParaAjuste(atendimentos, mapaClientes, minApontamentos).slice(0, 3);
+      const cidades = calcularCidadePrioritaria(atendimentos, mapaClientes, minApontamentos).slice(0, qtdCidades);
+      const cidadesDetalhadas = cidades.map(c => ({
+        ...c,
+        detalhe: detalharCidadePorCalendario(atendimentos, mapaClientes, c.cidade)
+      }));
+
+      resultados.push({ revenda, clientesAjuste, cidadesDetalhadas });
+    }
+
+    renderizarPriorizacao(resultados);
+    statusEl.textContent = `Relatório gerado pra ${resultados.length} revenda(s).`;
+  } catch (erro) {
+    console.error(erro);
+    statusEl.textContent = '';
+    mostrarToastAnalise('❌ Erro ao gerar o relatório de priorização: ' + erro.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderizarPriorizacao(resultados) {
+  const container = document.getElementById('resultadoPriorizacao');
+  if (!resultados.length) {
+    container.innerHTML = '<p class="text-secondary small mb-0">Nenhum apontamento encontrado.</p>';
+    return;
+  }
+
+  container.innerHTML = resultados.map(r => {
+    const linhasClientes = r.clientesAjuste.map(c => `
+      <tr>
+        <td>${escapeHtmlAnalise(c.codCliente)}</td>
+        <td>${escapeHtmlAnalise(c.nomeCliente || '-')}</td>
+        <td>${escapeHtmlAnalise(c.cidade || '-')}</td>
+        <td>${segundosParaHora(c.mediaPlan)}</td>
+        <td>${segundosParaHora(c.mediaReal)}</td>
+        <td>${segundosParaHora(c.estouroSegundos)}</td>
+        <td>${c.qtdEstouros}/${c.totalApontamentos}</td>
+      </tr>`).join('');
+
+    const cidadesHtml = r.cidadesDetalhadas.length
+      ? r.cidadesDetalhadas.map((c, i) => renderizarCidadePriorizada(c, i + 1)).join('')
+      : '<p class="small text-muted-ink mb-0">Nenhuma cidade com volume suficiente (mín. 2 clientes e 10 apontamentos) encontrada.</p>';
+
+    return `
+      <div class="mapa-card">
+        <div class="fw-semibold text-primary-dark mb-2">${escapeHtmlAnalise(r.revenda)}</div>
+        <p class="small mb-2"><strong>Cidades prioritárias</strong> (ordenadas por razão com/sem estouro, volume mínimo de 2 clientes e 10 apontamentos):</p>
+        ${cidadesHtml}
+        <p class="small mb-1 mt-2"><strong>Top 3 Clientes pra atualizar Tempo Estimado</strong> (recorrência Crítica, ≥5 de 10 tours com estouro):</p>
+        ${r.clientesAjuste.length ? `
+          <table class="tabela-pareto mb-0">
+            <thead><tr><th>Cod_cliente</th><th>Nome</th><th>Cidade</th><th>Tempo Estimado</th><th>Tempo Real Médio</th><th>Estouro</th><th>Recorrência</th></tr></thead>
+            <tbody>${linhasClientes}</tbody>
+          </table>` : '<p class="small text-muted-ink mb-0">Nenhum cliente com recorrência Crítica encontrado.</p>'}
+      </div>`;
+  }).join('');
+}
+
+function renderizarCidadePriorizada(c, posicao) {
+  const d = c.detalhe;
+  const linhaDia = DIAS_SEMANA_UTEIS.map(dia => {
+    const v = d.porDia[dia];
+    const pct = v.qtd ? (v.qtdEstouro / v.qtd * 100) : null;
+    return `<td>${v.qtd ? `${v.qtdEstouro}/${v.qtd}${pct !== null ? ` (${pct.toFixed(0)}%)` : ''}` : '-'}</td>`;
+  }).join('');
+  const linhaSemana = [1, 2, 3, 4, 5].map(s => {
+    const v = d.porSemana[s];
+    const pct = v.qtd ? (v.qtdEstouro / v.qtd * 100) : null;
+    return `<td>${v.qtd ? `${v.qtdEstouro}/${v.qtd}${pct !== null ? ` (${pct.toFixed(0)}%)` : ''}` : '-'}</td>`;
+  }).join('');
+
+  return `
+    <div class="border rounded-3 p-2 mb-2">
+      <p class="small mb-1"><strong>#${posicao} ${escapeHtmlAnalise(c.cidade)}</strong> — ${c.qtdEstouros} de ${c.qtdEstouros + c.qtdSemEstouro} apontamentos com estouro (${c.qtdClientes} cliente(s))</p>
+      <p class="small mb-1">
+        Mês corrente (${d.anoMesAtual}):
+        ${d.piorDia ? `pior dia da semana é <strong>${escapeHtmlAnalise(d.piorDia[0])}</strong> (${d.piorDia[1].qtdEstouro}/${d.piorDia[1].qtd} estouraram)` : 'sem dia com dado suficiente ainda'};
+        ${d.piorSemana ? `pior semana do mês é a <strong>semana ${d.piorSemana[0]}</strong> (${d.piorSemana[1].qtdEstouro}/${d.piorSemana[1].qtd} estouraram)` : 'sem semana com dado suficiente ainda'}.
+      </p>
+      <div class="table-responsive mb-2">
+        <table class="tabela-pareto mb-0">
+          <thead><tr><th>Dia</th>${DIAS_SEMANA_UTEIS.map(d2 => `<th>${d2}</th>`).join('')}</tr></thead>
+          <tbody><tr><td>Estouro/Total</td>${linhaDia}</tr></tbody>
+        </table>
+      </div>
+      <div class="table-responsive">
+        <table class="tabela-pareto mb-0">
+          <thead><tr><th>Semana</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr></thead>
+          <tbody><tr><td>Estouro/Total</td>${linhaSemana}</tr></tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// 12. TOAST DE FEEDBACK
+// ============================================================
+function mostrarToastAnalise(mensagem, tipo) {
+  const div = document.createElement('div');
+  div.className = `toast-custom alert alert-${tipo}`;
+  div.textContent = mensagem;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 4500);
+}
+</script>
+</body>
+</html>

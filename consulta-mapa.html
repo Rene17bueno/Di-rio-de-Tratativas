@@ -80,6 +80,7 @@
   }
   .table-preview-wrap tbody td { border-color: var(--border-soft); vertical-align: middle; }
   .table-hover > tbody > tr:hover > * { background-color: var(--brand-50); }
+  .celula-gap-alerta { background: var(--danger-bg) !important; color: var(--danger); font-weight: 700; }
 
   .stat-box { background: var(--surface-1); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: .9rem 1.1rem; }
   .stat-box .stat-label { font-size: .74rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .03em; }
@@ -138,52 +139,13 @@
   .info-card .info-card-ref i { color: var(--brand-500); margin-top: .15rem; flex-shrink: 0; }
   .info-card .info-card-ref strong { color: var(--ink-700); }
 </style>
+<script src="nav-shared.js"></script>
 </head>
 <body>
-  <div class="container">
-    <nav class="navbar navbar-expand-lg navbar-site px-3 py-2 mb-2">
-      <div class="container-fluid px-0">
-        <a class="navbar-brand" href="index.html">
-          <span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span>
-          <span class="brand-text"><span class="sub">Painel</span>OT</span>
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir menu">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="menuPrincipal">
-          <ul class="navbar-nav ms-auto gap-1 align-items-lg-center">
-            <li class="nav-item">
-              <a class="nav-link" href="index.html"><i class="bi bi-journal-richtext me-1"></i>Diário de Tratativas</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="tratativageo.html"><i class="bi bi-geo-alt-fill me-1"></i>Geolocalizador</a>
-            </li>
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="menuImportacao" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-cloud-arrow-up-fill me-1"></i>Importação de Dados
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuImportacao">
-                <li><a class="dropdown-item" href="tratamento-dados.html"><i class="bi bi-truck"></i>Tratamento de Base</a></li>
-                <li><a class="dropdown-item" href="tratamento-2art.html"><i class="bi bi-files"></i>Base 2art</a></li>
-                <li><a class="dropdown-item" href="tratamento-clientes.html"><i class="bi bi-people-fill"></i>Base de Clientes</a></li>
-                <li><a class="dropdown-item" href="tratamento-carregamento.html"><i class="bi bi-truck-flatbed"></i>Carregamento / Lacre</a></li>
-              </ul>
-            </li>
-            <li class="nav-item dropdown section-active">
-              <a class="nav-link dropdown-toggle" href="#" id="menuAnalises" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-graph-up-arrow me-1"></i>Consultas &amp; Análises
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuAnalises">
-                <li><a class="dropdown-item active" aria-current="page" href="consulta-mapa.html"><i class="bi bi-signpost-2-fill"></i>Consulta por Mapa</a></li>
-                <li><a class="dropdown-item" href="vinculo-tabelas.html"><i class="bi bi-link-45deg"></i>Vínculo de Tabelas</a></li>
-                <li><a class="dropdown-item" href="ranking-estouro.html"><i class="bi bi-graph-up-arrow"></i>Ranking de Estouro</a></li>
-              </ul>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
-  </div>
+  <div class="container"><div id="navHost"></div></div>
+  <script>montarNavegacao('consultas', 'mapa');</script>
+  <div class="container"><div id="subNavHost"></div></div>
+  <script>montarSubNav('consultas', 'mapa');</script>
 
 <div class="container py-4" style="max-width: 1600px;">
 
@@ -256,7 +218,12 @@
     <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
       <div class="section-head mb-0">
         <span class="icon-chip"><i class="bi bi-truck"></i></span>
-        <div><h5 class="mb-0">Base Tratamento de Base (paradas do Mapa)</h5></div>
+        <div>
+          <h5 class="mb-0">Base Tratamento de Base (paradas do Mapa)</h5>
+          <p>Ordenado por <strong>Chegou_em</strong> — é a sequência real de visita, não a ordem de importação. "Dist. Anterior" e
+          "Intervalo Anterior" mostram a distância (km, coordenadas do cliente) e o tempo até a parada seguinte; linhas destacadas
+          têm distância bem acima da média do Mapa — candidatas a deslocamento fora da rota lógica.</p>
+        </div>
       </div>
       <button class="btn btn-excel" id="btnBaixarExcelParadas" disabled>
         <i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel
@@ -305,19 +272,27 @@ const COLUNAS_PARADAS = [
   { chave: 'cod_cliente', label: 'Cod_cliente', tipo: 'texto' },
   { chave: 'nome_cliente_join', label: 'Nome Cliente', tipo: 'texto' },
   { chave: 'cidade_join', label: 'Cidade', tipo: 'texto' },
+  { chave: 'tipo_cliente_join', label: 'Tipo Cliente', tipo: 'texto' },
   { chave: 'placa', label: 'Placa', tipo: 'texto' },
   { chave: 'chegou_em', label: 'Chegou_em', tipo: 'texto' },
+  { chave: 'gap_min_calc', label: 'Intervalo Anterior (min)', tipo: 'minutos' },
+  { chave: 'distancia_km_calc', label: 'Dist. Anterior (km)', tipo: 'distancia' },
   { chave: 'finalizada_em', label: 'Finalizada_em', tipo: 'texto' },
   { chave: 'tempo_atendimento', label: 'Tempo de Atendimento', tipo: 'texto' },
   { chave: 'hora_estimada_chegada', label: 'Hora_estimada_chegada', tipo: 'texto' },
   { chave: 'hora_estimada_partida', label: 'Hora_estimada_partida', tipo: 'texto' },
   { chave: 'tempo_estimado_atendimento', label: 'Tempo Estimado de Atendimento', tipo: 'texto' },
+  { chave: 'estouro_seg_calc', label: 'Estouro', tipo: 'duracao' },
   { chave: 'status', label: 'Status', tipo: 'texto' },
   { chave: 'valor_total', label: 'Valor_total', tipo: 'moeda' },
   { chave: 'peso_total_kg', label: 'Peso_total_kg', tipo: 'numero' },
   { chave: 'volume', label: 'Volume', tipo: 'numero' },
   { chave: 'dentro_do_raio', label: 'Dentro_do_raio', tipo: 'booleano' }
 ];
+
+// Múltiplo da distância média do Mapa acima do qual uma parada é destacada como
+// candidata a "fora da rota lógica" (ver docs/agente-inteligencia-logistica.md, seção 7.1).
+const LIMIAR_GAP_ALERTA = 1.8;
 
 const LIMITE_PARADAS = 500; // uma rota não deveria ter mais que isso de paradas; evita puxar a tabela inteira por engano
 
@@ -358,8 +333,86 @@ function formatarValorParada(campo, valor) {
     case 'moeda': return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     case 'numero': return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     case 'booleano': return ehVerdadeiro(valor) ? 'Verdadeiro' : 'Falso';
+    case 'distancia': return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' km';
+    case 'minutos': return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' min';
+    case 'duracao': return (valor > 0 ? '+' : '') + segundosParaHora(valor);
     default: return valor;
   }
+}
+
+// Mesma lógica de ranking-estouro.html — "HH:MM:SS" (aceita sinal) <-> segundos.
+function horaParaSegundos(str) {
+  if (!str) return null;
+  const negativo = str.startsWith('-');
+  const limpo = negativo ? str.slice(1) : str;
+  const partes = limpo.split(':').map(Number);
+  if (partes.length !== 3 || partes.some(isNaN)) return null;
+  const segundos = partes[0] * 3600 + partes[1] * 60 + partes[2];
+  return negativo ? -segundos : segundos;
+}
+
+function segundosParaHora(segundos) {
+  if (segundos === null || segundos === undefined || isNaN(segundos)) return '';
+  const sinal = segundos < 0 ? '-' : '';
+  const abs = Math.round(Math.abs(segundos));
+  const pad = n => String(n).padStart(2, '0');
+  const h = Math.floor(abs / 3600);
+  const m = Math.floor((abs % 3600) / 60);
+  const s = abs % 60;
+  return `${sinal}${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+// Distância em linha reta entre 2 coordenadas (fórmula de haversine, km) — não
+// existia em nenhum arquivo do site antes (ver docs/agente-inteligencia-logistica.md, seção 7.1).
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const toRad = g => g * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Reconstrói a sequência real de visita (ordenada por chegou_em, já feito na
+// query) e calcula, pra cada parada, a distância e o intervalo até a parada
+// anterior DO MESMO DIA — não faz sentido comparar a última parada de um dia
+// com a primeira do dia seguinte. Marca como "alerta" quando a distância for
+// muito maior que a média do Mapa (ver seção 7.1 do documento do agente).
+function calcularSequenciaEDistancias(paradas) {
+  paradas.forEach(p => {
+    const real = horaParaSegundos(p.tempo_atendimento);
+    const est = horaParaSegundos(p.tempo_estimado_atendimento);
+    p.estouro_seg_calc = (real !== null && est !== null) ? (real - est) : null;
+    p.distancia_km_calc = null;
+    p.gap_min_calc = null;
+    p.gap_alerta = false;
+  });
+
+  const porData = new Map();
+  paradas.forEach(p => {
+    if (!porData.has(p.data)) porData.set(p.data, []);
+    porData.get(p.data).push(p);
+  });
+
+  porData.forEach(grupo => {
+    const distancias = [];
+    for (let i = 1; i < grupo.length; i++) {
+      const anterior = grupo[i - 1], atual = grupo[i];
+      if (anterior.latitude_join != null && anterior.longitude_join != null && atual.latitude_join != null && atual.longitude_join != null) {
+        atual.distancia_km_calc = haversineKm(anterior.latitude_join, anterior.longitude_join, atual.latitude_join, atual.longitude_join);
+        distancias.push(atual.distancia_km_calc);
+      }
+      if (anterior.finalizada_em && atual.chegou_em) {
+        const segFinal = horaParaSegundos(anterior.finalizada_em);
+        const segChegada = horaParaSegundos(atual.chegou_em);
+        if (segFinal !== null && segChegada !== null) atual.gap_min_calc = (segChegada - segFinal) / 60;
+      }
+    }
+    if (distancias.length) {
+      const media = distancias.reduce((a, b) => a + b, 0) / distancias.length;
+      grupo.forEach(p => { if (p.distancia_km_calc !== null && p.distancia_km_calc > media * LIMIAR_GAP_ALERTA) p.gap_alerta = true; });
+    }
+  });
 }
 
 // ============================================================
@@ -388,7 +441,7 @@ async function anexarNomeECidade(paradas) {
   try {
     const { data, error } = await supabaseClient
       .from('clientes')
-      .select('chave, nome_cliente, cidade')
+      .select('chave, nome_cliente, cidade, tipo_cliente, latitude, longitude')
       .in('chave', chaves);
     if (error) throw error;
 
@@ -397,9 +450,12 @@ async function anexarNomeECidade(paradas) {
       const cliente = porChave.get(p.chave_calculada);
       p.nome_cliente_join = cliente ? cliente.nome_cliente : null;
       p.cidade_join = cliente ? cliente.cidade : null;
+      p.tipo_cliente_join = cliente ? cliente.tipo_cliente : null;
+      p.latitude_join = cliente ? cliente.latitude : null;
+      p.longitude_join = cliente ? cliente.longitude : null;
     });
   } catch (erro) {
-    console.warn('Não deu pra buscar Nome Cliente/Cidade na tabela "clientes":', erro.message);
+    console.warn('Não deu pra buscar Nome Cliente/Cidade/Tipo/Coordenada na tabela "clientes":', erro.message);
   }
 }
 
@@ -427,7 +483,10 @@ async function buscarMapa() {
 
   try {
     let query2art = supabaseClient.from('atendimentos_2art').select('*').eq('revenda', revenda).eq('mapa', mapaNum).order('data', { ascending: false });
-    let queryParadas = supabaseClient.from('atendimentos').select('*').eq('revenda', revenda).eq('mapa', mapaNum).order('data', { ascending: false }).order('cod_cliente', { ascending: true }).limit(LIMITE_PARADAS);
+    // Ordena por chegou_em (não cod_cliente) — é a sequência real de visita do
+    // motorista, não a ordem em que os clientes foram cadastrados/importados
+    // (ver docs/agente-inteligencia-logistica.md, seção 7.1).
+    let queryParadas = supabaseClient.from('atendimentos').select('*').eq('revenda', revenda).eq('mapa', mapaNum).order('data', { ascending: false }).order('chegou_em', { ascending: true, nullsFirst: false }).limit(LIMITE_PARADAS);
     if (dataStr) { query2art = query2art.eq('data', dataStr); queryParadas = queryParadas.eq('data', dataStr); }
 
     const [{ data: dados2art, error: erro2art }, { data: dadosParadas, error: erroParadas }] = await Promise.all([query2art, queryParadas]);
@@ -435,6 +494,7 @@ async function buscarMapa() {
     if (erroParadas) throw erroParadas;
 
     await anexarNomeECidade(dadosParadas || []);
+    calcularSequenciaEDistancias(dadosParadas || []);
 
     renderizarBase2art(dados2art || []);
     renderizarParadas(dadosParadas || []);
@@ -481,7 +541,10 @@ function renderizarParadas(registros) {
   const tbody = document.getElementById('tbodyParadas');
   thead.innerHTML = COLUNAS_PARADAS.map(c => `<th>${c.label}</th>`).join('');
   tbody.innerHTML = registros.map(r => `
-    <tr>${COLUNAS_PARADAS.map(c => `<td>${formatarValorParada(c, r[c.chave])}</td>`).join('')}</tr>
+    <tr>${COLUNAS_PARADAS.map(c => {
+      const destacar = r.gap_alerta && (c.chave === 'distancia_km_calc' || c.chave === 'gap_min_calc');
+      return `<td${destacar ? ' class="celula-gap-alerta"' : ''}>${formatarValorParada(c, r[c.chave])}</td>`;
+    }).join('')}</tr>
   `).join('');
 
   const atingiuLimite = registros.length === LIMITE_PARADAS;

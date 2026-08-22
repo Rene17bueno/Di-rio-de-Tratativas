@@ -265,52 +265,13 @@
   .celula-diagonal .valor-principal { top: 3px; left: 4px; }
   .celula-diagonal .valor-secundario { bottom: 3px; right: 4px; color: var(--danger); }
 </style>
+<script src="nav-shared.js"></script>
 </head>
 <body>
-  <div class="container">
-    <nav class="navbar navbar-expand-lg navbar-site px-3 py-2 mb-2">
-      <div class="container-fluid px-0">
-        <a class="navbar-brand" href="index.html">
-          <span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span>
-          <span class="brand-text"><span class="sub">Painel</span>OT</span>
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir menu">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="menuPrincipal">
-          <ul class="navbar-nav ms-auto gap-1 align-items-lg-center">
-            <li class="nav-item">
-              <a class="nav-link" href="index.html"><i class="bi bi-journal-richtext me-1"></i>Diário de Tratativas</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="tratativageo.html"><i class="bi bi-geo-alt-fill me-1"></i>Geolocalizador</a>
-            </li>
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="menuImportacao" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-cloud-arrow-up-fill me-1"></i>Importação de Dados
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuImportacao">
-                <li><a class="dropdown-item" href="tratamento-dados.html"><i class="bi bi-truck"></i>Tratamento de Base</a></li>
-                <li><a class="dropdown-item" href="tratamento-2art.html"><i class="bi bi-files"></i>Base 2art</a></li>
-                <li><a class="dropdown-item" href="tratamento-clientes.html"><i class="bi bi-people-fill"></i>Base de Clientes</a></li>
-                <li><a class="dropdown-item" href="tratamento-carregamento.html"><i class="bi bi-truck-flatbed"></i>Carregamento / Lacre</a></li>
-              </ul>
-            </li>
-            <li class="nav-item dropdown section-active">
-              <a class="nav-link dropdown-toggle" href="#" id="menuAnalises" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-graph-up-arrow me-1"></i>Consultas &amp; Análises
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuAnalises">
-                <li><a class="dropdown-item" href="consulta-mapa.html"><i class="bi bi-signpost-2-fill"></i>Consulta por Mapa</a></li>
-                <li><a class="dropdown-item" href="vinculo-tabelas.html"><i class="bi bi-link-45deg"></i>Vínculo de Tabelas</a></li>
-                <li><a class="dropdown-item active" aria-current="page" href="ranking-estouro.html"><i class="bi bi-graph-up-arrow"></i>Ranking de Estouro</a></li>
-              </ul>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
-  </div>
+  <div class="container"><div id="navHost"></div></div>
+  <script>montarNavegacao('consultas', 'ranking');</script>
+  <div class="container"><div id="subNavHost"></div></div>
+  <script>montarSubNav('consultas', 'ranking');</script>
 
 <div class="container py-4" style="max-width: 1400px;">
 
@@ -942,7 +903,16 @@ function montarGraficosCidades(resultadosPorRevenda) {
   `).join('');
 
   REVENDAS_PAINEL.forEach(revenda => {
-    const top10 = topDezCidades(resultadosPorRevenda[revenda], modo);
+    let top10 = topDezCidades(resultadosPorRevenda[revenda], modo);
+    if (modo === 'quantidade') {
+      // Exibição ordenada pela razão com/sem (maior pra menor), independente
+      // do critério usado pra escolher as 10 cidades (campo do CAMPO_POR_MODO).
+      top10 = [...top10].sort((a, b) => {
+        const razaoA = a.qtdSemEstouro ? a.qtdEstouros / a.qtdSemEstouro : 0;
+        const razaoB = b.qtdSemEstouro ? b.qtdEstouros / b.qtdSemEstouro : 0;
+        return razaoB - razaoA;
+      });
+    }
     renderizarGraficoBarrasCidade(`svgWrap-${revenda}`, top10, modo);
     renderizarTabelaCidades(`tabelaWrap-${revenda}`, top10);
   });
@@ -974,6 +944,13 @@ function pathBarraHorizontal(xBase, xPonta, y, altura, raio) {
 
 function truncarTexto(texto, maxChars) {
   return texto.length > maxChars ? texto.slice(0, maxChars - 1) + '…' : texto;
+}
+
+// Caminho SVG de um segmento de barra vertical empilhada — cantos de cima
+// arredondados (é o topo da pilha), base quadrada (encosta no próximo segmento).
+function pathBarraVerticalTopo(x1, x2, yTopo, yBase, raio) {
+  const r = Math.max(0, Math.min(raio, (x2 - x1) / 2, yBase - yTopo));
+  return `M ${x1} ${yBase} V ${yTopo + r} Q ${x1} ${yTopo} ${x1 + r} ${yTopo} H ${x2 - r} Q ${x2} ${yTopo} ${x2} ${yTopo + r} V ${yBase} Z`;
 }
 
 // Nomes de cidade vêm da importação de CSV (dado externo) — nunca confiar
@@ -1038,9 +1015,11 @@ function renderizarGraficoBarrasCidade(idContainer, dados, modo) {
     // Comparação: duas barras por cidade, com estouro (vermelha) em cima e
     // sem estouro (azul) embaixo, na mesma escala — pra comparar de olho.
     const alturaBarra = 9, gapBarras = 3;
-    const alturaLinha = alturaBarra * 2 + gapBarras + 10;
-    const larguraValor = 40;
-    const larguraPlot = largura - larguraLabel - larguraValor;
+    const alturaBlocoBarras = alturaBarra * 2 + gapBarras + 10;
+    const alturaLinha = alturaBlocoBarras;
+    const larguraValor = 60;
+    const larguraRazao = 34;
+    const larguraPlot = largura - larguraLabel - larguraValor - larguraRazao;
     altura = padTopo + dados.length * alturaLinha + padBaixo;
 
     const maxValor = Math.max(1, ...dados.flatMap(d => [d.qtdEstouros, d.qtdSemEstouro]));
@@ -1048,23 +1027,33 @@ function renderizarGraficoBarrasCidade(idContainer, dados, modo) {
 
     barrasSvg = dados.map((d, i) => {
       const yBase = padTopo + i * alturaLinha;
-      const yEstouro = yBase + (alturaLinha - alturaBarra * 2 - gapBarras) / 2;
+      const yEstouro = yBase + (alturaBlocoBarras - alturaBarra * 2 - gapBarras) / 2;
       const ySemEstouro = yEstouro + alturaBarra + gapBarras;
       const larguraEstouro = d.qtdEstouros * escala;
       const larguraSemEstouro = d.qtdSemEstouro * escala;
       const pathEstouro = pathBarraHorizontal(larguraLabel, larguraLabel + larguraEstouro, yEstouro, alturaBarra, 3);
       const pathSemEstouro = pathBarraHorizontal(larguraLabel, larguraLabel + larguraSemEstouro, ySemEstouro, alturaBarra, 3);
+      const totalApontamentos = d.qtdEstouros + d.qtdSemEstouro;
+      const pctEstouro = totalApontamentos ? (d.qtdEstouros / totalApontamentos * 100) : 0;
+      const pctSemEstouro = totalApontamentos ? (d.qtdSemEstouro / totalApontamentos * 100) : 0;
+      const pctEstouroFmt = pctEstouro.toFixed(pctEstouro < 10 ? 1 : 0) + '%';
+      const pctSemEstouroFmt = pctSemEstouro.toFixed(pctSemEstouro < 10 ? 1 : 0) + '%';
+      // Razão entre as duas barras (com estouro / sem estouro) — diferente do %
+      // sobre o total acima; aqui é uma barra dividida pela outra.
+      const razaoComSem = d.qtdSemEstouro ? (d.qtdEstouros / d.qtdSemEstouro * 100) : 0;
+      const razaoFmt = razaoComSem.toFixed(razaoComSem < 10 ? 1 : 0) + '%';
 
       return `
         <g class="grafico-barra-hit" tabindex="0" role="img"
-           aria-label="${escapeHtml(d.cidade)}: ${d.qtdEstouros} com estouro, ${d.qtdSemEstouro} sem estouro, ${d.qtdClientes} cliente(s)"
-           data-cidade="${escapeHtml(d.cidade)}" data-estouros="${d.qtdEstouros}" data-sem-estouro="${d.qtdSemEstouro}" data-qtd="${d.qtdClientes}">
+           aria-label="${escapeHtml(d.cidade)}: ${d.qtdEstouros} com estouro (${pctEstouroFmt}), ${d.qtdSemEstouro} sem estouro (${pctSemEstouroFmt}), razão com/sem ${razaoFmt}, ${d.qtdClientes} cliente(s)"
+           data-cidade="${escapeHtml(d.cidade)}" data-estouros="${d.qtdEstouros}" data-sem-estouro="${d.qtdSemEstouro}" data-pct-estouro="${pctEstouroFmt}" data-pct-sem-estouro="${pctSemEstouroFmt}" data-razao="${razaoFmt}" data-qtd="${d.qtdClientes}">
           <rect x="0" y="${yBase}" width="${largura}" height="${alturaLinha}" fill="transparent"></rect>
-          <text x="${larguraLabel - 8}" y="${yBase + alturaLinha / 2 + 4}" text-anchor="end" font-size="11" fill="#52514e">${escapeHtml(truncarTexto(d.cidade, 16))}</text>
+          <text x="${larguraLabel - 8}" y="${yBase + alturaBlocoBarras / 2 + 4}" text-anchor="end" font-size="11" fill="#52514e">${escapeHtml(truncarTexto(d.cidade, 16))}</text>
           <path class="barra" d="${pathEstouro}" fill="${COR_ESTOURO_POSITIVO}"></path>
-          <text x="${larguraLabel + larguraEstouro + 5}" y="${yEstouro + alturaBarra / 2 + 3.5}" font-size="10" fill="#0b0b0b" font-weight="600">${d.qtdEstouros}</text>
+          <text x="${larguraLabel + larguraEstouro + 5}" y="${yEstouro + alturaBarra / 2 + 3.5}" font-size="10" fill="#0b0b0b" font-weight="600">${d.qtdEstouros} <tspan font-size="9" font-weight="500" fill="#8a8a86">(${pctEstouroFmt})</tspan></text>
           <path class="barra" d="${pathSemEstouro}" fill="${COR_ESTOURO_NEGATIVO}"></path>
-          <text x="${larguraLabel + larguraSemEstouro + 5}" y="${ySemEstouro + alturaBarra / 2 + 3.5}" font-size="10" fill="#0b0b0b" font-weight="600">${d.qtdSemEstouro}</text>
+          <text x="${larguraLabel + larguraSemEstouro + 5}" y="${ySemEstouro + alturaBarra / 2 + 3.5}" font-size="10" fill="#0b0b0b" font-weight="600">${d.qtdSemEstouro} <tspan font-size="9" font-weight="500" fill="#8a8a86">(${pctSemEstouroFmt})</tspan></text>
+          <text x="${largura - 4}" y="${yBase + alturaBlocoBarras / 2 + 3}" text-anchor="end" font-size="10" font-weight="600" fill="#000000">${razaoFmt}</text>
         </g>`;
     }).join('');
   }
@@ -1095,7 +1084,7 @@ function renderizarGraficoBarrasCidade(idContainer, dados, modo) {
       } else {
         valorEl.textContent = `${grupo.dataset.estouros} com estouro`;
         tooltip.appendChild(valorEl);
-        tooltip.appendChild(document.createTextNode(` · ${grupo.dataset.semEstouro} sem estouro · ${grupo.dataset.qtd} cliente(s)`));
+        tooltip.appendChild(document.createTextNode(` · ${grupo.dataset.semEstouro} sem estouro · ${grupo.dataset.razao} · ${grupo.dataset.qtd} cliente(s)`));
       }
       const retContainer = container.getBoundingClientRect();
       const x = (evento.clientX !== undefined ? evento.clientX : retContainer.left) - retContainer.left;
@@ -1121,18 +1110,23 @@ function renderizarTabelaCidades(idContainer, dados) {
   }
   container.innerHTML = `
     <table class="table table-sm table-bordered mb-0" style="font-size:0.78rem;">
-      <thead><tr><th>#</th><th>Cidade</th><th>Estouro (Média)</th><th>Qtd. c/ Estouro</th><th>Qtd. Sem Estouro</th><th>Clientes</th></tr></thead>
+      <thead><tr><th>#</th><th>Cidade</th><th>Estouro (Média)</th><th>Qtd. c/ Estouro</th><th>Qtd. Sem Estouro</th><th>Razão c/sem</th><th>Clientes</th></tr></thead>
       <tbody>
-        ${dados.map((d, i) => `
+        ${dados.map((d, i) => {
+          const razaoComSem = d.qtdSemEstouro ? (d.qtdEstouros / d.qtdSemEstouro * 100) : 0;
+          const razaoFmt = razaoComSem.toFixed(razaoComSem < 10 ? 1 : 0) + '%';
+          return `
           <tr>
             <td>${i + 1}</td>
             <td>${escapeHtml(d.cidade)}</td>
             <td>${(d.valorMedioSegundos >= 0 ? '+' : '') + segundosParaHora(d.valorMedioSegundos)}</td>
             <td>${d.qtdEstouros}</td>
             <td>${d.qtdSemEstouro}</td>
+            <td>${razaoFmt}</td>
             <td>${d.qtdClientes}</td>
           </tr>
-        `).join('')}
+        `;
+        }).join('')}
       </tbody>
     </table>
   `;
@@ -1259,6 +1253,83 @@ function calcularMetricasPorDia(registros) {
   return porDia;
 }
 
+const NOME_DIA_SEMANA = { SEG: 'Segunda', TER: 'Terça', QUA: 'Quarta', QUI: 'Quinta', SEX: 'Sexta', SAB: 'Sábado' };
+
+// Gráfico de barras empilhadas: 1 barra por dia da semana, vermelho (com
+// estouro) embaixo + azul (sem estouro) em cima, somando todos os clientes
+// exibidos na tabela — pra ver o volume e a proporção de estouro por dia.
+function renderizarGraficoDiaSemana(dadosPorCliente) {
+  const porDia = DIAS_SEMANA_UTEIS.map(d => {
+    let qtdEstouro = 0, qtdTotal = 0;
+    dadosPorCliente.forEach(c => {
+      qtdTotal += c.porDia[d].qtd;
+      qtdEstouro += c.porDia[d].qtdEstouro;
+    });
+    return { dia: d, nome: NOME_DIA_SEMANA[d], qtdEstouro, qtdSemEstouro: qtdTotal - qtdEstouro, qtdTotal };
+  });
+
+  const largura = 640, altura = 260;
+  const padEsq = 34, padDir = 10, padTopo = 22, padBaixo = 34;
+  const larguraPlot = largura - padEsq - padDir;
+  const alturaPlot = altura - padTopo - padBaixo;
+  const maxTotal = Math.max(1, ...porDia.map(d => d.qtdTotal));
+  const escalaY = alturaPlot / maxTotal;
+  const yBase = padTopo + alturaPlot;
+
+  const gap = 20;
+  const larguraBarra = (larguraPlot - gap * (porDia.length - 1)) / porDia.length;
+
+  const passosGrade = 4;
+  const gridSvg = Array.from({ length: passosGrade + 1 }, (_, i) => {
+    const valor = Math.round(maxTotal * i / passosGrade);
+    const y = yBase - valor * escalaY;
+    return `
+      <line x1="${padEsq}" y1="${y}" x2="${largura - padDir}" y2="${y}" stroke="#e4e2dd" stroke-width="1"></line>
+      <text x="${padEsq - 6}" y="${y + 3}" text-anchor="end" font-size="9" fill="#8a8a86">${valor}</text>`;
+  }).join('');
+
+  const barrasSvg = porDia.map((d, i) => {
+    const x = padEsq + i * (larguraBarra + gap);
+    const alturaEstouro = d.qtdEstouro * escalaY;
+    const alturaSemEstouro = d.qtdSemEstouro * escalaY;
+    const yTopoEstouro = yBase - alturaEstouro;
+    const yTopoSemEstouro = yTopoEstouro - alturaSemEstouro;
+
+    const segEstouro = d.qtdEstouro > 0
+      ? (d.qtdSemEstouro > 0
+          ? `<rect x="${x}" y="${yTopoEstouro}" width="${larguraBarra}" height="${alturaEstouro}" fill="${COR_ESTOURO_POSITIVO}"></rect>`
+          : `<path d="${pathBarraVerticalTopo(x, x + larguraBarra, yTopoEstouro, yBase, 4)}" fill="${COR_ESTOURO_POSITIVO}"></path>`)
+      : '';
+    const segSemEstouro = d.qtdSemEstouro > 0
+      ? `<path d="${pathBarraVerticalTopo(x, x + larguraBarra, yTopoSemEstouro, yTopoEstouro, 4)}" fill="${COR_ESTOURO_NEGATIVO}"></path>`
+      : '';
+
+    return `
+      <g role="img" aria-label="${d.nome}: ${d.qtdTotal} atendimento(s), ${d.qtdEstouro} com estouro, ${d.qtdSemEstouro} sem estouro">
+        ${segEstouro}
+        ${segSemEstouro}
+        ${d.qtdTotal > 0 ? `<text x="${x + larguraBarra / 2}" y="${yTopoSemEstouro - 6}" text-anchor="middle" font-size="10" font-weight="600" fill="#0b0b0b">${d.qtdTotal}</text>` : ''}
+        <text x="${x + larguraBarra / 2}" y="${yBase + 15}" text-anchor="middle" font-size="10" fill="#52514e">${d.nome}</text>
+      </g>`;
+  }).join('');
+
+  return `
+    <div class="grafico-cidade-card">
+      <div class="d-flex align-items-center justify-content-between mb-1">
+        <h6 class="text-primary-dark fw-bold mb-0">Atendimentos por Dia da Semana</h6>
+      </div>
+      <div class="grafico-cidade-legenda mb-2">
+        <span class="chave"><span class="chave-cor" style="background:${COR_ESTOURO_POSITIVO};"></span>Com estouro</span>
+        <span class="chave"><span class="chave-cor" style="background:${COR_ESTOURO_NEGATIVO};"></span>Sem estouro</span>
+      </div>
+      <svg viewBox="0 0 ${largura} ${altura}" width="100%" height="${altura}" role="group" aria-label="Atendimentos por dia da semana, com e sem estouro" style="overflow:visible;">
+        ${gridSvg}
+        <line x1="${padEsq}" y1="${yBase}" x2="${largura - padDir}" y2="${yBase}" stroke="#c9c7c1" stroke-width="1"></line>
+        ${barrasSvg}
+      </svg>
+    </div>`;
+}
+
 function renderizarDetalheDiaSemana(piores, revenda, cidadeExibicao) {
   const container = document.getElementById('resultadoDetalheDiaSemana');
   if (!piores.length) {
@@ -1324,7 +1395,8 @@ function renderizarDetalheDiaSemana(piores, revenda, cidadeExibicao) {
   }
 
   container.innerHTML = `
-    <p class="small text-muted-ink mb-3">
+    ${renderizarGraficoDiaSemana(dadosPorCliente)}
+    <p class="small text-muted-ink mb-3 mt-3">
       <i class="bi bi-info-circle me-1"></i>Na tabela "Qtd. de Atendimentos por Dia", cada quadrado cortado mostra
       o total de atendimentos (canto superior esquerdo) e quantos estouraram (canto inferior direito).
     </p>

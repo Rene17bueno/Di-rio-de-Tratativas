@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Importação de Dados · PainelOT</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="nav-shared.js"></script>
+<style>
+  :root {
+    --brand-50:  #eef4ff; --brand-100: #dce8ff; --brand-200: #b3ceff;
+    --brand-500: #245bc7; --brand-600: #1c4aa8; --brand-700: #163a85;
+    --ink-900: #101828; --ink-700: #344054; --ink-500: #667085;
+    --surface-0: #ffffff; --surface-1: #e9edf4;
+    --border-soft: #e3e8f0;
+    --radius-lg: 1rem; --radius-md: 0.7rem; --radius-sm: 0.5rem;
+    --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+    --shadow-pop: 0 4px 10px rgba(16,24,40,.10), 0 12px 32px rgba(16,24,40,.10);
+  }
+  * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { background: var(--surface-1); color: var(--ink-700); padding-bottom: 4rem; }
+  h1, h2, h3, h4, h5, h6 { color: var(--ink-900); letter-spacing: -0.01em; }
+  .text-primary-dark { color: var(--brand-700) !important; }
+  .breadcrumb-trail { font-size: .78rem; color: var(--ink-500); margin-bottom: .35rem; }
+  .card-shadow { box-shadow: var(--shadow-card); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface-0); }
+  .etapa-card { text-decoration: none; display: block; height: 100%; transition: transform .12s, box-shadow .12s; }
+  .etapa-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-pop); }
+  .etapa-card .etapa-numero {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--brand-500); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.05rem;
+  }
+  .etapa-card .etapa-titulo { color: var(--ink-900); font-weight: 700; font-size: 1.05rem; margin: .6rem 0 .3rem; }
+  .etapa-card .etapa-desc { color: var(--ink-500); font-size: .85rem; }
+  .etapa-card .etapa-ir { color: var(--brand-600); font-size: .82rem; font-weight: 600; margin-top: .6rem; display: inline-flex; align-items: center; gap: .3rem; }
+</style>
+</head>
+<body>
+  <div class="container"><div id="navHost"></div></div>
+  <script>montarNavegacao('importacao');</script>
+
+  <div class="container py-4">
+    <div class="page-header mb-4">
+      <div class="breadcrumb-trail">Importação de Dados</div>
+      <h1 class="display-6 fw-semibold text-primary-dark mb-1">
+        <i class="bi bi-cloud-arrow-up-fill me-2" style="color: var(--brand-500);"></i>Importação de Dados
+      </h1>
+      <p class="small mb-0">Todas as planilhas que alimentam o banco entram por aqui — escolha a base que você vai tratar hoje.</p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-3">
+        <a class="card card-shadow p-4 etapa-card" href="tratamento-dados.html">
+          <span class="etapa-numero">1</span>
+          <div class="etapa-titulo"><i class="bi bi-truck me-1"></i>Tratamento de Base</div>
+          <div class="etapa-desc">Planilha de atendimentos (export do sistema) — trata e leva pra tabela <code>atendimentos</code>.</div>
+          <div class="etapa-ir">Abrir <i class="bi bi-arrow-right"></i></div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <a class="card card-shadow p-4 etapa-card" href="tratamento-2art.html">
+          <span class="etapa-numero">2</span>
+          <div class="etapa-titulo"><i class="bi bi-files me-1"></i>Base 2art</div>
+          <div class="etapa-desc">Indicadores de rota por Mapa (TR, TML, JL, DT%, DK%) — alimenta <code>atendimentos_2art</code>.</div>
+          <div class="etapa-ir">Abrir <i class="bi bi-arrow-right"></i></div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <a class="card card-shadow p-4 etapa-card" href="tratamento-clientes.html">
+          <span class="etapa-numero">3</span>
+          <div class="etapa-titulo"><i class="bi bi-people-fill me-1"></i>Base de Clientes</div>
+          <div class="etapa-desc">Cadastro de clientes (coordenadas, cidade, tipo) — alimenta a tabela <code>clientes</code>.</div>
+          <div class="etapa-ir">Abrir <i class="bi bi-arrow-right"></i></div>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <a class="card card-shadow p-4 etapa-card" href="tratamento-carregamento.html">
+          <span class="etapa-numero">4</span>
+          <div class="etapa-titulo"><i class="bi bi-truck-flatbed me-1"></i>Carregamento / Lacre</div>
+          <div class="etapa-desc">Eventos de carregamento e lacre por rota — alimenta <code>carregamento_eventos</code>.</div>
+          <div class="etapa-ir">Abrir <i class="bi bi-arrow-right"></i></div>
+        </a>
+      </div>
+    </div>
+
+    <div class="card card-shadow p-3 mt-4">
+      <p class="small mb-0"><i class="bi bi-info-circle me-1"></i> Dentro de cada base você encontra uma aba de navegação rápida
+      pra trocar entre as 4 sem precisar voltar aqui.</p>
+    </div>
+  </div>
+</body>
+</html>

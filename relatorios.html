@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatórios · PainelOT</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="nav-shared.js"></script>
+<style>
+  :root {
+    --brand-50:  #eef4ff; --brand-100: #dce8ff; --brand-200: #b3ceff;
+    --brand-500: #245bc7; --brand-600: #1c4aa8; --brand-700: #163a85;
+    --ink-900: #101828; --ink-700: #344054; --ink-500: #667085;
+    --surface-0: #ffffff; --surface-1: #e9edf4; --surface-2: #eef2f8;
+    --border-soft: #e3e8f0; --border-strong: #c9d3e0;
+    --success: #0f9d58; --success-bg: #e6f7ee; --danger: #c0362c; --danger-bg: #fbeae8;
+    --radius-lg: 1rem; --radius-md: 0.7rem; --radius-sm: 0.5rem;
+    --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+    --shadow-pop: 0 4px 10px rgba(16,24,40,.10), 0 12px 32px rgba(16,24,40,.10);
+  }
+  * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { background: var(--surface-1); color: var(--ink-700); padding-bottom: 4rem; }
+  h1, h2, h3, h4, h5, h6 { color: var(--ink-900); letter-spacing: -0.01em; }
+  .text-primary-dark { color: var(--brand-700) !important; }
+  small, .small { color: var(--ink-500); }
+  .breadcrumb-trail { font-size: .78rem; color: var(--ink-500); margin-bottom: .35rem; }
+  .card-shadow { box-shadow: var(--shadow-card); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface-0); }
+  .form-label { font-size: .78rem; font-weight: 600; color: var(--ink-700); }
+  .form-control, .form-select { border-color: var(--border-strong); font-size: .88rem; }
+  .form-control:focus, .form-select:focus { border-color: var(--brand-500); box-shadow: 0 0 0 .2rem var(--brand-50); }
+  .btn { font-weight: 600; letter-spacing: -0.005em; }
+  .btn-primary-brand { background: var(--brand-500); border: 1px solid var(--brand-500); color: #fff; }
+  .btn-primary-brand:hover { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+  .btn-primary-soft { background: var(--brand-50); border: 1px solid var(--brand-100); color: var(--brand-700); }
+  .btn-primary-soft:hover { background: var(--brand-100); border-color: var(--brand-200); }
+
+  .relatorio-tabs .nav-link { color: var(--ink-700); font-weight: 600; border-radius: var(--radius-md) var(--radius-md) 0 0; }
+  .relatorio-tabs .nav-link.active { color: var(--brand-700); background: var(--surface-0); border-color: var(--border-soft) var(--border-soft) var(--surface-0); }
+
+  .kpi-box { background: var(--surface-1); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: .9rem 1.1rem; text-align: center; }
+  .kpi-box .kpi-label { font-size: .72rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: .03em; }
+  .kpi-box .kpi-valor { font-size: 1.5rem; font-weight: 700; color: var(--ink-900); }
+
+  .table-preview-wrap { max-height: 380px; overflow: auto; border-radius: var(--radius-md); }
+  .table-preview-wrap table { font-size: 0.82rem; margin-bottom: 0; }
+  .table-preview-wrap thead th {
+    position: sticky; top: 0; background: var(--surface-2); color: var(--ink-700); z-index: 1;
+    text-align: center; vertical-align: middle; white-space: nowrap;
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; font-weight: 700;
+    border-color: var(--border-soft);
+  }
+  .table-preview-wrap tbody td { border-color: var(--border-soft); vertical-align: middle; }
+
+  @media print {
+    #navHost, .no-print { display: none !important; }
+    body { background: #fff; padding-bottom: 0; }
+    .card-shadow { box-shadow: none; border: 1px solid #ccc; }
+  }
+</style>
+</head>
+<body>
+  <div class="container no-print"><div id="navHost"></div></div>
+  <script>montarNavegacao('relatorios');</script>
+
+  <div class="container py-4">
+    <div class="page-header d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3 no-print">
+      <div>
+        <div class="breadcrumb-trail">Relatórios</div>
+        <h1 class="display-6 fw-semibold text-primary-dark mb-1">
+          <i class="bi bi-calendar3-range me-2" style="color: var(--brand-500);"></i>Relatórios
+        </h1>
+        <p class="small mb-0">Resumo pronto pra passar adiante — diário, semanal ou mensal.</p>
+      </div>
+      <button class="btn btn-primary-soft" id="btnImprimir" type="button"><i class="bi bi-printer me-1"></i>Imprimir / Salvar PDF</button>
+    </div>
+
+    <ul class="nav nav-tabs relatorio-tabs no-print mb-0" id="abasRelatorio">
+      <li class="nav-item"><button class="nav-link" data-aba="diario" type="button"><i class="bi bi-calendar-day me-1"></i>Diário</button></li>
+      <li class="nav-item"><button class="nav-link" data-aba="semanal" type="button"><i class="bi bi-calendar-week me-1"></i>Semanal</button></li>
+      <li class="nav-item"><button class="nav-link" data-aba="mensal" type="button"><i class="bi bi-calendar-month me-1"></i>Mensal</button></li>
+    </ul>
+
+    <div class="card card-shadow p-4" style="border-top-left-radius:0;">
+
+      <!-- ===== DIÁRIO ===== -->
+      <div id="painelDiario" class="painel-relatorio">
+        <div class="d-flex flex-wrap align-items-end gap-2 mb-3 no-print">
+          <div>
+            <label class="form-label mb-1">Data</label>
+            <input type="date" class="form-control form-control-sm" id="diarioData" style="width:170px;">
+          </div>
+          <button class="btn btn-sm btn-primary-brand" id="diarioAtualizar" type="button"><i class="bi bi-arrow-repeat me-1"></i>Gerar</button>
+          <span class="small ms-auto" id="diarioStatus"></span>
+        </div>
+        <h4 class="fw-semibold text-primary-dark mb-3">Relatório Diário — <span id="diarioTituloData">—</span></h4>
+
+        <div class="row g-2 mb-4" id="diarioKpis"></div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="card card-shadow p-3 text-center">
+              <div class="small fw-semibold">Tratativas registradas no dia</div>
+              <div class="fs-3 fw-bold text-primary-dark" id="diarioTratativasCount">0</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card card-shadow p-3 text-center">
+              <div class="small fw-semibold">Pendentes em aberto até a data</div>
+              <div class="fs-3 fw-bold" style="color:#dc3545;" id="diarioPendentesCount">0</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card card-shadow p-3 text-center">
+              <div class="small fw-semibold">Resolvidas no dia</div>
+              <div class="fs-3 fw-bold" style="color:#198754;" id="diarioResolvidasCount">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-secondary small fw-semibold mb-2">Tratativas do dia</div>
+        <div class="table-preview-wrap">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Revenda</th><th>Tipo de Ação</th><th>DT</th><th>Descrição</th><th>Status</th></tr></thead>
+            <tbody id="diarioTabelaTratativas"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== SEMANAL ===== -->
+      <div id="painelSemanal" class="painel-relatorio d-none">
+        <div class="d-flex flex-wrap align-items-end gap-2 mb-3 no-print">
+          <div>
+            <label class="form-label mb-1">Qualquer dia da semana desejada</label>
+            <input type="date" class="form-control form-control-sm" id="semanalData" style="width:170px;">
+          </div>
+          <button class="btn btn-sm btn-primary-brand" id="semanalAtualizar" type="button"><i class="bi bi-arrow-repeat me-1"></i>Gerar</button>
+          <span class="small ms-auto" id="semanalStatus"></span>
+        </div>
+        <h4 class="fw-semibold text-primary-dark mb-3">Relatório Semanal — <span id="semanalTituloPeriodo">—</span></h4>
+
+        <div class="row g-2 mb-4" id="semanalKpis"></div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-lg-8">
+            <div class="card card-shadow p-3 h-100">
+              <div class="text-secondary small fw-semibold mb-2">DT% mediana por dia da semana</div>
+              <canvas id="semanalChartDt" height="200"></canvas>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="card card-shadow p-3 text-center h-100 d-flex flex-column justify-content-center">
+              <div class="small fw-semibold">Tratativas abertas</div>
+              <div class="fs-3 fw-bold text-primary-dark" id="semanalAbertasCount">0</div>
+              <hr>
+              <div class="small fw-semibold">Tratativas resolvidas</div>
+              <div class="fs-3 fw-bold" style="color:#198754;" id="semanalResolvidasCount">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== MENSAL ===== -->
+      <div id="painelMensal" class="painel-relatorio d-none">
+        <div class="d-flex flex-wrap align-items-end gap-2 mb-3 no-print">
+          <div>
+            <label class="form-label mb-1">Mês</label>
+            <input type="month" class="form-control form-control-sm" id="mensalMes" style="width:170px;">
+          </div>
+          <button class="btn btn-sm btn-primary-brand" id="mensalAtualizar" type="button"><i class="bi bi-arrow-repeat me-1"></i>Gerar</button>
+          <span class="small ms-auto" id="mensalStatus"></span>
+        </div>
+        <h4 class="fw-semibold text-primary-dark mb-3">Relatório Mensal — <span id="mensalTituloMes">—</span></h4>
+
+        <div class="row g-2 mb-4" id="mensalKpis"></div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-lg-6">
+            <div class="card card-shadow p-3 h-100">
+              <div class="text-secondary small fw-semibold mb-2">DT% mediana por semana do mês</div>
+              <canvas id="mensalChartSemana" height="220"></canvas>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card card-shadow p-3 h-100">
+              <div class="text-secondary small fw-semibold mb-2">Tratativas por status no mês</div>
+              <canvas id="mensalChartStatus" height="220"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-secondary small fw-semibold mb-2">Revendas com maior desvio de tempo acumulado no mês</div>
+        <div class="table-preview-wrap">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Revenda</th><th>Mapas</th><th>DT% mediana</th><th>Soma de |DT%| (pontos)</th></tr></thead>
+            <tbody id="mensalTabelaRevendas"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const SUPABASE_URL = 'https://scbdlyfavqlzstbulrup.supabase.co';
+      const SUPABASE_ANON_KEY = 'sb_publishable_M55itc2oMAlK3bEFj9Le5Q_CeBsVBUV';
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      const REVENDAS = ['MGA', 'GPA', 'PG', 'NP'];
+      const CORES_STATUS = { 'Pendente': '#dc3545', 'Em tratativa': '#ffc107', 'Resolvido': '#198754', 'Arquivado': '#6c757d' };
+      const DIAS_SEMANA_JS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+      const NOMES_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+      if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
+
+      function hojeISO() { return new Date().toISOString().slice(0, 10); }
+      function numOuNull(v) { return (v === null || v === undefined || v === '') ? null : Number(v); }
+      function fmtPct(v) { return v === null || v === undefined || isNaN(v) ? '—' : v.toFixed(1).replace('.', ',') + '%'; }
+
+      // "-9,38%" / "17,63%" -> pontos percentuais (-9.38 / 17.63). Mesmo formato pt-BR
+      // salvo por tratamento-2art.html em dispersao_tempo_pct/dispersao_km_pct
+      // (mesma regra usada em analise-diaria.html, ver percentualStringParaFracao lá).
+      function parsePercentualBR(texto) {
+        const limpo = String(texto ?? '').trim().replace('%', '').replace(/\./g, '').replace(',', '.');
+        if (limpo === '') return null;
+        const numero = Number(limpo);
+        return isNaN(numero) ? null : numero;
+      }
+
+      // Mediana em vez de média: dispersao_km_pct real tem outliers extremos (km_prev
+      // perto de zero gera %, ex. milhões por cento) que uma média simples deixaria
+      // ilegível. Não altera nenhum valor salvo — só a estatística de resumo do relatório.
+      function mediana(numeros) {
+        const validos = numeros.filter(n => n !== null && n !== undefined && !isNaN(n)).sort((a, b) => a - b);
+        if (!validos.length) return null;
+        const meio = Math.floor(validos.length / 2);
+        return validos.length % 2 ? validos[meio] : (validos[meio - 1] + validos[meio]) / 2;
+      }
+
+      // Busca paginada (esse projeto Supabase corta em 1000 linhas por página, mesmo pedindo mais).
+      async function buscarPaginado(tabela, colunas, dataDe, dataAte, colunaData) {
+        const TAM_PAGINA = 1000;
+        let pagina = 0, tudo = [];
+        while (true) {
+          const { data, error } = await supabaseClient
+            .from(tabela).select(colunas)
+            .gte(colunaData, dataDe).lte(colunaData, dataAte)
+            .range(pagina * TAM_PAGINA, pagina * TAM_PAGINA + TAM_PAGINA - 1);
+          if (error) throw error;
+          tudo = tudo.concat(data || []);
+          if (!data || data.length < TAM_PAGINA) break;
+          pagina++;
+        }
+        return tudo;
+      }
+
+      function buscarIndicadores(dataDe, dataAte) {
+        return buscarPaginado('atendimentos_2art', 'revenda,mapa,data,dispersao_tempo,dispersao_tempo_pct,dispersao_km_pct,mapa_valido_hr,mapa_valido_km', dataDe, dataAte, 'data');
+      }
+      function buscarTratativasPeriodo(dataDe, dataAte) {
+        return buscarPaginado('tratativas', 'id,data_registro,revenda,tipoacao,dt,descricao,status', dataDe, dataAte, 'data_registro');
+      }
+
+      function agregarIndicadores(linhas) {
+        const valoresDt = [], valoresDk = [];
+        let invalidosHr = 0, invalidosKm = 0, somaAbsDtPct = 0;
+        const mapasUnicos = new Set();
+        linhas.forEach(l => {
+          mapasUnicos.add(l.revenda + '|' + l.mapa + '|' + l.data);
+          const dt = parsePercentualBR(l.dispersao_tempo_pct);
+          const dk = parsePercentualBR(l.dispersao_km_pct);
+          if (dt !== null) { valoresDt.push(dt); somaAbsDtPct += Math.abs(dt); }
+          if (dk !== null) valoresDk.push(dk);
+          if (l.mapa_valido_hr === 'Não') invalidosHr++;
+          if (l.mapa_valido_km === 'Não') invalidosKm++;
+        });
+        return {
+          mapas: mapasUnicos.size,
+          dtMedio: mediana(valoresDt),
+          dkMedio: mediana(valoresDk),
+          invalidosHr, invalidosKm, somaAbsDtPct
+        };
+      }
+
+      function kpiHtml(label, valor) {
+        return `<div class="col-6 col-md-3"><div class="kpi-box"><div class="kpi-label">${label}</div><div class="kpi-valor">${valor}</div></div></div>`;
+      }
+
+      // ============================================================
+      // ABAS
+      // ============================================================
+      function ativarAba(aba) {
+        document.querySelectorAll('#abasRelatorio .nav-link').forEach(b => b.classList.toggle('active', b.dataset.aba === aba));
+        document.querySelectorAll('.painel-relatorio').forEach(p => p.classList.add('d-none'));
+        document.getElementById('painel' + aba.charAt(0).toUpperCase() + aba.slice(1)).classList.remove('d-none');
+        if (history.replaceState) history.replaceState(null, '', '#' + aba);
+      }
+      document.querySelectorAll('#abasRelatorio .nav-link').forEach(btn => {
+        btn.addEventListener('click', () => ativarAba(btn.dataset.aba));
+      });
+      document.getElementById('btnImprimir').addEventListener('click', () => window.print());
+
+      // ============================================================
+      // DIÁRIO
+      // ============================================================
+      async function gerarDiario() {
+        const data = document.getElementById('diarioData').value;
+        if (!data) return;
+        document.getElementById('diarioTituloData').textContent = data;
+        document.getElementById('diarioStatus').textContent = 'Carregando...';
+        try {
+          const [indicadores, tratativasDia, pendentesAteData] = await Promise.all([
+            buscarIndicadores(data, data),
+            buscarTratativasPeriodo(data, data),
+            buscarPaginado('tratativas', 'id,status,data_registro', '0001-01-01', data, 'data_registro')
+          ]);
+          const agr = agregarIndicadores(indicadores);
+          document.getElementById('diarioKpis').innerHTML =
+            kpiHtml('Mapas no dia', agr.mapas) +
+            kpiHtml('DT% mediana', fmtPct(agr.dtMedio)) +
+            kpiHtml('Inválidos p/ horário', agr.invalidosHr) +
+            kpiHtml('Inválidos p/ km', agr.invalidosKm);
+
+          document.getElementById('diarioTratativasCount').textContent = tratativasDia.length;
+          document.getElementById('diarioResolvidasCount').textContent = tratativasDia.filter(t => t.status === 'Resolvido').length;
+          const pendentes = pendentesAteData.filter(t => t.status === 'Pendente' || t.status === 'Em tratativa');
+          document.getElementById('diarioPendentesCount').textContent = pendentes.length;
+
+          document.getElementById('diarioTabelaTratativas').innerHTML = tratativasDia.length
+            ? tratativasDia.map(t => `<tr><td><span class="badge bg-info">${t.revenda || ''}</span></td><td>${t.tipoacao || ''}</td><td>${t.dt || ''}</td><td>${t.descricao || ''}</td><td>${t.status || ''}</td></tr>`).join('')
+            : '<tr><td colspan="5" class="text-center text-secondary py-3">Nenhuma tratativa registrada nesta data.</td></tr>';
+
+          document.getElementById('diarioStatus').textContent = 'Atualizado.';
+        } catch (e) {
+          console.error(e);
+          document.getElementById('diarioStatus').textContent = 'Erro: ' + e.message;
+        }
+      }
+      document.getElementById('diarioAtualizar').addEventListener('click', gerarDiario);
+
+      // ============================================================
+      // SEMANAL
+      // ============================================================
+      let chartSemanalDt = null;
+
+      function segundaFeiraDaSemana(dataISO) {
+        const d = new Date(dataISO + 'T00:00:00');
+        const diaSemana = d.getDay(); // 0=domingo
+        const deslocamento = diaSemana === 0 ? -6 : 1 - diaSemana;
+        d.setDate(d.getDate() + deslocamento);
+        return d;
+      }
+      function addDias(data, n) { const d = new Date(data); d.setDate(d.getDate() + n); return d; }
+      function paraISO(d) { return d.toISOString().slice(0, 10); }
+
+      async function gerarSemanal() {
+        const dataRef = document.getElementById('semanalData').value;
+        if (!dataRef) return;
+        const segunda = segundaFeiraDaSemana(dataRef);
+        const domingo = addDias(segunda, 6);
+        const dataDe = paraISO(segunda), dataAte = paraISO(domingo);
+        document.getElementById('semanalTituloPeriodo').textContent = `${dataDe} a ${dataAte}`;
+        document.getElementById('semanalStatus').textContent = 'Carregando...';
+        try {
+          const [indicadores, tratativasSemana] = await Promise.all([
+            buscarIndicadores(dataDe, dataAte),
+            buscarTratativasPeriodo(dataDe, dataAte)
+          ]);
+          const agr = agregarIndicadores(indicadores);
+          document.getElementById('semanalKpis').innerHTML =
+            kpiHtml('Mapas na semana', agr.mapas) +
+            kpiHtml('DT% mediana', fmtPct(agr.dtMedio)) +
+            kpiHtml('Inválidos p/ horário', agr.invalidosHr) +
+            kpiHtml('Inválidos p/ km', agr.invalidosKm);
+
+          document.getElementById('semanalAbertasCount').textContent = tratativasSemana.length;
+          document.getElementById('semanalResolvidasCount').textContent = tratativasSemana.filter(t => t.status === 'Resolvido').length;
+
+          const diasOrdem = [1, 2, 3, 4, 5, 6, 0]; // segunda..domingo
+          const labels = diasOrdem.map(i => DIAS_SEMANA_JS[i]);
+          const porDia = diasOrdem.map(diaSemanaIdx => {
+            const doDia = indicadores.filter(l => new Date(l.data + 'T00:00:00').getDay() === diaSemanaIdx);
+            const vals = doDia.map(l => parsePercentualBR(l.dispersao_tempo_pct)).filter(v => v !== null);
+            return mediana(vals);
+          });
+
+          if (typeof Chart !== 'undefined') {
+            if (chartSemanalDt) chartSemanalDt.destroy();
+            chartSemanalDt = new Chart(document.getElementById('semanalChartDt'), {
+              type: 'line',
+              data: { labels, datasets: [{ label: 'DT% mediana', data: porDia.map(v => v ?? 0), borderColor: '#2b7af0', backgroundColor: 'rgba(43,122,240,.15)', fill: true, tension: .25, pointRadius: 4 }] },
+              options: { responsive: true, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+          }
+          document.getElementById('semanalStatus').textContent = 'Atualizado.';
+        } catch (e) {
+          console.error(e);
+          document.getElementById('semanalStatus').textContent = 'Erro: ' + e.message;
+        }
+      }
+      document.getElementById('semanalAtualizar').addEventListener('click', gerarSemanal);
+
+      // ============================================================
+      // MENSAL
+      // ============================================================
+      let chartMensalSemana = null, chartMensalStatus = null;
+
+      function semanaDoMes(dataISO) {
+        const dia = parseInt(String(dataISO).slice(8, 10), 10);
+        if (isNaN(dia)) return null;
+        return Math.min(5, Math.ceil(dia / 7));
+      }
+
+      async function gerarMensal() {
+        const mesRef = document.getElementById('mensalMes').value; // 'YYYY-MM'
+        if (!mesRef) return;
+        const [ano, mes] = mesRef.split('-').map(Number);
+        const dataDe = `${mesRef}-01`;
+        const ultimoDia = new Date(ano, mes, 0).getDate();
+        const dataAte = `${mesRef}-${String(ultimoDia).padStart(2, '0')}`;
+        document.getElementById('mensalTituloMes').textContent = `${NOMES_MESES[mes - 1]}/${ano}`;
+        document.getElementById('mensalStatus').textContent = 'Carregando...';
+        try {
+          const [indicadores, tratativasMes] = await Promise.all([
+            buscarIndicadores(dataDe, dataAte),
+            buscarTratativasPeriodo(dataDe, dataAte)
+          ]);
+          const agr = agregarIndicadores(indicadores);
+          document.getElementById('mensalKpis').innerHTML =
+            kpiHtml('Mapas no mês', agr.mapas) +
+            kpiHtml('DT% mediana', fmtPct(agr.dtMedio)) +
+            kpiHtml('Inválidos p/ horário', agr.invalidosHr) +
+            kpiHtml('Inválidos p/ km', agr.invalidosKm);
+
+          // gráfico por semana do mês
+          const porSemana = [1, 2, 3, 4, 5].map(s => {
+            const vals = indicadores.filter(l => semanaDoMes(l.data) === s).map(l => parsePercentualBR(l.dispersao_tempo_pct)).filter(v => v !== null);
+            return mediana(vals);
+          });
+          if (typeof Chart !== 'undefined') {
+            if (chartMensalSemana) chartMensalSemana.destroy();
+            chartMensalSemana = new Chart(document.getElementById('mensalChartSemana'), {
+              type: 'bar',
+              data: { labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4', 'Semana 5'], datasets: [{ label: 'DT% mediana', data: porSemana.map(v => v ?? 0), backgroundColor: '#2b7af0', borderRadius: 6 }] },
+              options: {
+                responsive: true,
+                layout: { padding: { top: 20 } },
+                plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', offset: 4, formatter: v => v ? v.toFixed(1).replace('.', ',') + '%' : '' } },
+                scales: { y: { beginAtZero: true } }
+              }
+            });
+
+            const porStatus = {};
+            tratativasMes.forEach(t => { porStatus[t.status || 'Sem status'] = (porStatus[t.status || 'Sem status'] || 0) + 1; });
+            const labelsStatus = Object.keys(porStatus);
+            if (chartMensalStatus) chartMensalStatus.destroy();
+            chartMensalStatus = new Chart(document.getElementById('mensalChartStatus'), {
+              type: 'doughnut',
+              data: { labels: labelsStatus, datasets: [{ data: Object.values(porStatus), backgroundColor: labelsStatus.map(l => CORES_STATUS[l] || '#adb5bd'), borderWidth: 2, borderColor: '#fff' }] },
+              options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }, datalabels: { color: '#fff', font: { weight: 'bold' }, formatter: v => v > 0 ? v : '' } } }
+            });
+          }
+
+          // ranking de revendas no mês
+          const porRevenda = {};
+          REVENDAS.forEach(r => porRevenda[r] = { mapas: 0, valoresDt: [], somaAbsDtPct: 0 });
+          indicadores.forEach(l => {
+            const r = porRevenda[l.revenda];
+            if (!r) return;
+            r.mapas++;
+            const dt = parsePercentualBR(l.dispersao_tempo_pct);
+            if (dt !== null) { r.valoresDt.push(dt); r.somaAbsDtPct += Math.abs(dt); }
+          });
+          const ranking = REVENDAS.map(r => ({ revenda: r, ...porRevenda[r], dtMedio: mediana(porRevenda[r].valoresDt) }))
+            .sort((a, b) => b.somaAbsDtPct - a.somaAbsDtPct);
+          document.getElementById('mensalTabelaRevendas').innerHTML = ranking.map(r => `
+            <tr><td class="fw-semibold text-primary-dark">${r.revenda}</td><td>${r.mapas}</td><td>${fmtPct(r.dtMedio)}</td><td>${Math.round(r.somaAbsDtPct)}</td></tr>
+          `).join('');
+
+          document.getElementById('mensalStatus').textContent = 'Atualizado.';
+        } catch (e) {
+          console.error(e);
+          document.getElementById('mensalStatus').textContent = 'Erro: ' + e.message;
+        }
+      }
+      document.getElementById('mensalAtualizar').addEventListener('click', gerarMensal);
+
+      // ============================================================
+      // INICIALIZAÇÃO
+      // ============================================================
+      document.getElementById('diarioData').value = hojeISO();
+      document.getElementById('semanalData').value = hojeISO();
+      document.getElementById('mensalMes').value = hojeISO().slice(0, 7);
+
+      const abaInicial = (location.hash || '#diario').replace('#', '');
+      ativarAba(['diario', 'semanal', 'mensal'].includes(abaInicial) ? abaInicial : 'diario');
+
+      gerarDiario();
+      gerarSemanal();
+      gerarMensal();
+    })();
+  </script>
+</body>
+</html>
