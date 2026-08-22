@@ -90,6 +90,13 @@
     padding: .25rem .7rem; border-radius: 40px; letter-spacing: .02em; text-transform: uppercase;
   }
 
+  /* Altura fixa pro canvas do Chart.js — sem isso, destruir/recriar o gráfico a cada
+     atualização de data faz o canvas crescer de tamanho a cada vez (bug conhecido do
+     Chart.js quando o container não tem altura própria). maintainAspectRatio:false
+     nas opções do gráfico + essa altura fixa resolvem os dois lados do problema. */
+  .chart-box { position: relative; height: 220px; }
+  .chart-box.chart-box-sm { height: 210px; }
+
   @media (max-width: 576px) { .card-shadow { padding: 1rem !important; } }
 </style>
 </head>
@@ -141,13 +148,13 @@
       <div class="col-lg-7">
         <div class="card card-shadow p-3 h-100">
           <div class="text-secondary small fw-semibold mb-2"><i class="bi bi-bar-chart-line me-1"></i>Dispersão de Tempo (%) por Revenda</div>
-          <canvas id="chartDtRevenda" height="200"></canvas>
+          <div class="chart-box"><canvas id="chartDtRevenda"></canvas></div>
         </div>
       </div>
       <div class="col-lg-5">
         <div class="card card-shadow p-3 h-100">
           <div class="text-secondary small fw-semibold mb-2"><i class="bi bi-graph-up me-1"></i>Pareto — onde o estouro de tempo se concentra</div>
-          <canvas id="chartParetoRevenda" height="200"></canvas>
+          <div class="chart-box"><canvas id="chartParetoRevenda"></canvas></div>
         </div>
       </div>
     </div>
@@ -156,16 +163,31 @@
       <div class="col-lg-7">
         <div class="card card-shadow p-3 h-100">
           <div class="text-secondary small fw-semibold mb-2"><i class="bi bi-bar-chart-line me-1"></i>Dispersão de Km (%) por Revenda</div>
-          <canvas id="chartDkRevenda" height="200"></canvas>
+          <div class="chart-box"><canvas id="chartDkRevenda"></canvas></div>
         </div>
       </div>
       <div class="col-lg-5">
         <div class="card card-shadow p-3 h-100">
           <div class="text-secondary small fw-semibold mb-2"><i class="bi bi-graph-up me-1"></i>Pareto — onde o estouro de km se concentra</div>
-          <canvas id="chartParetoKmRevenda" height="200"></canvas>
+          <div class="chart-box"><canvas id="chartParetoKmRevenda"></canvas></div>
         </div>
       </div>
     </div>
+
+    <!-- NÍVEL 2 — MESO: top 5 cidades com maior estouro de Tempo e de Km, por Revenda -->
+    <div class="mb-3 d-flex align-items-center gap-2 flex-wrap">
+      <span class="nivel-badge"><i class="bi bi-2-circle-fill"></i>Meso</span>
+      <h5 class="fw-semibold text-primary-dark mb-0">Dispersão de Tempo — Top 5 Cidades por Revenda</h5>
+      <span class="small text-secondary">(mesma regra do Ranking de Estouro — últimas 10 tours por cliente, mín. 3 apontamentos válidos por cliente e mín. 10 apontamentos no total da cidade)</span>
+    </div>
+    <div class="row g-3 mb-4" id="linhaCidadesTempo"></div>
+
+    <div class="mb-3 d-flex align-items-center gap-2 flex-wrap">
+      <span class="nivel-badge"><i class="bi bi-2-circle-fill"></i>Meso</span>
+      <h5 class="fw-semibold text-primary-dark mb-0">Dispersão de Km — Top 5 Cidades por Revenda</h5>
+      <span class="small text-secondary">(mediana do DK% dos Mapas que visitaram a cidade, só Mapas válidos p/ Km)</span>
+    </div>
+    <div class="row g-3 mb-5" id="linhaCidadesKm"></div>
 
     <!-- NÍVEL 2 — MESO: piores Mapas da Revenda selecionada -->
     <div class="mb-3 d-flex align-items-center gap-2 flex-wrap">
@@ -444,6 +466,7 @@
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             layout: { padding: { top: 20 } },
             plugins: {
               legend: { display: false },
@@ -483,6 +506,7 @@
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: { datalabels: { display: false }, legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
             scales: {
               y: { beginAtZero: true },
@@ -508,6 +532,7 @@
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             layout: { padding: { top: 20 } },
             plugins: {
               legend: { display: false },
@@ -547,6 +572,7 @@
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: { datalabels: { display: false }, legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
             scales: {
               y: { beginAtZero: true },
@@ -554,6 +580,324 @@
             }
           }
         });
+      }
+
+      // ============================================================
+      // TOP 5 CIDADES — MAIOR ESTOURO DE TEMPO (mesma regra do "Ranking de Estouro")
+      // Fonte: tabela `atendimentos` (não `atendimentos_2art`) — é um conceito por
+      // VISITA de cliente (tempo real vs. estimado), não por Mapa/rota. Cópia fiel de
+      // calcularTopCidades()/QTD_TOURS_POR_CLIENTE em ranking-estouro.html, modo
+      // "quantidade" (razão Com estouro / Sem estouro), só cortando em 5 em vez de 10.
+      // ============================================================
+      const QTD_TOURS_POR_CLIENTE = 10;
+      const MIN_APONTAMENTOS_CIDADE = 3; // por CLIENTE, pra entrar na conta
+      const MIN_APONTAMENTOS_TOTAL_CIDADE = 10; // por CIDADE, pra entrar no Top 5 (evita amostra pequena "ganhar" por acaso)
+      const COR_ESTOURO_POSITIVO = '#e34948'; // com estouro
+      const COR_ESTOURO_NEGATIVO = '#2a78d6'; // sem estouro
+      let chartsCidadesTempo = {}, chartsCidadesKm = {};
+      const cacheFetchPorRevenda = new Map(); // revenda -> { atendimentos, mapaClientes }, evita rebuscar ao alternar
+
+      // Mediana — só usada aqui (Top 5 Cidades por Km), pra resumir o DK% dos Mapas
+      // que passam por cada cidade sem um outlier isolado dominar o resultado.
+      function mediana(numeros) {
+        const validos = numeros.filter(n => n !== null && n !== undefined && !isNaN(n)).sort((a, b) => a - b);
+        if (!validos.length) return null;
+        const meio = Math.floor(validos.length / 2);
+        return validos.length % 2 ? validos[meio] : (validos[meio - 1] + validos[meio]) / 2;
+      }
+
+      function horaParaSegundosEstrito(str) {
+        if (!str) return null;
+        const negativo = str.startsWith('-');
+        const limpo = negativo ? str.slice(1) : str;
+        const partes = limpo.split(':').map(Number);
+        if (partes.length !== 3 || partes.some(isNaN)) return null;
+        const segundos = partes[0] * 3600 + partes[1] * 60 + partes[2];
+        return negativo ? -segundos : segundos;
+      }
+
+      function ehVerdadeiro(valor) {
+        if (valor === true) return true;
+        if (typeof valor === 'number') return valor === 1;
+        if (typeof valor === 'string') {
+          const v = valor.trim().toLowerCase();
+          return v === 'true' || v === 'verdadeiro' || v === 'sim' || v === '1';
+        }
+        return false;
+      }
+
+      async function buscarAtendimentosParaCidades(revenda) {
+        let todasLinhas = [];
+        let pagina = 0;
+        while (true) {
+          const { data, error } = await supabaseClient
+            .from('atendimentos')
+            .select('cod_cliente,mapa,data,status,dentro_do_raio,tempo_atendimento,tempo_estimado_atendimento')
+            .eq('revenda', revenda)
+            .not('cod_cliente', 'is', null)
+            .order('cod_cliente', { ascending: true })
+            .order('data', { ascending: false })
+            .range(pagina * 1000, pagina * 1000 + 999);
+          if (error) throw error;
+          todasLinhas = todasLinhas.concat(data || []);
+          if (!data || data.length < 1000) break;
+          pagina++;
+        }
+        return todasLinhas;
+      }
+
+      async function buscarClientesParaCidades(revenda) {
+        const mapa = new Map();
+        let pagina = 0;
+        while (true) {
+          const { data, error } = await supabaseClient
+            .from('clientes')
+            .select('codigo_cliente, cidade')
+            .eq('revenda', revenda)
+            .range(pagina * 1000, pagina * 1000 + 999);
+          if (error) throw error;
+          (data || []).forEach(c => mapa.set(String(c.codigo_cliente).trim(), c));
+          if (!data || data.length < 1000) break;
+          pagina++;
+        }
+        return mapa;
+      }
+
+      function calcularTopCidadesEstouro(atendimentos, mapaClientes) {
+        const porCliente = new Map();
+        atendimentos.forEach(a => {
+          const chave = String(a.cod_cliente);
+          if (!porCliente.has(chave)) porCliente.set(chave, []);
+          porCliente.get(chave).push(a);
+        });
+
+        const porCidade = new Map();
+        porCliente.forEach((registros, codCliente) => {
+          const ultimasDez = registros.slice(0, QTD_TOURS_POR_CLIENTE);
+          const validas = ultimasDez.filter(r => r.status === 'Concluído' && ehVerdadeiro(r.dentro_do_raio));
+
+          let qtdEstourosCliente = 0;
+          let qtdValidasCliente = 0;
+          validas.forEach(r => {
+            const segReal = horaParaSegundosEstrito(r.tempo_atendimento);
+            const segPlan = horaParaSegundosEstrito(r.tempo_estimado_atendimento);
+            if (segReal === null || segPlan === null) return;
+            qtdValidasCliente++;
+            if (segReal - segPlan > 0) qtdEstourosCliente++;
+          });
+          if (qtdValidasCliente < MIN_APONTAMENTOS_CIDADE) return;
+
+          const cliente = mapaClientes.get(codCliente);
+          const cidade = cliente ? (cliente.cidade || '').trim() : '';
+          if (!cidade) return;
+
+          if (!porCidade.has(cidade)) porCidade.set(cidade, { qtdEstouros: 0, qtdTotalApontamentos: 0 });
+          const acumulado = porCidade.get(cidade);
+          acumulado.qtdEstouros += qtdEstourosCliente;
+          acumulado.qtdTotalApontamentos += qtdValidasCliente;
+        });
+
+        return Array.from(porCidade.entries()).map(([cidade, a]) => ({
+          cidade,
+          qtdEstouros: a.qtdEstouros,
+          qtdSemEstouro: a.qtdTotalApontamentos - a.qtdEstouros
+        }));
+      }
+
+      // Piso mínimo de amostra por cidade — sem isso, uma cidade com poucos apontamentos
+      // pode "ganhar" o Top 5 só por acaso estatístico (mesmo padrão já usado na
+      // Priorização de Cidade em analise-diaria.html).
+      function top5CidadesPorRazao(cidades) {
+        return [...cidades]
+          .filter(c => (c.qtdEstouros + c.qtdSemEstouro) >= MIN_APONTAMENTOS_TOTAL_CIDADE)
+          .map(c => ({ ...c, razao: c.qtdSemEstouro ? c.qtdEstouros / c.qtdSemEstouro : (c.qtdEstouros ? Infinity : 0) }))
+          .sort((a, b) => b.razao - a.razao)
+          .slice(0, 5);
+      }
+
+      // Mapa -> conjunto de cidades visitadas nesse Mapa (via cod_cliente -> clientes.cidade).
+      // Um Mapa cobre vários clientes/cidades, então ele contribui o DK% dele pra CADA
+      // cidade que visitou — é uma aproximação (não dá pra isolar o trecho da rota
+      // dentro de uma cidade só), mas usa dado real e é transparente sobre a regra.
+      function construirIndiceMapaCidades(atendimentos, mapaClientes) {
+        const indice = new Map();
+        atendimentos.forEach(a => {
+          if (a.mapa === null || a.mapa === undefined) return;
+          const cliente = mapaClientes.get(String(a.cod_cliente));
+          const cidade = cliente ? (cliente.cidade || '').trim() : '';
+          if (!cidade) return;
+          const chaveMapa = String(a.mapa);
+          if (!indice.has(chaveMapa)) indice.set(chaveMapa, new Set());
+          indice.get(chaveMapa).add(cidade);
+        });
+        return indice;
+      }
+
+      // Top 5 cidades pela mediana do |DK%| dos Mapas (só os válidos p/ Km, mesmo
+      // filtro — mapa_valido_km='Sim' + frota Padrão/Fixo — usado nos cards da Home).
+      function top5CidadesPorKm(linhasRevenda, indiceMapaCidades) {
+        const porCidade = new Map();
+        linhasRevenda
+          .filter(l => l.mapa_valido_km === 'Sim' && frotaValida(l.frota))
+          .forEach(l => {
+            const dk = parsePercentualBR(l.dispersao_km_pct);
+            if (dk === null) return;
+            const cidades = indiceMapaCidades.get(String(l.mapa));
+            if (!cidades) return;
+            cidades.forEach(cidade => {
+              if (!porCidade.has(cidade)) porCidade.set(cidade, []);
+              porCidade.get(cidade).push(dk);
+            });
+          });
+        return Array.from(porCidade.entries())
+          .map(([cidade, valores]) => ({ cidade, medianaDk: mediana(valores), qtdMapas: valores.length }))
+          .sort((a, b) => Math.abs(b.medianaDk) - Math.abs(a.medianaDk))
+          .slice(0, 5);
+      }
+
+      // % do total de apontamentos válidos da cidade que tiveram estouro
+      // (qtdEstouros / (qtdEstouros + qtdSemEstouro)) — o rótulo que fica na frente da barra.
+      function pctEstouroTotal(c) {
+        const total = c.qtdEstouros + c.qtdSemEstouro;
+        return total ? (c.qtdEstouros / total * 100) : null;
+      }
+
+      function montarCardsCidades(idContainer, prefixoCanvas, icone) {
+        const host = document.getElementById(idContainer);
+        host.innerHTML = REVENDAS.map(r => `
+          <div class="col-md-6 col-lg-3">
+            <div class="card card-shadow p-3 h-100">
+              <div class="fw-bold mb-2" style="color:${CORES_REVENDA[r]};"><i class="bi ${icone} me-1"></i>${r}</div>
+              <div class="chart-box chart-box-sm"><canvas id="${prefixoCanvas}_${r}"></canvas></div>
+              <div class="empty-state d-none py-3" id="${prefixoCanvas}_vazio_${r}">
+                <i class="bi bi-inbox"></i>
+                <div class="small">Sem dado suficiente.</div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      function renderizarChartCidadeTempoUnico(revenda, top5) {
+        const canvas = document.getElementById('chartCidadesTempo_' + revenda);
+        const vazio = document.getElementById('chartCidadesTempo_vazio_' + revenda);
+        if (chartsCidadesTempo[revenda]) { chartsCidadesTempo[revenda].destroy(); delete chartsCidadesTempo[revenda]; }
+        if (!top5.length) {
+          canvas.classList.add('d-none');
+          vazio.classList.remove('d-none');
+          return;
+        }
+        canvas.classList.remove('d-none');
+        vazio.classList.add('d-none');
+        if (typeof Chart === 'undefined') return;
+        chartsCidadesTempo[revenda] = new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels: top5.map(c => c.cidade),
+            datasets: [
+              { label: 'Com estouro', data: top5.map(c => c.qtdEstouros), backgroundColor: COR_ESTOURO_POSITIVO, stack: 's', datalabels: { display: false } },
+              {
+                label: 'Sem estouro', data: top5.map(c => c.qtdSemEstouro), backgroundColor: COR_ESTOURO_NEGATIVO, stack: 's',
+                datalabels: {
+                  display: true, anchor: 'end', align: 'end', color: '#0a3e7c', font: { weight: 'bold', size: 10 },
+                  formatter: (_v, ctx) => { const p = pctEstouroTotal(top5[ctx.dataIndex]); return p === null ? '' : p.toFixed(0) + '%'; }
+                }
+              }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { right: 30 } },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  afterBody: (items) => {
+                    const c = top5[items[0].dataIndex];
+                    const p = pctEstouroTotal(c);
+                    return `${c.qtdEstouros} com estouro de ${c.qtdEstouros + c.qtdSemEstouro} (${p === null ? '—' : p.toFixed(0) + '%'})`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: { stacked: true, beginAtZero: true, ticks: { font: { size: 9 } } },
+              y: { stacked: true, ticks: { font: { size: 9 } } }
+            }
+          }
+        });
+      }
+
+      function renderizarChartCidadeKmUnico(revenda, top5) {
+        const canvas = document.getElementById('chartCidadesKm_' + revenda);
+        const vazio = document.getElementById('chartCidadesKm_vazio_' + revenda);
+        if (chartsCidadesKm[revenda]) { chartsCidadesKm[revenda].destroy(); delete chartsCidadesKm[revenda]; }
+        if (!top5.length) {
+          canvas.classList.add('d-none');
+          vazio.classList.remove('d-none');
+          return;
+        }
+        canvas.classList.remove('d-none');
+        vazio.classList.add('d-none');
+        if (typeof Chart === 'undefined') return;
+        chartsCidadesKm[revenda] = new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels: top5.map(c => c.cidade),
+            datasets: [{
+              label: 'DK% mediana',
+              data: top5.map(c => c.medianaDk),
+              backgroundColor: top5.map(c => c.medianaDk >= 0 ? COR_ESTOURO_POSITIVO : COR_ESTOURO_NEGATIVO)
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { right: 30 } },
+            plugins: {
+              legend: { display: false },
+              datalabels: { anchor: 'end', align: 'end', color: '#0a3e7c', font: { weight: 'bold', size: 10 }, formatter: v => v.toFixed(1).replace('.', ',') + '%' },
+              tooltip: {
+                callbacks: { afterBody: (items) => `Baseado em ${top5[items[0].dataIndex].qtdMapas} Mapa(s) válido(s) p/ Km` }
+              }
+            },
+            scales: {
+              x: { beginAtZero: true, ticks: { font: { size: 9 } } },
+              y: { ticks: { font: { size: 9 } } }
+            }
+          }
+        });
+      }
+
+      async function carregarCidadesTodasRevendas() {
+        try {
+          await Promise.all(REVENDAS.map(async (revenda) => {
+            let fetchInfo;
+            if (cacheFetchPorRevenda.has(revenda)) {
+              fetchInfo = cacheFetchPorRevenda.get(revenda);
+            } else {
+              const [atendimentos, mapaClientes] = await Promise.all([
+                buscarAtendimentosParaCidades(revenda),
+                buscarClientesParaCidades(revenda)
+              ]);
+              fetchInfo = { atendimentos, mapaClientes };
+              cacheFetchPorRevenda.set(revenda, fetchInfo);
+            }
+
+            const top5Tempo = top5CidadesPorRazao(calcularTopCidadesEstouro(fetchInfo.atendimentos, fetchInfo.mapaClientes));
+            renderizarChartCidadeTempoUnico(revenda, top5Tempo);
+
+            const indiceMapaCidades = construirIndiceMapaCidades(fetchInfo.atendimentos, fetchInfo.mapaClientes);
+            const linhasDaRevenda = linhasAtuais.filter(l => l.revenda === revenda);
+            const top5Km = top5CidadesPorKm(linhasDaRevenda, indiceMapaCidades);
+            renderizarChartCidadeKmUnico(revenda, top5Km);
+          }));
+        } catch (e) {
+          console.error(e);
+        }
       }
 
       function renderizarPioresMapas() {
@@ -619,6 +963,7 @@
           renderizarChartDk(agregado);
           renderizarChartParetoDk(agregado);
           renderizarPioresMapas();
+          carregarCidadesTodasRevendas();
           statusCarregamento.textContent = `${linhasAtuais.length} registro(s) de ${dataDe} até ${dataAte}.`;
         } catch (e) {
           console.error(e);
@@ -627,6 +972,8 @@
       }
 
       // Inicialização: período padrão = este mês
+      montarCardsCidades('linhaCidadesTempo', 'chartCidadesTempo', 'bi-clock-history');
+      montarCardsCidades('linhaCidadesKm', 'chartCidadesKm', 'bi-signpost-split');
       filtroDataDe.value = primeiroDiaDoMesISO();
       filtroDataAte.value = hojeISO();
       carregarTudo();
