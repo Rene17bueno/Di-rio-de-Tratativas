@@ -78,7 +78,6 @@
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" data-nav-item="analise" href="analise.html"><i class="bi bi-layout-text-window-reverse"></i>Análise</a></li>
                 <li><a class="dropdown-item" data-nav-item="mapa" href="consulta-mapa.html"><i class="bi bi-signpost-2-fill"></i>Consulta por Mapa</a></li>
-                <li><a class="dropdown-item" data-nav-item="vinculo" href="vinculo-tabelas.html"><i class="bi bi-link-45deg"></i>Vínculo de Tabelas</a></li>
                 <li><a class="dropdown-item" data-nav-item="ranking" href="ranking-estouro.html"><i class="bi bi-graph-up-arrow"></i>Ranking de Estouro</a></li>
                 <li><a class="dropdown-item" data-nav-item="diaria" href="analise-diaria.html"><i class="bi bi-clipboard2-pulse-fill"></i>Análise Diária</a></li>
               </ul>
@@ -117,7 +116,6 @@
       itens: [
         { chave: 'analise',  rotulo: 'Análise',              icone: 'bi-layout-text-window-reverse', href: 'analise.html' },
         { chave: 'mapa',     rotulo: 'Consulta por Mapa',    icone: 'bi-signpost-2-fill',            href: 'consulta-mapa.html' },
-        { chave: 'vinculo',  rotulo: 'Vínculo de Tabelas',   icone: 'bi-link-45deg',                 href: 'vinculo-tabelas.html' },
         { chave: 'ranking',  rotulo: 'Ranking de Estouro',   icone: 'bi-graph-up-arrow',             href: 'ranking-estouro.html' },
         { chave: 'diaria',   rotulo: 'Análise Diária',       icone: 'bi-clipboard2-pulse-fill',      href: 'analise-diaria.html' },
       ],
